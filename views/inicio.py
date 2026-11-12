@@ -1,7 +1,7 @@
 """
 views/inicio.py
 ===============
-El Santo Grial de los Métodos Numéricos — Portal de Referencia Matemática.
+Métodos Computacionales / Numéricos — Portal de Referencia Matemática.
 Catálogo central organizado por ramas y métodos numéricos, con navegación directa en 1 clic.
 """
 
@@ -20,7 +20,7 @@ def vista_inicio():
                 <span style="font-size: 2.8rem;">🏛️</span>
                 <div>
                     <h1 style="margin: 0; font-size: 2.3rem; font-weight: 800; color: white; letter-spacing: -0.5px;">
-                        El Santo Grial de los Métodos Numéricos
+                        Métodos Computacionales / Numéricos
                     </h1>
                     <p style="margin: 4px 0 0 0; font-size: 1.15rem; opacity: 0.95; font-weight: 300;">
                         Plataforma de Referencia Teórica, Algorítmica y Visual &bull; FaCENA - UNNE

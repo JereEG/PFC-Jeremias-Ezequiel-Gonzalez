@@ -1,7 +1,7 @@
 """
 app.py
 ======
-El Santo Grial de los Métodos Numéricos — Entrypoint Principal.
+Métodos Computacionales / Numéricos — Entrypoint Principal.
 Proyecto Final de Carrera (PFC) — FaCENA - Universidad Nacional del Nordeste (UNNE).
 
 Desarrollado con arquitectura Cloud-Ready para Streamlit Community Cloud utilizando
@@ -14,7 +14,7 @@ import streamlit as st
 
 # Configuración global de la página
 st.set_page_config(
-    page_title="El Santo Grial de los Métodos Numéricos — FaCENA UNNE",
+    page_title="Métodos Computacionales / Numéricos — FaCENA UNNE",
     page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded",
