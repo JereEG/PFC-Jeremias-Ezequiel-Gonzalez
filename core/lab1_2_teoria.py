@@ -542,6 +542,10 @@ def format_norm(val: float, k: int = 3) -> str:
     Retorna el string de un valor en notación científica normalizada con redondeo simétrico:
         ±0.d1...dk × 10^exp
     """
+    if math.isnan(val):
+        return "NaN"
+    if math.isinf(val):
+        return "-Inf" if val < 0 else "+Inf"
     if val == 0.0:
         return "0." + "0" * k + " x 10^0"
 
@@ -562,6 +566,10 @@ def format_norm_trunc(val: float, k: int = 3) -> str:
     Retorna el string de un valor en notación científica normalizada con truncamiento:
         ±0.d1...dk × 10^exp
     """
+    if math.isnan(val):
+        return "NaN"
+    if math.isinf(val):
+        return "-Inf" if val < 0 else "+Inf"
     if val == 0.0:
         return "0." + "0" * k + " x 10^0"
 
