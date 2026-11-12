@@ -60,7 +60,7 @@ pg_interp = st.Page(
 pg_calculo = st.Page(
     "views/calculo_numerico.py",
     title="Integración y Derivación",
-    icon="∬",
+    icon="📊",
     url_path="calculo_numerico",
 )
 

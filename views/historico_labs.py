@@ -167,3 +167,4 @@ def vista_historico_labs():
 
 
 vista_historico_labs()
+

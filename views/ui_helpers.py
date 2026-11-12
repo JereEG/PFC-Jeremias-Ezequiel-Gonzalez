@@ -92,3 +92,4 @@ def bloque_material_estudio(
                 os.path.join("assets", "teoria", pdf_practica),
                 titulo=f"Práctica Resuelta: {titulo_metodo}",
             )
+

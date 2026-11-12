@@ -308,3 +308,4 @@ def vista_algebra_lineal():
 
 
 vista_algebra_lineal()
+

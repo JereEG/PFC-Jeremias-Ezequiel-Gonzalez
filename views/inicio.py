@@ -77,7 +77,7 @@ def vista_inicio():
 
         with col1:
             with st.container(border=True):
-                st.markdown("### ∬ Integración y Derivación")
+                st.markdown("### 📊 Integración y Derivación")
                 st.caption("Cuadraturas de Newton-Cotes y esquemas de diferenciación finita.")
                 st.markdown(
                     """
