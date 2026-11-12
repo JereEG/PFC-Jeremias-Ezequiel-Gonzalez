@@ -1,0 +1,4 @@
+_temp_legacy/
+__pycache__/
+.venv/
+venv/
