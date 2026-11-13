@@ -48,14 +48,12 @@ def inject_arandu_css() -> None:
             flex-wrap: wrap;
         }
         .arandu-hero-logo {
-            width: 88px;
-            height: 90px;
+            width: 96px;
+            height: 98px;
             flex-shrink: 0;
-            border-radius: 14px;
-            padding: 6px;
-            background: rgba(255, 255, 255, 0.78);
-            border: 1px solid rgba(59, 130, 246, 0.28);
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+            background: transparent;
+            border: none;
+            filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
             object-fit: contain;
         }
         .arandu-hero h1 {
