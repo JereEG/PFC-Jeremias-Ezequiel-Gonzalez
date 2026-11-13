@@ -7,24 +7,37 @@ from __future__ import annotations
 
 import streamlit as st
 
-from views import inject_arandu_css
+from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css, obtener_logo_data_uri
 
 
 def vista_inicio() -> None:
     inject_arandu_css()
 
+    logo_uri = obtener_logo_data_uri()
+    logo_html = (
+        f'<img src="{logo_uri}" class="arandu-hero-logo" alt="Logo Arandú" />'
+        if logo_uri
+        else ""
+    )
+    titulo_html = "Arandú: Métodos Computacionales" if logo_uri else "🦉 Arandú: Métodos Computacionales"
+
     st.markdown(
-        """
+        f"""
         <div class="arandu-hero">
-            <span class="arandu-badge">Arandú v3.0</span>
-            <span class="arandu-badge">FaCENA - UNNE</span>
-            <span class="arandu-badge">Estilo Guru + Versus</span>
-            <h1>🦉 Arandú: Métodos Computacionales</h1>
-            <p style="margin:0; font-size:1.05rem;">
-                Plataforma interactiva para comprender, modificar y comparar métodos numéricos
-                sin abstracciones oscuras: <b>teoría intuitiva, práctica editable de cátedra,
-                paso Δh en vivo y geometría paso a paso.</b>
-            </p>
+            <div class="arandu-hero-grid">
+                {logo_html}
+                <div>
+                    <span class="arandu-badge">Arandú v3.0</span>
+                    <span class="arandu-badge">FaCENA - UNNE</span>
+                    <span class="arandu-badge">Estilo Guru + Versus</span>
+                    <h1>{titulo_html}</h1>
+                    <p style="margin:0; font-size:1.05rem;">
+                        Plataforma interactiva para comprender, modificar y comparar métodos numéricos
+                        sin abstracciones oscuras: <b>teoría intuitiva, práctica editable de cátedra,
+                        paso Δh en vivo y geometría paso a paso.</b>
+                    </p>
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -108,6 +121,24 @@ def vista_inicio() -> None:
         with c2:
             if st.button("📚 Ver Laboratorios", use_container_width=True):
                 st.switch_page("views/view_laboratorios.py")
+
+    with st.container(border=True):
+        cf1, cf2 = st.columns([3.2, 1.3])
+        with cf1:
+            st.markdown("#### 💬 Tu opinión nos ayuda a mejorar Arandú")
+            st.write(
+                "Si sos docente o estudiante y querés sugerir mejoras en las explicaciones, "
+                "reportar algún caso particular o evaluar la experiencia de uso para el PFC, "
+                "completá nuestro breve formulario de feedback."
+            )
+        with cf2:
+            st.write("")
+            st.link_button(
+                "📝 Enviar Feedback",
+                FEEDBACK_FORMS_URL,
+                type="primary",
+                width="stretch",
+            )
 
 
 vista_inicio()

@@ -6,14 +6,28 @@ Navegación moderna con st.navigation + st.Page agrupada por metodología y Aren
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 import streamlit as st
+
+from views.ui_shared import FEEDBACK_FORMS_URL, LOGO_SVG_PATH
+
+_PAGE_ICON = str(LOGO_SVG_PATH) if LOGO_SVG_PATH.is_file() else "🦉"
 
 st.set_page_config(
     page_title="Arandú — Métodos Computacionales v3.0",
-    page_icon="🦉",
+    page_icon=_PAGE_ICON,
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+if LOGO_SVG_PATH.is_file():
+    st.logo(str(LOGO_SVG_PATH), size="large", icon_image=str(LOGO_SVG_PATH))
 
 pg_inicio = st.Page(
     "views/inicio.py",
@@ -88,6 +102,14 @@ nav = st.navigation(
 
 with st.sidebar:
     st.markdown("---")
+    with st.container(border=True):
+        st.markdown("#### 💬 Feedback")
+        st.caption("¿Probaste la plataforma? Contanos qué te pareció o reportá mejoras:")
+        st.link_button(
+            "📝 Dar Feedback",
+            FEEDBACK_FORMS_URL,
+            width="stretch",
+        )
     st.caption("**Arandú v3.0** • FaCENA — UNNE")
     st.caption("Proyecto Final de Carrera • Suite Interactiva Cloud-Ready")
 
