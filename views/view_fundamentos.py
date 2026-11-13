@@ -18,7 +18,7 @@ from core.fundamentos_errores import (
     evaluar_polinomio_horner,
     operar_en_maquina,
 )
-from views import (
+from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     render_banner_edicion_profesora,

@@ -20,7 +20,7 @@ from core.sistemas_autovalores import (
     metodo_potencias_min,
     verificar_dominancia_diagonal,
 )
-from views import (
+from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     render_banner_edicion_profesora,

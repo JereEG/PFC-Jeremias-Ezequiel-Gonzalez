@@ -23,7 +23,7 @@ from core.raices import (
     metodo_punto_fijo_aitken,
     verificar_condiciones_fourier,
 )
-from views import (
+from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     render_banner_edicion_profesora,

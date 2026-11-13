@@ -50,7 +50,7 @@ from core.sistemas_autovalores import (
     metodo_potencias_min,
     verificar_dominancia_diagonal,
 )
-from views import crear_figura_base_plotly, inject_arandu_css
+from views.ui_shared import crear_figura_base_plotly, inject_arandu_css
 
 
 def _render_ficha_tecnica(titulo_slot: str, ficha: dict, color_borde: str) -> None:

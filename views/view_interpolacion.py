@@ -24,7 +24,7 @@ from core.interpolacion import (
     interpolar_newton_gregory_descendente,
     regenerar_tabla_interpolacion,
 )
-from views import (
+from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     render_banner_edicion_profesora,

@@ -14,7 +14,7 @@ from core.fundamentos_errores import (
     sumar_n_positivos,
     sumar_pares,
 )
-from views import crear_figura_base_plotly, inject_arandu_css
+from views.ui_shared import crear_figura_base_plotly, inject_arandu_css
 
 
 def vista_laboratorios() -> None:
