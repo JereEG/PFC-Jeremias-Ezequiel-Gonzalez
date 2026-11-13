@@ -1,114 +1,94 @@
 """
-app.py
-======
-Métodos Computacionales / Numéricos — Entrypoint Principal.
-Proyecto Final de Carrera (PFC) — FaCENA - Universidad Nacional del Nordeste (UNNE).
-
-Desarrollado con arquitectura Cloud-Ready para Streamlit Community Cloud utilizando
-navegación semántica por ramas matemáticas (st.navigation y st.Page por archivos).
+Entrypoint principal de Arandú: Métodos Computacionales (v3.0).
+Navegación moderna con st.navigation + st.Page agrupada por metodología y Arena Versus.
+100% lista para producción en Streamlit Community Cloud.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
-# Configuración global de la página
 st.set_page_config(
-    page_title="Métodos Computacionales / Numéricos — FaCENA UNNE",
-    page_icon="🏛️",
+    page_title="Arandú — Métodos Computacionales v3.0",
+    page_icon="🦉",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Definición de páginas organizadas por Categorías Matemáticas
 pg_inicio = st.Page(
     "views/inicio.py",
-    title="Inicio (Catálogo General)",
+    title="Inicio",
     icon="🏠",
     default=True,
     url_path="inicio",
 )
-
+pg_versus = st.Page(
+    "views/arena_versus.py",
+    title="Arena Versus",
+    icon="⚔️",
+    url_path="arena_versus",
+)
 pg_fundamentos = st.Page(
-    "views/fundamentos.py",
+    "views/view_fundamentos.py",
     title="Fundamentos y Errores",
     icon="🧮",
     url_path="fundamentos",
 )
-
 pg_raices = st.Page(
-    "views/raices.py",
+    "views/view_raices.py",
     title="Raíces de Ecuaciones",
     icon="📉",
     url_path="raices",
 )
-
-pg_algebra = st.Page(
-    "views/algebra_lineal.py",
-    title="Álgebra Lineal Numérica",
+pg_sistemas = st.Page(
+    "views/view_sistemas.py",
+    title="Sistemas y Autovalores",
     icon="📐",
-    url_path="algebra_lineal",
+    url_path="sistemas",
 )
-
-pg_interp = st.Page(
-    "views/interpolacion.py",
+pg_interpolacion = st.Page(
+    "views/view_interpolacion.py",
     title="Interpolación Polinomial",
     icon="📈",
     url_path="interpolacion",
 )
-
-pg_calculo = st.Page(
-    "views/calculo_numerico.py",
+pg_integracion = st.Page(
+    "views/view_integracion.py",
     title="Integración y Derivación",
     icon="📊",
-    url_path="calculo_numerico",
+    url_path="integracion",
 )
-
 pg_edo = st.Page(
-    "views/edo.py",
-    title="Ecuaciones Diferenciales (EDO)",
+    "views/view_edo.py",
+    title="Ecuaciones Diferenciales",
     icon="⏱️",
     url_path="edo",
 )
-
-pg_historico = st.Page(
-    "views/historico_labs.py",
+pg_labs = st.Page(
+    "views/view_laboratorios.py",
     title="Histórico de Cursada",
     icon="📚",
-    url_path="historico",
+    url_path="laboratorios",
 )
 
-# Navegación agrupada por categorías temáticas
-nav = st.navigation({
-    "Portal Principal": [pg_inicio],
-    "Métodos Matemáticos": [
-        pg_fundamentos,
-        pg_raices,
-        pg_algebra,
-        pg_interp,
-        pg_calculo,
-        pg_edo,
-    ],
-    "Anexo Curricular": [
-        pg_historico,
-    ],
-})
+nav = st.navigation(
+    {
+        "Principal": [pg_inicio, pg_versus],
+        "Métodos Numéricos (Estilo Guru)": [
+            pg_fundamentos,
+            pg_raices,
+            pg_sistemas,
+            pg_interpolacion,
+            pg_integracion,
+            pg_edo,
+        ],
+        "Anexo Curricular": [pg_labs],
+    }
+)
 
-# Panel lateral con identidad de marca y contexto académico
 with st.sidebar:
-    st.markdown("### 🏛️ El Santo Grial")
-    st.caption("Plataforma Integral de Métodos Numéricos")
     st.markdown("---")
-    st.markdown(
-        """
-        **Cátedra:** Métodos Computacionales  
-        **Institución:** FaCENA - UNNE  
-        **Autor:** Jeremías Ezequiel González  
-        **Versión:** 2.0.0-pivote-ux
-        """
-    )
-    st.markdown("---")
-    st.info("💡 Cada método numérico cuenta con teoría formal, material de cátedra en PDF y workspace interactivo.")
+    st.caption("**Arandú v3.0** • FaCENA — UNNE")
+    st.caption("Proyecto Final de Carrera • Suite Interactiva Cloud-Ready")
 
-# Ejecutar el ruteo de la página seleccionada
 nav.run()
