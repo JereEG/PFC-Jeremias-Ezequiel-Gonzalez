@@ -96,7 +96,7 @@ def _tab_diferenciacion() -> None:
     st.markdown("### 📐 Bloque 4 — Pendiente Tangente en x*")
     y_en_x = float(np.interp(x_eval, xs, ys))
     fig = crear_figura_base_plotly(f"Derivada Numérica en x* = {x_eval:g}", "x", "y")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name="Datos f(x)", line=dict(color="#2563eb")))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name="Datos f(x)", line=dict(color="#D4A359", width=2.5), marker=dict(size=7, color="#D4A359")))
     if orden == 1:
         dx = res["h"] * 1.2
         fig.add_trace(
@@ -105,10 +105,10 @@ def _tab_diferenciacion() -> None:
                 y=[y_en_x - res["derivada"] * dx, y_en_x + res["derivada"] * dx],
                 mode="lines",
                 name=f"Recta tangente (m={res['derivada']:.4f})",
-                line=dict(color="#ef4444", width=2.5, dash="dash"),
+                line=dict(color="#C86D44", width=2.5, dash="dash"),
             )
         )
-    fig.add_trace(go.Scatter(x=[x_eval], y=[y_en_x], mode="markers", name="Punto x*", marker=dict(size=12, color="#10b981", symbol="star")))
+    fig.add_trace(go.Scatter(x=[x_eval], y=[y_en_x], mode="markers", name="Punto x*", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -266,6 +266,11 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
         "x",
         "f(x)",
     )
+    fill_por_regla = {
+        "Trapecio": "rgba(200, 109, 68, 0.25)",
+        "Simpson 1/3": "rgba(122, 154, 101, 0.25)",
+        "Simpson 3/8": "rgba(212, 163, 89, 0.25)",
+    }
     for idx, b in enumerate(bloques[:k_vis], start=1):
         fig.add_trace(
             go.Scatter(
@@ -273,11 +278,12 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
                 y=b["y_curva"],
                 mode="lines",
                 fill="tozeroy",
+                fillcolor=fill_por_regla.get(b["regla"], "rgba(122, 154, 101, 0.25)"),
                 name=f"B{idx}: {b['regla']} (A={b['area']:.3f})",
                 line=dict(color=b["color"], width=2.4),
             )
         )
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=8, color="#0f172a")))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#FFFDF9", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 

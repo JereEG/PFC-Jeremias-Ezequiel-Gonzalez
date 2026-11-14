@@ -73,7 +73,7 @@ def _plot_edo_paso_a_paso(
         xg = np.linspace(x0, xf_real, 180)
         try:
             yg = [y_ex_fn(float(v)) for v in xg]
-            fig.add_trace(go.Scatter(x=xg.tolist(), y=yg, mode="lines", name="Solución Exacta", line=dict(color="#10b981", width=2.8, dash="dash")))
+            fig.add_trace(go.Scatter(x=xg.tolist(), y=yg, mode="lines", name="Solución Exacta", line=dict(color="#D4A359", width=2.8, dash="dash")))
         except Exception:
             pass
 
@@ -131,7 +131,7 @@ def _tab_euler_heun() -> None:
         f"Euler vs Heun hasta paso k = {k_vis}",
         x0,
         res_he["xf_real"],
-        [("Euler (O1)", res_eu["x"], res_eu["y"], "#f59e0b"), ("Heun (O2)", res_he["x"], res_he["y"], "#2563eb")],
+        [("Euler (O1)", res_eu["x"], res_eu["y"], "#C86D44"), ("Heun (O2)", res_he["x"], res_he["y"], "#7A9A65")],
         y_ex_fn,
         k_vis,
     )
@@ -183,7 +183,7 @@ def _tab_runge_kutta() -> None:
         f"RK2 vs RK4 hasta paso k = {k_vis}",
         x0,
         res_rk4["xf_real"],
-        [("RK2 (O2)", res_rk2["x"], res_rk2["y"], "#f59e0b"), ("RK4 (O4)", res_rk4["x"], res_rk4["y"], "#2563eb")],
+        [("RK2 (O2)", res_rk2["x"], res_rk2["y"], "#C86D44"), ("RK4 (O4)", res_rk4["x"], res_rk4["y"], "#7A9A65")],
         y_ex_fn,
         k_vis,
     )
@@ -233,7 +233,7 @@ def _tab_milne() -> None:
         f"Milne (Arranque RK4 k≤3, P-C k≥4) hasta paso k = {k_vis}",
         x0,
         res["xf_real"],
-        [("Milne P-C (O4)", res["x"], res["y"], "#8b5cf6")],
+        [("Milne P-C (O4)", res["x"], res["y"], "#7A9A65")],
         y_ex_fn,
         k_vis,
     )

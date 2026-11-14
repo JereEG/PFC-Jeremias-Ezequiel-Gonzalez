@@ -102,7 +102,7 @@ def _tab_gauss() -> None:
         st.dataframe(pd.DataFrame(paso["matriz"]), use_container_width=True)
 
     fig = crear_figura_base_plotly("Solución xᵢ y Residuos por Ecuación", "Componente", "Valor", altura=320)
-    fig.add_trace(go.Bar(x=[f"x_{i+1}" for i in range(len(res["solucion"]))], y=res["solucion"], name="Solución x", marker_color="#2563eb"))
+    fig.add_trace(go.Bar(x=[f"x_{i+1}" for i in range(len(res["solucion"]))], y=res["solucion"], name="Solución x", marker_color="#D4A359", marker_line_color="#B5673F", marker_line_width=1.2))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -265,7 +265,7 @@ def _tab_gauss_seidel() -> None:
         k_vis = render_slider_paso_k("Ver hasta la iteración k:", len(df_hist), key="vis_gs_k")
         df_vis = df_hist.iloc[:k_vis]
         fig = crear_figura_base_plotly(f"Convergencia de Gauss-Seidel hasta k = {k_vis}", "Iteración", "Error máximo (escala log)")
-        fig.add_trace(go.Scatter(x=df_vis["iteracion"], y=df_vis["error_max"], mode="lines+markers", name="max |Δx|", line=dict(color="#2563eb", width=2.5)))
+        fig.add_trace(go.Scatter(x=df_vis["iteracion"], y=df_vis["error_max"], mode="lines+markers", name="max |Δx|", line=dict(color="#D4A359", width=2.5), marker=dict(size=8, color="#FFFDF9", line=dict(color="#B5673F", width=1.6))))
         fig.update_yaxes(type="log")
         st.plotly_chart(fig, use_container_width=True)
 
@@ -335,7 +335,7 @@ def _tab_potencias() -> None:
         df_vis = df_h.iloc[:k_vis]
         col_lam = "lambda" if "lambda" in df_vis.columns else "lambda_min"
         fig = crear_figura_base_plotly(f"Convergencia de λ_k hasta k = {k_vis}", "Iteración", "λ estimado")
-        fig.add_trace(go.Scatter(x=df_vis["iteracion"], y=df_vis[col_lam], mode="lines+markers", name="λ_k", line=dict(color="#10b981", width=2.5)))
+        fig.add_trace(go.Scatter(x=df_vis["iteracion"], y=df_vis[col_lam], mode="lines+markers", name="λ_k", line=dict(color="#7A9A65", width=2.5), marker=dict(size=8, color="#FFFDF9", line=dict(color="#B5673F", width=1.6))))
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -384,12 +384,12 @@ def _tab_faddeev() -> None:
     st.markdown("### 📐 Bloque 4 — Raíces del Polinomio Característico P(λ) = 0")
     curva = res["curva_polinomio"]
     fig = crear_figura_base_plotly("Polinomio Característico P(λ)", "λ", "P(λ)")
-    fig.add_hline(y=0, line_dash="dash", line_color="#64748b")
-    fig.add_trace(go.Scatter(x=curva["lambda"], y=curva["p_lambda"], mode="lines", name="P(λ)", line=dict(color="#2563eb", width=2.5)))
+    fig.add_hline(y=0, line_dash="dash", line_color="#B5673F")
+    fig.add_trace(go.Scatter(x=curva["lambda"], y=curva["p_lambda"], mode="lines", name="P(λ)", line=dict(color="#D4A359", width=2.5)))
     reales = res["autovalores_reales"]
     if reales:
         k_vis = render_slider_paso_k("Destacar hasta el autovalor real k:", len(reales), key="vis_fad_k")
-        fig.add_trace(go.Scatter(x=reales[:k_vis], y=[0.0] * k_vis, mode="markers", name="Autovalores reales", marker=dict(size=12, color="#ef4444", symbol="star")))
+        fig.add_trace(go.Scatter(x=reales[:k_vis], y=[0.0] * k_vis, mode="markers", name="Autovalores reales", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 

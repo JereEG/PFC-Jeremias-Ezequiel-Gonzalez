@@ -106,14 +106,15 @@ def _tab_series_taylor() -> None:
         x_label="Índice del término (k)",
         y_label="Suma parcial",
     )
-    fig.add_hline(y=res["valor_exacto"], line_dash="dash", line_color="#10b981", annotation_text="Exacto")
+    fig.add_hline(y=res["valor_exacto"], line_dash="dash", line_color="#D4A359", annotation_text="Exacto")
     fig.add_trace(
         go.Scatter(
             x=df_vis["k"],
             y=df_vis["suma_parcial"],
             mode="lines+markers",
             name="Suma parcial e^x",
-            line=dict(color="#2563eb", width=2.5),
+            line=dict(color="#7A9A65", width=2.5),
+            marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.5)),
         )
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -124,8 +125,8 @@ def _tab_series_taylor() -> None:
         st.metric("π aproximado", f"{res_pi['pi_aproximado']:.6f}", f"Ea = {res_pi['error_absoluto']:.4e}")
         df_pi = pd.DataFrame(res_pi["historial"])
         fig_pi = crear_figura_base_plotly("Oscilación amortiguada de Gregory-Leibniz", "Términos", "Aprox π", altura=320)
-        fig_pi.add_hline(y=res_pi["pi_exacto"], line_dash="dash", line_color="#10b981")
-        fig_pi.add_trace(go.Scatter(x=df_pi["k"], y=df_pi["pi_aprox"], mode="lines+markers", name="π Leibniz"))
+        fig_pi.add_hline(y=res_pi["pi_exacto"], line_dash="dash", line_color="#D4A359")
+        fig_pi.add_trace(go.Scatter(x=df_pi["k"], y=df_pi["pi_aprox"], mode="lines+markers", name="π Leibniz", line=dict(color="#7A9A65", width=2.2)))
         st.plotly_chart(fig_pi, use_container_width=True)
 
 
@@ -179,7 +180,7 @@ def _tab_aritmetica_maquina() -> None:
             x=df_vis["agrupacion"],
             y=df_vis["error_redondeo_pct"],
             name="Redondeo",
-            marker_color=["#10b981" if e < 2 else "#ef4444" for e in df_vis["error_redondeo_pct"]],
+            marker_color=["#7A9A65" if e < 2 else "#C86D44" for e in df_vis["error_redondeo_pct"]],
             text=[f"{e:.2f}%" for e in df_vis["error_redondeo_pct"]],
             textposition="auto",
         )
@@ -189,7 +190,7 @@ def _tab_aritmetica_maquina() -> None:
             x=df_vis["agrupacion"],
             y=df_vis["error_trunc_pct"],
             name="Truncamiento",
-            marker_color="#f59e0b",
+            marker_color="#D4A359",
             text=[f"{e:.2f}%" for e in df_vis["error_trunc_pct"]],
             textposition="auto",
         )
@@ -252,7 +253,7 @@ def _tab_cancelacion_cuadratica() -> None:
         go.Bar(
             x=df_vis["metodo"],
             y=df_vis["error_relativo_pct"],
-            marker_color=["#ef4444" if flag else "#10b981" for flag in df_vis["sufre_cancelacion"]],
+            marker_color=["#C86D44" if flag else "#7A9A65" for flag in df_vis["sufre_cancelacion"]],
         )
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -319,7 +320,7 @@ def _tab_horner() -> None:
     k_vis = st.slider("Ver hasta el esquema k:", 1, len(df_h), len(df_h), key="vis_horner_k")
     fig = crear_figura_base_plotly("Error Relativo (%): Estándar vs Horner", "Esquema", "Error Rel (%)", altura=350)
     df_vis = df_h.iloc[:k_vis]
-    fig.add_trace(go.Bar(x=df_vis["metodo"], y=df_vis["error_relativo_pct"], marker_color=["#f59e0b" if "Estándar" in s else "#10b981" for s in df_vis["metodo"]]))
+    fig.add_trace(go.Bar(x=df_vis["metodo"], y=df_vis["error_relativo_pct"], marker_color=["#C86D44" if "Estándar" in s else "#7A9A65" for s in df_vis["metodo"]]))
     st.plotly_chart(fig, use_container_width=True)
 
 

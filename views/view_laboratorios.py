@@ -71,14 +71,15 @@ def vista_laboratorios() -> None:
 
         if razones:
             fig = crear_figura_base_plotly("Convergencia de F_k / F_{k-1} hacia φ", "Índice k", "Cociente", altura=340)
-            fig.add_hline(y=res_f["phi_exacto"], line_dash="dash", line_color="#10b981", annotation_text="φ")
+            fig.add_hline(y=res_f["phi_exacto"], line_dash="dash", line_color="#D4A359", annotation_text="φ")
             fig.add_trace(
                 go.Scatter(
                     x=[r["orden"] for r in razones[:40]],
                     y=[r["cociente"] for r in razones[:40]],
                     mode="lines+markers",
                     name="F_k / F_{k-1}",
-                    line=dict(color="#2563eb"),
+                    line=dict(color="#7A9A65", width=2.4),
+                    marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.4)),
                 )
             )
             st.plotly_chart(fig, use_container_width=True)

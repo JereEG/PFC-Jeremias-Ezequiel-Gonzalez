@@ -111,14 +111,14 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         return
 
     ca, cb = st.columns(2)
-    ca.metric(f"🔵 {nombre_a}", f"{ra:.7f}", f"{ita} pasos {'🏆' if ita < itb else ''} | Err {ea:.2e}")
+    ca.metric(f"🟡 {nombre_a}", f"{ra:.7f}", f"{ita} pasos {'🏆' if ita < itb else ''} | Err {ea:.2e}")
     cb.metric(f"🟠 {nombre_b}", f"{rb:.7f}", f"{itb} pasos {'🏆' if itb < ita else ''} | Err {eb:.2e}")
 
     fig = crear_figura_base_plotly("Velocidad de Convergencia (Error Logarítmico por Paso)", "Iteración / Ciclo", "Error |Δx| (escala log)")
     if err_a:
-        fig.add_trace(go.Scatter(x=list(range(1, len(err_a) + 1)), y=[max(e, 1e-16) for e in err_a], mode="lines+markers", name=nombre_a, line=dict(color="#2563eb", width=2.5)))
+        fig.add_trace(go.Scatter(x=list(range(1, len(err_a) + 1)), y=[max(e, 1e-16) for e in err_a], mode="lines+markers", name=nombre_a, line=dict(color="#D4A359", width=2.5), marker=dict(size=7, color="#D4A359")))
     if err_b:
-        fig.add_trace(go.Scatter(x=list(range(1, len(err_b) + 1)), y=[max(e, 1e-16) for e in err_b], mode="lines+markers", name=nombre_b, line=dict(color="#f97316", width=2.5)))
+        fig.add_trace(go.Scatter(x=list(range(1, len(err_b) + 1)), y=[max(e, 1e-16) for e in err_b], mode="lines+markers", name=nombre_b, line=dict(color="#C86D44", width=2.5, dash="dot"), marker=dict(size=7, color="#C86D44")))
     fig.update_yaxes(type="log")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -160,13 +160,13 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         return
 
     ca, cb = st.columns(2)
-    ca.metric(f"🔵 {nombre_a}", d_a, f"‖Ax-b‖ = {na:.2e} {'🏆' if na <= nb else ''}")
+    ca.metric(f"🟡 {nombre_a}", d_a, f"‖Ax-b‖ = {na:.2e} {'🏆' if na <= nb else ''}")
     cb.metric(f"🟠 {nombre_b}", d_b, f"‖Ax-b‖ = {nb:.2e} {'🏆' if nb < na else ''}")
 
     fig = crear_figura_base_plotly("Comparación de Soluciones xᵢ", "Incógnita", "Valor xᵢ", altura=340)
     etiquetas = [f"x_{i+1}" for i in range(len(sa))]
-    fig.add_trace(go.Bar(x=etiquetas, y=sa, name=nombre_a, marker_color="#2563eb"))
-    fig.add_trace(go.Bar(x=etiquetas, y=sb, name=nombre_b, marker_color="#f97316"))
+    fig.add_trace(go.Bar(x=etiquetas, y=sa, name=nombre_a, marker_color="#D4A359"))
+    fig.add_trace(go.Bar(x=etiquetas, y=sb, name=nombre_b, marker_color="#C86D44"))
     fig.update_layout(barmode="group")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -200,22 +200,22 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         return
 
     ca, cb = st.columns(2)
-    ca.metric(f"🔵 {nombre_a}", va, f"{ita} pasos")
+    ca.metric(f"🟡 {nombre_a}", va, f"{ita} pasos")
     cb.metric(f"🟠 {nombre_b}", vb, f"{itb} pasos")
 
     if "faddeev" in (m_a, m_b):
         fad = metodo_faddeev_leverrier(A)
         curva = fad["curva_polinomio"]
         fig = crear_figura_base_plotly("Polinomio Característico P(λ) y Autovalores Estimados", "λ", "P(λ)")
-        fig.add_hline(y=0, line_dash="dash", line_color="#64748b")
-        fig.add_trace(go.Scatter(x=curva["lambda"], y=curva["p_lambda"], mode="lines", name="P(λ) Faddeev", line=dict(color="#8b5cf6")))
+        fig.add_hline(y=0, line_dash="dash", line_color="#B5673F")
+        fig.add_trace(go.Scatter(x=curva["lambda"], y=curva["p_lambda"], mode="lines", name="P(λ) Faddeev", line=dict(color="#D4A359", width=2.5)))
         if fad["autovalores_reales"]:
-            fig.add_trace(go.Scatter(x=fad["autovalores_reales"], y=[0] * len(fad["autovalores_reales"]), mode="markers", name="Raíces exactas", marker=dict(size=12, color="#10b981")))
+            fig.add_trace(go.Scatter(x=fad["autovalores_reales"], y=[0] * len(fad["autovalores_reales"]), mode="markers", name="Raíces exactas", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
         st.plotly_chart(fig, use_container_width=True)
     else:
         fig = crear_figura_base_plotly("Trayectoria de Potencias λ_k", "Iteración", "λ_k")
-        fig.add_trace(go.Scatter(x=list(range(1, len(sa) + 1)), y=sa, mode="lines+markers", name=nombre_a, line=dict(color="#2563eb")))
-        fig.add_trace(go.Scatter(x=list(range(1, len(sb) + 1)), y=sb, mode="lines+markers", name=nombre_b, line=dict(color="#f97316")))
+        fig.add_trace(go.Scatter(x=list(range(1, len(sa) + 1)), y=sa, mode="lines+markers", name=nombre_a, line=dict(color="#7A9A65", width=2.5)))
+        fig.add_trace(go.Scatter(x=list(range(1, len(sb) + 1)), y=sb, mode="lines+markers", name=nombre_b, line=dict(color="#C86D44", width=2.5)))
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -245,9 +245,9 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
     ca, cb = st.columns(2)
     x_grid = np.linspace(min(xs), max(xs), 140)
     fig = crear_figura_base_plotly("Superposición de Polinomios Interpolantes", "x", "P(x)")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#0f172a")))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=10, color="#FFFDF9", line=dict(color="#B5673F", width=1.8))))
 
-    for col, clave, nombre, color in ((ca, m_a, nombre_a, "#2563eb"), (cb, m_b, nombre_b, "#f97316")):
+    for col, clave, nombre, color in ((ca, m_a, nombre_a, "#7A9A65"), (cb, m_b, nombre_b, "#C86D44")):
         try:
             val, dur, nota, modo_g = _correr(clave)
             col.metric(nombre, f"{val:.6f}", nota)
@@ -279,7 +279,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
     ca, cb = st.columns(2)
     err_a = res_a["exacta"]["error_absoluto"] if res_a["exacta"] else float("inf")
     err_b = res_b["exacta"]["error_absoluto"] if res_b["exacta"] else float("inf")
-    ca.metric(f"🔵 {nombre_a}", f"{res_a['area_total']:.6f}", f"{res_a['reglas_aplicadas']} | Err {err_a:.2e} {'🏆' if err_a <= err_b else ''}")
+    ca.metric(f"🟡 {nombre_a}", f"{res_a['area_total']:.6f}", f"{res_a['reglas_aplicadas']} | Err {err_a:.2e} {'🏆' if err_a <= err_b else ''}")
     cb.metric(f"🟠 {nombre_b}", f"{res_b['area_total']:.6f}", f"{res_b['reglas_aplicadas']} | Err {err_b:.2e} {'🏆' if err_b < err_a else ''}")
 
     if res_a["hubo_adaptacion"] or res_b["hubo_adaptacion"]:
@@ -287,10 +287,10 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
 
     fig = crear_figura_base_plotly(f"Comparación de Reglas de Integración (n = {n_sub})", "x", "f(x)")
     for b in res_a["bloques"]:
-        fig.add_trace(go.Scatter(x=b["x_curva"], y=b["y_curva"], mode="lines", name=f"A: {b['regla']}", line=dict(color="#2563eb", width=2.4)))
+        fig.add_trace(go.Scatter(x=b["x_curva"], y=b["y_curva"], mode="lines", name=f"A: {b['regla']}", line=dict(color="#7A9A65", width=2.4)))
     for b in res_b["bloques"]:
-        fig.add_trace(go.Scatter(x=b["x_curva"], y=b["y_curva"], mode="lines", name=f"B: {b['regla']}", line=dict(color="#f97316", width=2.0, dash="dash")))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos", marker=dict(size=8, color="#0f172a")))
+        fig.add_trace(go.Scatter(x=b["x_curva"], y=b["y_curva"], mode="lines", name=f"B: {b['regla']}", line=dict(color="#C86D44", width=2.0, dash="dash")))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos", marker=dict(size=9, color="#FFFDF9", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -326,15 +326,15 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     ea = ra["tabla"][-1].get("error_abs") or 0.0
     eb = rb["tabla"][-1].get("error_abs") or 0.0
     ca, cb = st.columns(2)
-    ca.metric(f"🔵 {nombre_a}", f"{ra['y_final']:.6f}", f"Err final {ea:.2e} {'🏆' if ea <= eb else ''}")
+    ca.metric(f"🟡 {nombre_a}", f"{ra['y_final']:.6f}", f"Err final {ea:.2e} {'🏆' if ea <= eb else ''}")
     cb.metric(f"🟠 {nombre_b}", f"{rb['y_final']:.6f}", f"Err final {eb:.2e} {'🏆' if eb < ea else ''}")
 
     fig = crear_figura_base_plotly("Superposición de Trayectorias PVI", "x", "y(x)")
     if y_ex_fn is not None:
         xg = np.linspace(x0, ra["xf_real"], 150)
-        fig.add_trace(go.Scatter(x=xg.tolist(), y=[y_ex_fn(float(v)) for v in xg], mode="lines", name="Solución Exacta", line=dict(color="#10b981", width=2.8, dash="dash")))
-    fig.add_trace(go.Scatter(x=ra["x"], y=ra["y"], mode="lines+markers", name=nombre_a, line=dict(color="#2563eb", width=2.4)))
-    fig.add_trace(go.Scatter(x=rb["x"], y=rb["y"], mode="lines+markers", name=nombre_b, line=dict(color="#f97316", width=2.4)))
+        fig.add_trace(go.Scatter(x=xg.tolist(), y=[y_ex_fn(float(v)) for v in xg], mode="lines", name="Solución Exacta", line=dict(color="#D4A359", width=2.8, dash="dash")))
+    fig.add_trace(go.Scatter(x=ra["x"], y=ra["y"], mode="lines+markers", name=nombre_a, line=dict(color="#7A9A65", width=2.4)))
+    fig.add_trace(go.Scatter(x=rb["x"], y=rb["y"], mode="lines+markers", name=nombre_b, line=dict(color="#C86D44", width=2.4)))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -360,7 +360,7 @@ def vista_arena_versus() -> None:
     col_a, col_vs, col_b = st.columns([2, 0.4, 2])
     with col_a:
         m_a = st.selectbox(
-            "🔵 Método A:",
+            "🟡 Método A:",
             options=metodos_fam,
             index=0,
             format_func=lambda k: ficha_fam["metodos"][k]["nombre"],
@@ -383,9 +383,9 @@ def vista_arena_versus() -> None:
 
     cf_a, cf_b = st.columns(2)
     with cf_a:
-        _render_ficha_tecnica("🔵 Contendiente A", ficha_a, "#2563eb")
+        _render_ficha_tecnica("🟡 Contendiente A", ficha_a, "#D4A359")
     with cf_b:
-        _render_ficha_tecnica("🟠 Contendiente B", ficha_b, "#f97316")
+        _render_ficha_tecnica("🟠 Contendiente B", ficha_b, "#C86D44")
 
     exp = obtener_expectativa_versus(fam_sel, m_a, m_b)
     ce1, ce2 = st.columns(2)

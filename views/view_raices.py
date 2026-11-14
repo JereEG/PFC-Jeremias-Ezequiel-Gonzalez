@@ -118,11 +118,11 @@ def _tab_biseccion() -> None:
     xs, ys = _muestrear_curva(comp["fn"], min(a_val, b_val) - pad, max(a_val, b_val) + pad)
 
     fig = crear_figura_base_plotly(f"Bisección — Iteración {k_vis}: [{fila_k['a']:.4f}, {fila_k['b']:.4f}]", "x", "f(x)")
-    fig.add_vrect(x0=fila_k["a"], x1=fila_k["b"], fillcolor="rgba(59,130,246,0.14)", line_width=1, annotation_text=f"Intervalo k={k_vis}")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#2563eb", width=2.5)))
+    fig.add_vrect(x0=fila_k["a"], x1=fila_k["b"], fillcolor="rgba(122, 154, 101, 0.22)", line_color="#687D5B", line_width=1, annotation_text=f"Intervalo k={k_vis}")
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
     df_sub = df.iloc[:k_vis]
-    fig.add_trace(go.Scatter(x=df_sub["x_k"], y=df_sub["f_xk"], mode="markers", name="Puntos medios x_k", marker=dict(size=8, color="#f59e0b")))
-    fig.add_trace(go.Scatter(x=[fila_k["x_k"]], y=[fila_k["f_xk"]], mode="markers", name=f"Actual x_{k_vis}", marker=dict(size=12, color="#10b981", symbol="star")))
+    fig.add_trace(go.Scatter(x=df_sub["x_k"], y=df_sub["f_xk"], mode="markers", name="Puntos medios x_k", marker=dict(size=8, color="#7A9A65")))
+    fig.add_trace(go.Scatter(x=[fila_k["x_k"]], y=[fila_k["f_xk"]], mode="markers", name=f"Actual x_{k_vis}", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -191,7 +191,7 @@ def _tab_interpolacion_lineal() -> None:
     pad = max(0.4, 0.35 * abs(b_val - a_val))
     xs, ys = _muestrear_curva(comp["fn"], min(a_val, b_val) - pad, max(a_val, b_val) + pad)
     fig = crear_figura_base_plotly(f"Interpolación Lineal — Paso {k_vis}", "x", "f(x)")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#2563eb", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
 
     fila_k = res["historial"][k_vis - 1]
     if variante.startswith("Cátedra"):
@@ -202,8 +202,8 @@ def _tab_interpolacion_lineal() -> None:
         p0, f0 = fila_k["a"], fila_k["f_a"]
         p1, f1 = fila_k["b"], fila_k["f_b"]
         xr = fila_k["x_k"]
-    fig.add_trace(go.Scatter(x=[p0, p1], y=[f0, f1], mode="lines+markers", name=f"Cuerda k={k_vis}", line=dict(color="#f59e0b", dash="dash", width=2)))
-    fig.add_trace(go.Scatter(x=[xr], y=[0.0], mode="markers", name="Corte eje X", marker=dict(size=12, color="#10b981", symbol="diamond")))
+    fig.add_trace(go.Scatter(x=[p0, p1], y=[f0, f1], mode="lines+markers", name=f"Cuerda k={k_vis}", line=dict(color="#7A9A65", dash="dash", width=2.2), marker=dict(size=8, color="#7A9A65")))
+    fig.add_trace(go.Scatter(x=[xr], y=[0.0], mode="markers", name="Corte eje X", marker=dict(size=13, color="#FFFDF9", symbol="diamond", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -273,7 +273,7 @@ def _tab_newton_raphson() -> None:
     xs, ys = _muestrear_curva(comp["fn"], xmin, xmax)
 
     fig = crear_figura_base_plotly(f"Newton-Raphson — Tangentes hasta k = {k_vis}", "x", "f(x)")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#2563eb", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
     for idx, row in enumerate(res["historial"][:k_vis], start=1):
         if row["x_sig"] is not None:
             fig.add_trace(
@@ -282,6 +282,8 @@ def _tab_newton_raphson() -> None:
                     y=[0.0, row["f_xk"], 0.0],
                     mode="lines+markers",
                     name=f"Tangente k={idx}",
+                    line=dict(color="#C86D44", width=2.0, dash="dash"),
+                    marker=dict(size=8, color="#FFFDF9", line=dict(color="#B5673F", width=1.6)),
                     opacity=1.0 if idx == k_vis else 0.45,
                 )
             )
@@ -354,14 +356,14 @@ def _tab_punto_fijo_aitken() -> None:
         xs, ys = _muestrear_curva(comp_g["gn"], xmin, xmax)
 
         fig = crear_figura_base_plotly(f"Punto Fijo (y = g(x) vs y = x) hasta k = {k_vis}", "x", "y")
-        fig.add_trace(go.Scatter(x=[xmin, xmax], y=[xmin, xmax], mode="lines", name="y = x", line=dict(color="#64748b", dash="dash")))
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="y = g(x)", line=dict(color="#2563eb", width=2.5)))
+        fig.add_trace(go.Scatter(x=[xmin, xmax], y=[xmin, xmax], mode="lines", name="y = x", line=dict(color="#9E9585", dash="dash")))
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="y = g(x)", line=dict(color="#D4A359", width=2.5)))
 
         cob_x, cob_y = [sub[0]["x_ant"]], [sub[0]["x_ant"]]
         for r in sub:
             cob_x.extend([r["x_ant"], r["x_sig"]])
             cob_y.extend([r["x_sig"], r["x_sig"]])
-        fig.add_trace(go.Scatter(x=cob_x, y=cob_y, mode="lines+markers", name="Trayectoria Telaraña", line=dict(color="#f59e0b", width=2)))
+        fig.add_trace(go.Scatter(x=cob_x, y=cob_y, mode="lines+markers", name="Trayectoria Telaraña", line=dict(color="#C86D44", width=2.2), marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.4))))
         st.plotly_chart(fig, use_container_width=True)
 
 

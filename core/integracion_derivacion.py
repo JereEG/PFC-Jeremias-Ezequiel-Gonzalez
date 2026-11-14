@@ -27,9 +27,9 @@ import sympy as sp
 
 
 COLORES_REGLAS = {
-    "Trapecio": "#ff7f0e",      # Naranja cálido
-    "Simpson 1/3": "#1f77b4",   # Azul sólido
-    "Simpson 3/8": "#2ca02c",   # Verde esmeralda
+    "Trapecio": "#C86D44",      # Terracota Cálido
+    "Simpson 1/3": "#7A9A65",   # Verde Salvia
+    "Simpson 3/8": "#D4A359",   # Oro Arandú
 }
 
 

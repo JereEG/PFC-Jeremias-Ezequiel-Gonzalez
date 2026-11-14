@@ -108,9 +108,9 @@ def _tab_lineal() -> None:
 
     st.markdown("### 📐 Bloque 4 — Recta Secante Local Paso a Paso")
     fig = crear_figura_base_plotly("Interpolación Lineal sobre Segmento Activo", "x", "y")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name="Tabla de puntos", line=dict(color="#64748b", dash="dot"), marker=dict(size=8)))
-    fig.add_trace(go.Scatter(x=[res["x0"], res["x1"]], y=[res["y0"], res["y1"]], mode="lines+markers", name="Segmento secante", line=dict(color="#2563eb", width=3)))
-    fig.add_trace(go.Scatter(x=[px], y=[py], mode="markers", name="Punto interpolado", marker=dict(size=13, color="#10b981", symbol="star")))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name="Tabla de puntos", line=dict(color="#9E9585", dash="dot"), marker=dict(size=8, color="#D4A359")))
+    fig.add_trace(go.Scatter(x=[res["x0"], res["x1"]], y=[res["y0"], res["y1"]], mode="lines+markers", name="Segmento secante", line=dict(color="#7A9A65", width=3)))
+    fig.add_trace(go.Scatter(x=[px], y=[py], mode="markers", name="Punto interpolado", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -158,10 +158,10 @@ def _tab_cuadratica_inversa() -> None:
     y_parab = np.polyval(coefs, x_grid)
 
     fig = crear_figura_base_plotly("Interpolación Cuadrática Inversa", "x", "y")
-    fig.add_hline(y=y_busc, line_dash="dash", line_color="#f59e0b", annotation_text=f"y* = {y_busc}")
-    fig.add_trace(go.Scatter(x=x_grid, y=y_parab, mode="lines", name="Parábola P₂(x)", line=dict(color="#2563eb", width=2.5)))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=8, color="#64748b")))
-    fig.add_trace(go.Scatter(x=[res["x_resultado"]], y=[y_busc], mode="markers", name="Raíz seleccionada", marker=dict(size=14, color="#10b981", symbol="star")))
+    fig.add_hline(y=y_busc, line_dash="dash", line_color="#C86D44", annotation_text=f"y* = {y_busc}")
+    fig.add_trace(go.Scatter(x=x_grid, y=y_parab, mode="lines", name="Parábola P₂(x)", line=dict(color="#7A9A65", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#D4A359")))
+    fig.add_trace(go.Scatter(x=[res["x_resultado"]], y=[y_busc], mode="markers", name="Raíz seleccionada", marker=dict(size=14, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -227,10 +227,10 @@ def _tab_lagrange() -> None:
         y_parcial += ys[idx] * np.asarray(b_fn(x_grid), dtype=float)
 
     fig = crear_figura_base_plotly(f"Polinomio de Lagrange — Suma parcial i = 0..{k_vis}", "x", "P(x)")
-    fig.add_trace(go.Scatter(x=x_grid, y=y_full, mode="lines", name="P(x) completo", line=dict(color="#94a3b8", dash="dash")))
-    fig.add_trace(go.Scatter(x=x_grid, y=y_parcial, mode="lines", name=f"Suma hasta i={k_vis}", line=dict(color="#2563eb", width=2.8)))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos", marker=dict(size=9, color="#f59e0b")))
-    fig.add_trace(go.Scatter(x=[x_eval], y=[res["y_interpolado"]], mode="markers", name="P(x*)", marker=dict(size=13, color="#10b981", symbol="star")))
+    fig.add_trace(go.Scatter(x=x_grid, y=y_full, mode="lines", name="P(x) completo", line=dict(color="#9E9585", dash="dash")))
+    fig.add_trace(go.Scatter(x=x_grid, y=y_parcial, mode="lines", name=f"Suma hasta i={k_vis}", line=dict(color="#7A9A65", width=2.8)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos", marker=dict(size=9, color="#D4A359")))
+    fig.add_trace(go.Scatter(x=[x_eval], y=[res["y_interpolado"]], mode="markers", name="P(x*)", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -284,9 +284,9 @@ def _tab_newton_gregory() -> None:
         x_grid = np.linspace(min(xs) - 0.1, max(xs) + 0.1, 200)
         y_fn = sp.lambdify(sp.Symbol("x"), simb["polinomio_expandido"], "numpy")
         fig = crear_figura_base_plotly("Nodos No Equidistantes → Respaldo Polinomio de Lagrange", "x", "y")
-        fig.add_trace(go.Scatter(x=x_grid, y=np.asarray(y_fn(x_grid), dtype=float), mode="lines", name="Lagrange P(x)"))
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos editados", marker=dict(size=9, color="#ef4444")))
-        fig.add_trace(go.Scatter(x=[x_eval], y=[res_lag["y_interpolado"]], mode="markers", name="P(x*)", marker=dict(size=13, color="#10b981", symbol="star")))
+        fig.add_trace(go.Scatter(x=x_grid, y=np.asarray(y_fn(x_grid), dtype=float), mode="lines", name="Lagrange P(x)", line=dict(color="#D4A359", width=2.5)))
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos editados", marker=dict(size=9, color="#C86D44")))
+        fig.add_trace(go.Scatter(x=[x_eval], y=[res_lag["y_interpolado"]], mode="markers", name="P(x*)", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
         st.plotly_chart(fig, use_container_width=True)
         return
 
@@ -318,10 +318,10 @@ def _tab_newton_gregory() -> None:
     y_k = evaluar_curva_gregory_parcial(xs, ys, x_grid, grado=k_vis, modo=modo_str)
 
     fig = crear_figura_base_plotly(f"Newton-Gregory ({modo_str.title()}) — Grado k = {k_vis}", "x", "y")
-    fig.add_trace(go.Scatter(x=x_grid, y=y_full, mode="lines", name=f"Grado completo ({grado_max})", line=dict(color="#94a3b8", dash="dash")))
-    fig.add_trace(go.Scatter(x=x_grid, y=y_k, mode="lines", name=f"Grado k = {k_vis}", line=dict(color="#2563eb", width=2.8)))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#f59e0b")))
-    fig.add_trace(go.Scatter(x=[x_eval], y=[res["y_interpolado"]], mode="markers", name="P(x*)", marker=dict(size=13, color="#10b981", symbol="star")))
+    fig.add_trace(go.Scatter(x=x_grid, y=y_full, mode="lines", name=f"Grado completo ({grado_max})", line=dict(color="#9E9585", dash="dash")))
+    fig.add_trace(go.Scatter(x=x_grid, y=y_k, mode="lines", name=f"Grado k = {k_vis}", line=dict(color="#7A9A65", width=2.8)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#D4A359")))
+    fig.add_trace(go.Scatter(x=[x_eval], y=[res["y_interpolado"]], mode="markers", name="P(x*)", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
     st.plotly_chart(fig, use_container_width=True)
 
 
