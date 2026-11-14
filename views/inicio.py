@@ -7,35 +7,44 @@ from __future__ import annotations
 
 import streamlit as st
 
-from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css, obtener_logo_data_uri
+from views.theme import obtener_logo_arandu_src
+from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css
 
 
 def vista_inicio() -> None:
     inject_arandu_css()
 
-    logo_uri = obtener_logo_data_uri()
+    logo_uri = obtener_logo_arandu_src(prefer_svg=False)
     logo_html = (
-        f'<img src="{logo_uri}" class="arandu-hero-logo" alt="Logo Arandú" />'
+        f'<img src="{logo_uri}" class="arandu-hero-logo" alt="Isotipo Oficial de Arandú" />'
         if logo_uri
         else ""
     )
-    titulo_html = "Arandú: Métodos Computacionales" if logo_uri else "🦉 Arandú: Métodos Computacionales"
 
     st.markdown(
         f"""
         <div class="arandu-hero">
             <div class="arandu-hero-grid">
                 {logo_html}
-                <div>
-                    <span class="arandu-badge">Arandú v3.0</span>
+                <div style="flex:1; min-width:260px;">
+                    <span class="arandu-badge">Arandú Org • v3.0</span>
                     <span class="arandu-badge">FaCENA - UNNE</span>
-                    <span class="arandu-badge">Estilo Guru + Versus</span>
-                    <h1>{titulo_html}</h1>
-                    <p style="margin:0; font-size:1.05rem;">
-                        Plataforma interactiva para comprender, modificar y comparar métodos numéricos
-                        sin abstracciones oscuras: <b>teoría intuitiva, práctica editable de cátedra,
-                        paso Δh en vivo y geometría paso a paso.</b>
+                    <span class="arandu-badge">Dark Botanical &amp; Golden Wisdom</span>
+                    <h1>Arandú — Métodos Computacionales</h1>
+                    <p style="margin:0; font-size:1.02rem; color:#EDE4D3;">
+                        Plataforma interactiva de la organización <b>Arandú</b> para comprender, editar y comparar métodos numéricos con rigor matemático y estética orgánica:
                     </p>
+                    <div class="arandu-pillars">
+                        <div class="arandu-pillar-item">
+                            <strong>🌱 Raíces:</strong> Fundamentos teóricos y análisis del error.
+                        </div>
+                        <div class="arandu-pillar-item">
+                            <strong>🪵 Tronco:</strong> Algoritmos interactivos paso a paso y prácticas de cátedra.
+                        </div>
+                        <div class="arandu-pillar-item">
+                            <strong>✨ Copa y Astros:</strong> Visualización geométrica y Arena Versus de convergencia.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

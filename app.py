@@ -15,9 +15,16 @@ if str(ROOT_DIR) not in sys.path:
 
 import streamlit as st
 
-from views.ui_shared import FEEDBACK_FORMS_URL, LOGO_SVG_PATH
+from views.theme import (
+    LOGO_JPG_PATH,
+    LOGO_SVG_PATH,
+    aplicar_estilo_arandu,
+    obtener_logo_arandu_src,
+)
+from views.ui_shared import FEEDBACK_FORMS_URL
 
-_PAGE_ICON = str(LOGO_SVG_PATH) if LOGO_SVG_PATH.is_file() else "🦉"
+_SIDEBAR_LOGO = LOGO_JPG_PATH if LOGO_JPG_PATH.is_file() else LOGO_SVG_PATH
+_PAGE_ICON = str(LOGO_SVG_PATH) if LOGO_SVG_PATH.is_file() else (str(LOGO_JPG_PATH) if LOGO_JPG_PATH.is_file() else "🌳")
 
 st.set_page_config(
     page_title="Arandú — Métodos Computacionales v3.0",
@@ -26,8 +33,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-if LOGO_SVG_PATH.is_file():
-    st.logo(str(LOGO_SVG_PATH), size="large", icon_image=str(LOGO_SVG_PATH))
+if _SIDEBAR_LOGO.is_file():
+    _ICON_IMG = LOGO_SVG_PATH if LOGO_SVG_PATH.is_file() else _SIDEBAR_LOGO
+    st.logo(str(_SIDEBAR_LOGO), size="large", icon_image=str(_ICON_IMG))
+
+aplicar_estilo_arandu()
 
 pg_inicio = st.Page(
     "views/inicio.py",
@@ -100,7 +110,30 @@ nav = st.navigation(
     }
 )
 
+_sidebar_uri = obtener_logo_arandu_src(prefer_svg=False)
+
 with st.sidebar:
+    if _sidebar_uri:
+        st.markdown(
+            f"""
+            <div class="arandu-sidebar-brand">
+                <img src="{_sidebar_uri}" alt="Arandú Logo" />
+                <p class="arandu-sidebar-brand-name">ARANDÚ</p>
+                <p class="arandu-sidebar-brand-sub">Organización de Sabiduría Computacional<br>FaCENA — UNNE</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            """
+            <div class="arandu-sidebar-brand">
+                <p class="arandu-sidebar-brand-name">ARANDÚ</p>
+                <p class="arandu-sidebar-brand-sub">Organización de Sabiduría Computacional • FaCENA - UNNE</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     st.markdown("---")
     with st.container(border=True):
         st.markdown("#### 💬 Feedback")
@@ -110,7 +143,7 @@ with st.sidebar:
             FEEDBACK_FORMS_URL,
             width="stretch",
         )
-    st.caption("**Arandú v3.0** • FaCENA — UNNE")
-    st.caption("Proyecto Final de Carrera • Suite Interactiva Cloud-Ready")
+    st.caption("**Arandú v3.0** • Dark Botanical & Golden Wisdom")
+    st.caption("Proyecto Final de Carrera • FaCENA — UNNE")
 
 nav.run()
