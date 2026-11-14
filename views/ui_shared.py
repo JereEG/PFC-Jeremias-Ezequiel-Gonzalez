@@ -5,109 +5,51 @@ Estética Refactoring.Guru (claridad visual) + Versus.com (comparación técnica
 
 from __future__ import annotations
 
-import base64
 import copy
-from pathlib import Path
 from typing import Any
 
 import plotly.graph_objects as go
 import streamlit as st
 
 from core.catalogo_ejercicios import obtener_metodo
+from views.theme import (
+    ARANDU_BARK,
+    ARANDU_CARD_BORDER,
+    ARANDU_GOLD,
+    ARANDU_GOLD_FILL,
+    ARANDU_GRID,
+    ARANDU_IVORY,
+    ARANDU_MUTED,
+    ARANDU_NODE_IVORY,
+    ARANDU_OBSIDIAN,
+    ARANDU_PLOT_BG,
+    ARANDU_SAGE,
+    ARANDU_SAGE_BORDER,
+    ARANDU_SAGE_FILL,
+    ARANDU_TERRACOTTA,
+    ARANDU_TERRACOTTA_DARK,
+    ARANDU_TERRACOTTA_FILL,
+    COLORWAY_ARANDU,
+    LOGO_JPG_PATH,
+    LOGO_SVG_PATH,
+    PALETA_ARANDU,
+    PLOTLY_ARANDU_TEMPLATE,
+    aplicar_estilo_arandu,
+    estilizar_figura_arandu,
+    obtener_logo_arandu_src,
+)
 
 FEEDBACK_FORMS_URL = "https://forms.gle/Sy6M1NWzHRxMbuiBA"
-LOGO_SVG_PATH = Path(__file__).resolve().parent.parent / "assets" / "svg" / "arandu.svg"
 
 
-@st.cache_data(show_spinner=False)
 def obtener_logo_data_uri() -> str | None:
-    """Retorna el logo SVG codificado en base64 para incrustar de forma segura en HTML."""
-    if not LOGO_SVG_PATH.is_file():
-        return None
-    svg_bytes = LOGO_SVG_PATH.read_bytes()
-    encoded = base64.b64encode(svg_bytes).decode("ascii")
-    return f"data:image/svg+xml;base64,{encoded}"
+    """Retorna el logo SVG/JPEG en base64 para incrustar de forma segura en HTML."""
+    return obtener_logo_arandu_src(prefer_svg=True)
 
 
 def inject_arandu_css() -> None:
-    """Inyecta estilos CSS limpios y adaptativos (light/dark) para toda la suite Arandú."""
-    st.markdown(
-        """
-        <style>
-        .arandu-hero {
-            padding: 1.4rem 1.8rem;
-            border-radius: 14px;
-            border: 1px solid rgba(59, 130, 246, 0.35);
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(16, 185, 129, 0.10));
-            margin-bottom: 1.2rem;
-        }
-        .arandu-hero-grid {
-            display: flex;
-            align-items: center;
-            gap: 1.35rem;
-            flex-wrap: wrap;
-        }
-        .arandu-hero-logo {
-            width: 96px;
-            height: 98px;
-            flex-shrink: 0;
-            background: transparent;
-            border: none;
-            filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.18));
-            object-fit: contain;
-        }
-        .arandu-hero h1 {
-            margin: 0 0 0.35rem 0;
-            font-size: 2.0rem;
-        }
-        .arandu-guru-card {
-            padding: 0.95rem 1.1rem;
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.30);
-            background-color: rgba(148, 163, 184, 0.06);
-            margin-bottom: 0.75rem;
-            height: 100%;
-        }
-        .arandu-guru-card h4 {
-            margin: 0 0 0.45rem 0;
-            font-size: 1.0rem;
-        }
-        .arandu-ejemplo-box {
-            padding: 1rem 1.2rem;
-            border-radius: 10px;
-            border-left: 5px solid #10b981;
-            background-color: rgba(16, 185, 129, 0.08);
-            margin: 0.6rem 0 1rem 0;
-        }
-        .arandu-edit-banner {
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            border: 2px dashed #f59e0b;
-            background-color: rgba(245, 158, 11, 0.12);
-            font-weight: 600;
-            margin: 0.6rem 0 0.75rem 0;
-        }
-        .arandu-versus-card {
-            padding: 1rem 1.2rem;
-            border-radius: 12px;
-            border: 1px solid rgba(99, 102, 241, 0.40);
-            background-color: rgba(99, 102, 241, 0.07);
-            margin-bottom: 0.85rem;
-        }
-        .arandu-badge {
-            display: inline-block;
-            padding: 0.18rem 0.55rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            background-color: rgba(59, 130, 246, 0.18);
-            border: 1px solid rgba(59, 130, 246, 0.40);
-            margin-right: 0.35rem;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    """Aplica la identidad visual Dark Botanical & Golden Wisdom de Arandú."""
+    aplicar_estilo_arandu()
 
 
 def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
@@ -130,22 +72,22 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(
-            f"<div class='arandu-guru-card'><h4>🎯 ¿Qué resuelve?</h4><p>{guru.get('que_resuelve', '')}</p></div>",
+            f"<div class='arandu-card arandu-guru-card'><h4>🎯 ¿Qué resuelve?</h4><p>{guru.get('que_resuelve', '')}</p></div>",
             unsafe_allow_html=True,
         )
         usar_html = "".join(f"<li>{item}</li>" for item in guru.get("cuando_usar", []))
         st.markdown(
-            f"<div class='arandu-guru-card'><h4>✅ ¿Cuándo usar?</h4><ul>{usar_html}</ul></div>",
+            f"<div class='arandu-card arandu-guru-card'><h4>✅ ¿Cuándo usar?</h4><ul>{usar_html}</ul></div>",
             unsafe_allow_html=True,
         )
     with col2:
         st.markdown(
-            f"<div class='arandu-guru-card'><h4>📐 Intuición geométrica</h4><p>{guru.get('intuicion_geometrica', '')}</p></div>",
+            f"<div class='arandu-card arandu-card-sage arandu-guru-card'><h4>📐 Intuición geométrica</h4><p>{guru.get('intuicion_geometrica', '')}</p></div>",
             unsafe_allow_html=True,
         )
         falla_html = "".join(f"<li>{item}</li>" for item in guru.get("cuando_falla", []))
         st.markdown(
-            f"<div class='arandu-guru-card'><h4>⚠️ ¿Cuándo falla?</h4><ul>{falla_html}</ul></div>",
+            f"<div class='arandu-card arandu-card-sage arandu-guru-card'><h4>⚠️ ¿Cuándo falla?</h4><ul>{falla_html}</ul></div>",
             unsafe_allow_html=True,
         )
 
@@ -245,9 +187,10 @@ def crear_figura_base_plotly(
     y_label: str = "y",
     altura: int = 430,
 ) -> go.Figure:
-    """Crea una figura Plotly limpia, responsive y lista para visualización geométrica."""
+    """Crea una figura Plotly con la identidad visual Dark Botanical de Arandú."""
     fig = go.Figure()
     fig.update_layout(
+        template=PLOTLY_ARANDU_TEMPLATE,
         title=titulo,
         xaxis_title=x_label,
         yaxis_title=y_label,
@@ -256,9 +199,7 @@ def crear_figura_base_plotly(
         margin=dict(l=40, r=25, t=55, b=45),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1.0),
     )
-    fig.update_xaxes(showgrid=True, zeroline=True, zerolinewidth=1.2)
-    fig.update_yaxes(showgrid=True, zeroline=True, zerolinewidth=1.2)
-    return fig
+    return estilizar_figura_arandu(fig)
 
 
 def render_slider_paso_k(

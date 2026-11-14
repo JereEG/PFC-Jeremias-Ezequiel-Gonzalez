@@ -1,13 +1,38 @@
 """
 Re-exportaciones de componentes UX/UI compartidos para compatibilidad hacia atrás.
-La implementación canónica reside en ``views.ui_shared``.
+La implementación canónica reside en ``views.ui_shared`` y ``views.theme``.
 """
 
 from __future__ import annotations
 
+from views.theme import (
+    ARANDU_BARK,
+    ARANDU_CARD_BORDER,
+    ARANDU_GOLD,
+    ARANDU_GOLD_FILL,
+    ARANDU_GRID,
+    ARANDU_IVORY,
+    ARANDU_MUTED,
+    ARANDU_NODE_IVORY,
+    ARANDU_OBSIDIAN,
+    ARANDU_PLOT_BG,
+    ARANDU_SAGE,
+    ARANDU_SAGE_BORDER,
+    ARANDU_SAGE_FILL,
+    ARANDU_TERRACOTTA,
+    ARANDU_TERRACOTTA_DARK,
+    ARANDU_TERRACOTTA_FILL,
+    COLORWAY_ARANDU,
+    LOGO_JPG_PATH,
+    LOGO_SVG_PATH,
+    PALETA_ARANDU,
+    PLOTLY_ARANDU_TEMPLATE,
+    aplicar_estilo_arandu,
+    estilizar_figura_arandu,
+    obtener_logo_arandu_src,
+)
 from views.ui_shared import (
     FEEDBACK_FORMS_URL,
-    LOGO_SVG_PATH,
     crear_figura_base_plotly,
     inicializar_estado_practica,
     inject_arandu_css,
@@ -19,11 +44,34 @@ from views.ui_shared import (
 )
 
 __all__ = [
+    "ARANDU_BARK",
+    "ARANDU_CARD_BORDER",
+    "ARANDU_GOLD",
+    "ARANDU_GOLD_FILL",
+    "ARANDU_GRID",
+    "ARANDU_IVORY",
+    "ARANDU_MUTED",
+    "ARANDU_NODE_IVORY",
+    "ARANDU_OBSIDIAN",
+    "ARANDU_PLOT_BG",
+    "ARANDU_SAGE",
+    "ARANDU_SAGE_BORDER",
+    "ARANDU_SAGE_FILL",
+    "ARANDU_TERRACOTTA",
+    "ARANDU_TERRACOTTA_DARK",
+    "ARANDU_TERRACOTTA_FILL",
+    "COLORWAY_ARANDU",
     "FEEDBACK_FORMS_URL",
+    "LOGO_JPG_PATH",
     "LOGO_SVG_PATH",
+    "PALETA_ARANDU",
+    "PLOTLY_ARANDU_TEMPLATE",
+    "aplicar_estilo_arandu",
     "crear_figura_base_plotly",
+    "estilizar_figura_arandu",
     "inicializar_estado_practica",
     "inject_arandu_css",
+    "obtener_logo_arandu_src",
     "obtener_logo_data_uri",
     "render_banner_edicion_profesora",
     "render_bloque_1_teoria_y_ejemplo",
