@@ -112,6 +112,7 @@ def integrar_paso_variable(
                 "nodos_x": [float(x) for x in seg_x],
                 "nodos_y": [float(y) for y in seg_y],
                 "paso_h": float(h),
+                "ancho_h": float(h),
                 "metodo": metodo,
                 "motivo": motivo,
                 "area": float(area),

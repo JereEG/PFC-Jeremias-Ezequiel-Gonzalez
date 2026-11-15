@@ -481,7 +481,7 @@ def _frag_laboratorio_paso_variable() -> None:
             "Tramo": tramo["tramo_id"],
             "Nodos": tramo["nodos"],
             "Intervalo": f"[{tramo['inicio']:.2f}, {tramo['fin']:.2f}]",
-            "Paso Δh": f"{tramo['paso_h']:.2f}",
+            "Paso Δh": f"{tramo['ancho_h']:.2f}",
             "Regla Activada": tramo["metodo"],
             "Área Parcial": round(tramo["area"], 6),
             "Justificación Matemática": tramo["motivo"],
