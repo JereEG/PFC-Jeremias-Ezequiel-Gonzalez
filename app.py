@@ -120,7 +120,7 @@ with st.sidebar:
             f"""
             <div class="arandu-sidebar-brand">
                 <img src="{_sidebar_uri}" alt="Arandú Logo" />
-                <p class="arandu-sidebar-brand-name">ARANDÚ</p>
+                <p class="arandu-sidebar-brand-name">Arandú</p>
                 <p class="arandu-sidebar-brand-sub">Organización de Sabiduría Computacional<br>FaCENA — UNNE</p>
             </div>
             """,
@@ -130,7 +130,7 @@ with st.sidebar:
         st.markdown(
             """
             <div class="arandu-sidebar-brand">
-                <p class="arandu-sidebar-brand-name">ARANDÚ</p>
+                <p class="arandu-sidebar-brand-name">Arandú</p>
                 <p class="arandu-sidebar-brand-sub">Organización de Sabiduría Computacional • FaCENA - UNNE</p>
             </div>
             """,
@@ -148,7 +148,7 @@ with st.sidebar:
     if es_entorno_offline_wasm():
         st.markdown(
             """
-            <div style="padding: 0.65rem 0.85rem; border-radius: 10px; background-color: rgba(104, 125, 91, 0.22); border: 1px solid #687D5B; border-left: 4px solid #7A9A65; color: #EDE4D3; font-size: 0.86rem; font-weight: 600; margin-top: 0.5rem;">
+            <div class="arandu-wasm-banner">
                 Motor Local Activo (100% Sin Internet)
             </div>
             """,

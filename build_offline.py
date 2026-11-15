@@ -13,6 +13,7 @@ import shutil
 from pathlib import Path
 
 from core.version import APP_VERSION
+from views.theme import PALETA_ARANDU, hex_a_rgba
 
 ROOT_DIR = Path(__file__).resolve().parent
 DIST_DIR = ROOT_DIR / "dist_offline"
@@ -85,10 +86,10 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
     streamlit_cfg_json = json.dumps(
         {
             "theme.base": "dark",
-            "theme.primaryColor": "#D4A359",
-            "theme.backgroundColor": "#0A0B09",
-            "theme.secondaryBackgroundColor": "#161814",
-            "theme.textColor": "#EDE4D3",
+            "theme.primaryColor": PALETA_ARANDU["oro"],
+            "theme.backgroundColor": PALETA_ARANDU["bg_principal"],
+            "theme.secondaryBackgroundColor": PALETA_ARANDU["bg_secundario"],
+            "theme.textColor": PALETA_ARANDU["texto_principal"],
             "theme.font": "sans serif",
             "client.toolbarMode": "minimal",
             "client.showErrorDetails": False,
@@ -96,28 +97,52 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
         },
         ensure_ascii=False,
     )
+    css_root_lines = "\n".join(
+        f"      {clave}: {valor};"
+        for clave, valor in {
+            "--arandu-bg": PALETA_ARANDU["bg_principal"],
+            "--arandu-surface": PALETA_ARANDU["bg_secundario"],
+            "--arandu-gold": PALETA_ARANDU["oro"],
+            "--arandu-sage": PALETA_ARANDU["salvia"],
+            "--arandu-sage-border": PALETA_ARANDU["salvia_borde"],
+            "--arandu-text": PALETA_ARANDU["texto_principal"],
+            "--arandu-muted": PALETA_ARANDU["texto_secundario"],
+            "--arandu-border": PALETA_ARANDU["borde"],
+            "--arandu-elevated": PALETA_ARANDU["bg_elevado"],
+            "--arandu-gold-14": hex_a_rgba(PALETA_ARANDU["oro"], 0.14),
+            "--arandu-gold-20": hex_a_rgba(PALETA_ARANDU["oro"], 0.20),
+            "--arandu-gold-35": hex_a_rgba(PALETA_ARANDU["oro"], 0.35),
+            "--arandu-surface-94": hex_a_rgba(PALETA_ARANDU["bg_secundario"], 0.94),
+            "--arandu-shadow-45": hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.45),
+        }.items()
+    )
 
     html = f"""<!doctype html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <meta name="theme-color" content="#0A0B09" />
+  <meta name="theme-color" content="{PALETA_ARANDU["bg_principal"]}" />
   <meta name="description" content="Arandú — Métodos Computacionales v{APP_VERSION} (Modo Offline WebAssembly / PWA)" />
   <title>Arandú — Métodos Computacionales (Offline v{APP_VERSION})</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/svg+xml" href="./assets/svg/arandu.svg" />
   <link rel="apple-touch-icon" href="./assets/logo_arandu.jpg" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" />
   <link rel="stylesheet" href="{STLITE_CDN_BASE}/stlite.css" />
   <style>
+    :root {{
+{css_root_lines}
+    }}
     html, body {{
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background-color: #0A0B09;
-      color: #EDE4D3;
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--arandu-bg);
+      color: var(--arandu-text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.65;
       overflow-x: hidden;
     }}
     #root {{
@@ -133,8 +158,8 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       align-items: center;
       justify-content: center;
       padding: 2rem;
-      background: radial-gradient(circle at top center, rgba(212, 163, 89, 0.14), #0A0B09 62%);
-      color: #EDE4D3;
+      background: radial-gradient(circle at top center, var(--arandu-gold-14), var(--arandu-bg) 62%);
+      color: var(--arandu-text);
       text-align: center;
       transition: opacity 0.4s ease;
     }}
@@ -146,23 +171,25 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       width: 96px;
       height: 96px;
       margin-bottom: 1.1rem;
-      filter: drop-shadow(0 0 18px rgba(212, 163, 89, 0.35));
+      filter: drop-shadow(0 0 18px var(--arandu-gold-35));
     }}
     .splash-title {{
       margin: 0;
-      font-size: 1.55rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.6rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
-      color: #EDE4D3;
+      letter-spacing: -0.01em;
+      color: var(--arandu-text);
     }}
     .splash-badge {{
       display: inline-block;
       margin-top: 0.55rem;
       padding: 0.25rem 0.75rem;
       border-radius: 999px;
-      border: 1px solid #D4A359;
-      background: rgba(212, 163, 89, 0.14);
-      color: #D4A359;
+      border: 1px solid var(--arandu-gold);
+      background: var(--arandu-gold-14);
+      color: var(--arandu-gold);
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.8rem;
       font-weight: 600;
     }}
@@ -171,8 +198,8 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       height: 38px;
       margin: 1.4rem 0 0.9rem 0;
       border-radius: 50%;
-      border: 3px solid rgba(212, 163, 89, 0.2);
-      border-top-color: #D4A359;
+      border: 3px solid var(--arandu-gold-20);
+      border-top-color: var(--arandu-gold);
       animation: arandu-spin 0.9s linear infinite;
     }}
     @keyframes arandu-spin {{
@@ -181,8 +208,8 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
     .splash-status {{
       max-width: 520px;
       font-size: 0.92rem;
-      line-height: 1.5;
-      color: #C7BFA9;
+      line-height: 1.6;
+      color: var(--arandu-muted);
       margin-bottom: 1rem;
     }}
     .splash-skeleton-grid {{
@@ -199,8 +226,8 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       }}
     }}
     .sk-panel {{
-      background-color: #161814;
-      border: 1px solid #2E2920;
+      background-color: var(--arandu-surface);
+      border: 1px solid var(--arandu-border);
       border-radius: 12px;
       padding: 0.85rem;
     }}
@@ -208,7 +235,7 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       height: 12px;
       border-radius: 6px;
       margin-bottom: 0.65rem;
-      background: linear-gradient(90deg, #1E201B 25%, #2E2920 50%, #1E201B 75%);
+      background: linear-gradient(90deg, var(--arandu-elevated) 25%, var(--arandu-border) 50%, var(--arandu-elevated) 75%);
       background-size: 200% 100%;
       animation: arandu-shimmer 1.5s infinite linear;
     }}
@@ -230,9 +257,9 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       margin-top: 1rem;
       padding: 0.55rem 1.15rem;
       border-radius: 10px;
-      border: 1px solid #D4A359;
-      background: #1E201B;
-      color: #EDE4D3;
+      border: 1px solid var(--arandu-gold);
+      background: var(--arandu-elevated);
+      color: var(--arandu-text);
       font-weight: 600;
       cursor: pointer;
     }}
@@ -247,13 +274,14 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       z-index: 9998;
       padding: 0.45rem 0.85rem;
       border-radius: 999px;
-      background: rgba(22, 24, 20, 0.94);
-      border: 1px solid #687D5B;
-      border-left: 4px solid #7A9A65;
-      color: #EDE4D3;
-      font-size: 0.8rem;
+      background: var(--arandu-surface-94);
+      border: 1px solid var(--arandu-sage-border);
+      border-left: 4px solid var(--arandu-sage);
+      color: var(--arandu-text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
       font-weight: 600;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 6px 18px var(--arandu-shadow-45);
     }}
     #arandu-net-pill.visible {{
       display: inline-flex;
@@ -425,8 +453,8 @@ def _generar_manifest() -> None:
         "start_url": "./",
         "scope": "./",
         "display": "standalone",
-        "background_color": "#0A0B09",
-        "theme_color": "#D4A359",
+        "background_color": PALETA_ARANDU["bg_principal"],
+        "theme_color": PALETA_ARANDU["oro"],
         "lang": "es-AR",
         "icons": [
             {

@@ -15,49 +15,91 @@ import streamlit as st
 if TYPE_CHECKING:
     import plotly.graph_objects as go
 
-ARANDU_GOLD = "#D4A359"
-ARANDU_OBSIDIAN = "#0A0B09"
-ARANDU_BARK = "#161814"
-ARANDU_PLOT_BG = "#121410"
-ARANDU_IVORY = "#EDE4D3"
-ARANDU_NODE_IVORY = "#FFFDF9"
-ARANDU_SAGE = "#7A9A65"
-ARANDU_SAGE_FILL = "rgba(122, 154, 101, 0.25)"
-ARANDU_SAGE_BORDER = "#687D5B"
-ARANDU_TERRACOTTA = "#C86D44"
-ARANDU_TERRACOTTA_DARK = "#B5673F"
-ARANDU_TERRACOTTA_FILL = "rgba(200, 109, 68, 0.25)"
-ARANDU_GOLD_FILL = "rgba(212, 163, 89, 0.25)"
-ARANDU_GRID = "#26241E"
-ARANDU_CARD_BORDER = "#2E2920"
-ARANDU_MUTED = "#9E9585"
-
 PALETA_ARANDU: dict[str, str] = {
-    "primary_gold": ARANDU_GOLD,
-    "background_obsidian": ARANDU_OBSIDIAN,
-    "surface_bark": ARANDU_BARK,
-    "plot_bg": ARANDU_PLOT_BG,
-    "text_ivory": ARANDU_IVORY,
-    "node_ivory": ARANDU_NODE_IVORY,
-    "sage_green": ARANDU_SAGE,
-    "sage_fill": ARANDU_SAGE_FILL,
-    "sage_border": ARANDU_SAGE_BORDER,
-    "terracotta": ARANDU_TERRACOTTA,
-    "terracotta_dark": ARANDU_TERRACOTTA_DARK,
-    "terracotta_fill": ARANDU_TERRACOTTA_FILL,
-    "gold_fill": ARANDU_GOLD_FILL,
-    "grid_line": ARANDU_GRID,
-    "card_border": ARANDU_CARD_BORDER,
-    "muted_text": ARANDU_MUTED,
+    "bg_principal": "#0A0B09",
+    "bg_secundario": "#161814",
+    "bg_lienzo": "#121410",
+    "oro": "#D4A359",
+    "salvia": "#7A9A65",
+    "terracota": "#C86D44",
+    "texto_principal": "#EDE4D3",
+    "texto_secundario": "#C7BFA9",
+    "borde": "#2E2920",
+    "salvia_borde": "#687D5B",
+    "terracota_oscuro": "#B5673F",
+    "marfil_nodo": "#FFFDF9",
+    "texto_atenuado": "#9E9585",
+    "grilla": "#26241E",
+    "bg_elevado": "#1E201B",
+    "bg_marco": "#0C0E0A",
+    "bg_sombra": "#11120F",
+    "bg_profundo": "#0E100C",
+    "bg_carta_top": "#171A14",
+    "bg_carta_mid": "#10120E",
+    "bg_carta_bot": "#16130E",
+    "bg_carta_activa_top": "#1E2018",
+    "bg_carta_activa_bot": "#1C170F",
+    "bg_carta_inset": "#11130F",
+    "bg_horner": "#181A14",
+    "negro_sombra": "#000000",
 }
 
+
+def hex_a_rgba(hex_color: str, alpha: float) -> str:
+    """Convierte un color hexadecimal de PALETA_ARANDU a cadena rgba CSS/Plotly."""
+    limpio = hex_color.lstrip("#")
+    r, g, b = int(limpio[0:2], 16), int(limpio[2:4], 16), int(limpio[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
+PALETA_ARANDU.update(
+    {
+        "oro_fill": hex_a_rgba(PALETA_ARANDU["oro"], 0.25),
+        "salvia_fill": hex_a_rgba(PALETA_ARANDU["salvia"], 0.25),
+        "terracota_fill": hex_a_rgba(PALETA_ARANDU["terracota"], 0.25),
+        "primary_gold": PALETA_ARANDU["oro"],
+        "background_obsidian": PALETA_ARANDU["bg_principal"],
+        "surface_bark": PALETA_ARANDU["bg_secundario"],
+        "plot_bg": PALETA_ARANDU["bg_lienzo"],
+        "text_ivory": PALETA_ARANDU["texto_principal"],
+        "node_ivory": PALETA_ARANDU["marfil_nodo"],
+        "sage_green": PALETA_ARANDU["salvia"],
+        "sage_fill": hex_a_rgba(PALETA_ARANDU["salvia"], 0.25),
+        "sage_border": PALETA_ARANDU["salvia_borde"],
+        "terracotta": PALETA_ARANDU["terracota"],
+        "terracotta_dark": PALETA_ARANDU["terracota_oscuro"],
+        "terracotta_fill": hex_a_rgba(PALETA_ARANDU["terracota"], 0.25),
+        "gold_fill": hex_a_rgba(PALETA_ARANDU["oro"], 0.25),
+        "grid_line": PALETA_ARANDU["grilla"],
+        "card_border": PALETA_ARANDU["borde"],
+        "muted_text": PALETA_ARANDU["texto_atenuado"],
+    }
+)
+
+ARANDU_GOLD = PALETA_ARANDU["oro"]
+ARANDU_OBSIDIAN = PALETA_ARANDU["bg_principal"]
+ARANDU_BARK = PALETA_ARANDU["bg_secundario"]
+ARANDU_PLOT_BG = PALETA_ARANDU["bg_lienzo"]
+ARANDU_IVORY = PALETA_ARANDU["texto_principal"]
+ARANDU_NODE_IVORY = PALETA_ARANDU["marfil_nodo"]
+ARANDU_SAGE = PALETA_ARANDU["salvia"]
+ARANDU_SAGE_FILL = PALETA_ARANDU["salvia_fill"]
+ARANDU_SAGE_BORDER = PALETA_ARANDU["salvia_borde"]
+ARANDU_TERRACOTTA = PALETA_ARANDU["terracota"]
+ARANDU_TERRACOTTA_DARK = PALETA_ARANDU["terracota_oscuro"]
+ARANDU_TERRACOTTA_FILL = PALETA_ARANDU["terracota_fill"]
+ARANDU_GOLD_FILL = PALETA_ARANDU["oro_fill"]
+ARANDU_GRID = PALETA_ARANDU["grilla"]
+ARANDU_CARD_BORDER = PALETA_ARANDU["borde"]
+ARANDU_MUTED = PALETA_ARANDU["texto_atenuado"]
+
 COLORWAY_ARANDU: list[str] = [
-    ARANDU_GOLD,
-    ARANDU_SAGE,
-    ARANDU_TERRACOTTA,
-    ARANDU_NODE_IVORY,
-    ARANDU_TERRACOTTA_DARK,
-    ARANDU_SAGE_BORDER,
+    PALETA_ARANDU["oro"],
+    PALETA_ARANDU["salvia"],
+    PALETA_ARANDU["terracota"],
+    PALETA_ARANDU["marfil_nodo"],
+    PALETA_ARANDU["terracota_oscuro"],
+    PALETA_ARANDU["salvia_borde"],
 ]
 
 _ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
@@ -99,47 +141,59 @@ def obtener_plotly_arandu_template():
 
     template = go.layout.Template(
         layout=go.Layout(
-            paper_bgcolor="rgba(10, 11, 9, 0)",
-            plot_bgcolor=ARANDU_PLOT_BG,
+            paper_bgcolor=hex_a_rgba(PALETA_ARANDU["bg_principal"], 0),
+            plot_bgcolor=PALETA_ARANDU["bg_lienzo"],
             font=dict(
-                color=ARANDU_IVORY,
-                family="'Plus Jakarta Sans', sans-serif",
+                color=PALETA_ARANDU["texto_principal"],
+                family="'Inter', sans-serif",
                 size=13,
             ),
             title=dict(
                 font=dict(
-                    color=ARANDU_IVORY,
-                    family="'Cinzel', 'Fraunces', serif",
+                    color=PALETA_ARANDU["texto_principal"],
+                    family="'Outfit', sans-serif",
                     size=17,
                 )
             ),
             colorway=COLORWAY_ARANDU,
             legend=dict(
-                bgcolor="rgba(22, 24, 20, 0.72)",
-                bordercolor=ARANDU_CARD_BORDER,
+                bgcolor=hex_a_rgba(PALETA_ARANDU["bg_secundario"], 0.72),
+                bordercolor=PALETA_ARANDU["borde"],
                 borderwidth=1,
-                font=dict(color=ARANDU_IVORY, size=12),
+                font=dict(color=PALETA_ARANDU["texto_principal"], size=12),
             ),
             hoverlabel=dict(
-                bgcolor=ARANDU_BARK,
-                bordercolor=ARANDU_TERRACOTTA_DARK,
-                font=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=12),
+                bgcolor=PALETA_ARANDU["bg_secundario"],
+                bordercolor=PALETA_ARANDU["terracota_oscuro"],
+                font=dict(
+                    color=PALETA_ARANDU["texto_principal"],
+                    family="'JetBrains Mono', monospace",
+                    size=12,
+                ),
             ),
             xaxis=dict(
-                gridcolor=ARANDU_GRID,
-                linecolor=ARANDU_CARD_BORDER,
+                gridcolor=PALETA_ARANDU["grilla"],
+                linecolor=PALETA_ARANDU["borde"],
                 zeroline=True,
-                zerolinecolor=ARANDU_TERRACOTTA_DARK,
+                zerolinecolor=PALETA_ARANDU["terracota_oscuro"],
                 zerolinewidth=1.6,
-                tickfont=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=11),
+                tickfont=dict(
+                    color=PALETA_ARANDU["texto_principal"],
+                    family="'JetBrains Mono', monospace",
+                    size=11,
+                ),
             ),
             yaxis=dict(
-                gridcolor=ARANDU_GRID,
-                linecolor=ARANDU_CARD_BORDER,
+                gridcolor=PALETA_ARANDU["grilla"],
+                linecolor=PALETA_ARANDU["borde"],
                 zeroline=True,
-                zerolinecolor=ARANDU_TERRACOTTA_DARK,
+                zerolinecolor=PALETA_ARANDU["terracota_oscuro"],
                 zerolinewidth=1.6,
-                tickfont=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=11),
+                tickfont=dict(
+                    color=PALETA_ARANDU["texto_principal"],
+                    family="'JetBrains Mono', monospace",
+                    size=11,
+                ),
             ),
         )
     )
@@ -159,22 +213,22 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     template = obtener_plotly_arandu_template()
     fig.update_layout(
         template=template,
-        paper_bgcolor="rgba(10, 11, 9, 0)",
-        plot_bgcolor=ARANDU_PLOT_BG,
-        font=dict(color=ARANDU_IVORY, family="'Plus Jakarta Sans', sans-serif"),
+        paper_bgcolor=hex_a_rgba(PALETA_ARANDU["bg_principal"], 0),
+        plot_bgcolor=PALETA_ARANDU["bg_lienzo"],
+        font=dict(color=PALETA_ARANDU["texto_principal"], family="'Inter', sans-serif"),
     )
     fig.update_xaxes(
         showgrid=True,
-        gridcolor=ARANDU_GRID,
+        gridcolor=PALETA_ARANDU["grilla"],
         zeroline=True,
-        zerolinecolor=ARANDU_TERRACOTTA_DARK,
+        zerolinecolor=PALETA_ARANDU["terracota_oscuro"],
         zerolinewidth=1.6,
     )
     fig.update_yaxes(
         showgrid=True,
-        gridcolor=ARANDU_GRID,
+        gridcolor=PALETA_ARANDU["grilla"],
         zeroline=True,
-        zerolinecolor=ARANDU_TERRACOTTA_DARK,
+        zerolinecolor=PALETA_ARANDU["terracota_oscuro"],
         zerolinewidth=1.6,
     )
     return fig
@@ -239,394 +293,499 @@ def obtener_logos_app() -> tuple[bytes | str | None, str | bytes]:
 
 @st.cache_data(show_spinner=False)
 def obtener_css_arandu() -> str:
-    """Genera y cachea la hoja CSS y tipografías de Arandú una sola vez en memoria."""
-    return """
+    """Genera y cachea la hoja CSS y variables de diseño de Arandú en memoria."""
+    tokens_root = {
+        "--arandu-bg": PALETA_ARANDU["bg_principal"],
+        "--arandu-surface": PALETA_ARANDU["bg_secundario"],
+        "--arandu-canvas": PALETA_ARANDU["bg_lienzo"],
+        "--arandu-gold": PALETA_ARANDU["oro"],
+        "--arandu-sage": PALETA_ARANDU["salvia"],
+        "--arandu-terracotta": PALETA_ARANDU["terracota"],
+        "--arandu-text": PALETA_ARANDU["texto_principal"],
+        "--arandu-muted": PALETA_ARANDU["texto_secundario"],
+        "--arandu-border": PALETA_ARANDU["borde"],
+        "--arandu-sage-border": PALETA_ARANDU["salvia_borde"],
+        "--arandu-terracotta-dark": PALETA_ARANDU["terracota_oscuro"],
+        "--arandu-node-ivory": PALETA_ARANDU["marfil_nodo"],
+        "--arandu-text-faint": PALETA_ARANDU["texto_atenuado"],
+        "--arandu-grid": PALETA_ARANDU["grilla"],
+        "--arandu-elevated": PALETA_ARANDU["bg_elevado"],
+        "--arandu-frame-bg": PALETA_ARANDU["bg_marco"],
+        "--arandu-shadow-bg": PALETA_ARANDU["bg_sombra"],
+        "--arandu-deep-bg": PALETA_ARANDU["bg_profundo"],
+        "--arandu-card-top": PALETA_ARANDU["bg_carta_top"],
+        "--arandu-card-mid": PALETA_ARANDU["bg_carta_mid"],
+        "--arandu-card-bot": PALETA_ARANDU["bg_carta_bot"],
+        "--arandu-card-active-top": PALETA_ARANDU["bg_carta_activa_top"],
+        "--arandu-card-active-bot": PALETA_ARANDU["bg_carta_activa_bot"],
+        "--arandu-card-inset": PALETA_ARANDU["bg_carta_inset"],
+        "--arandu-gold-09": hex_a_rgba(PALETA_ARANDU["oro"], 0.09),
+        "--arandu-gold-10": hex_a_rgba(PALETA_ARANDU["oro"], 0.10),
+        "--arandu-gold-12": hex_a_rgba(PALETA_ARANDU["oro"], 0.12),
+        "--arandu-gold-15": hex_a_rgba(PALETA_ARANDU["oro"], 0.15),
+        "--arandu-gold-16": hex_a_rgba(PALETA_ARANDU["oro"], 0.16),
+        "--arandu-gold-18": hex_a_rgba(PALETA_ARANDU["oro"], 0.18),
+        "--arandu-gold-20": hex_a_rgba(PALETA_ARANDU["oro"], 0.20),
+        "--arandu-gold-22": hex_a_rgba(PALETA_ARANDU["oro"], 0.22),
+        "--arandu-gold-24": hex_a_rgba(PALETA_ARANDU["oro"], 0.24),
+        "--arandu-gold-26": hex_a_rgba(PALETA_ARANDU["oro"], 0.26),
+        "--arandu-gold-45": hex_a_rgba(PALETA_ARANDU["oro"], 0.45),
+        "--arandu-gold-55": hex_a_rgba(PALETA_ARANDU["oro"], 0.55),
+        "--arandu-gold-56": hex_a_rgba(PALETA_ARANDU["oro"], 0.56),
+        "--arandu-gold-65": hex_a_rgba(PALETA_ARANDU["oro"], 0.65),
+        "--arandu-gold-84": hex_a_rgba(PALETA_ARANDU["oro"], 0.84),
+        "--arandu-sage-14": hex_a_rgba(PALETA_ARANDU["salvia"], 0.14),
+        "--arandu-sage-18": hex_a_rgba(PALETA_ARANDU["salvia_borde"], 0.18),
+        "--arandu-sage-22": hex_a_rgba(PALETA_ARANDU["salvia_borde"], 0.22),
+        "--arandu-terracotta-18": hex_a_rgba(PALETA_ARANDU["terracota_oscuro"], 0.18),
+        "--arandu-terracotta-26": hex_a_rgba(PALETA_ARANDU["terracota_oscuro"], 0.26),
+        "--arandu-surface-92": hex_a_rgba(PALETA_ARANDU["bg_secundario"], 0.92),
+        "--arandu-bg-55": hex_a_rgba(PALETA_ARANDU["bg_principal"], 0.55),
+        "--arandu-shadow-30": hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.30),
+        "--arandu-shadow-32": hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.32),
+        "--arandu-shadow-44": hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.44),
+        "--arandu-shadow-45": hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.45),
+    }
+    root_lines = "\n".join(f"            {clave}: {valor};" for clave, valor in tokens_root.items())
+    return f"""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Fraunces:opsz,wght@9..144,600&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap');
 
-        html, body, [class*="css"] {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #EDE4D3;
-        }
-        h1, h2, .arandu-brand-title {
-            font-family: 'Cinzel', 'Fraunces', serif !important;
-            letter-spacing: 0.02em;
-            color: #EDE4D3;
-        }
-        h3, h4 {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #EDE4D3;
-        }
-        code, pre, .stCode, [data-testid="stMetricValue"] {
+        :root {{
+{root_lines}
+        }}
+
+        html, body, [class*="css"] {{
+            font-family: 'Inter', sans-serif;
+            color: var(--arandu-text);
+            line-height: 1.65;
+        }}
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li {{
+            font-family: 'Inter', sans-serif;
+            color: var(--arandu-text);
+            line-height: 1.65;
+        }}
+        h1, h2, h3, .arandu-brand-title {{
+            font-family: 'Outfit', sans-serif !important;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--arandu-text);
+        }}
+        h4 {{
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--arandu-text);
+        }}
+        code, pre, .stCode, [data-testid="stMetricValue"], [data-testid="stDataFrame"], [data-testid="stTable"] {{
             font-family: 'JetBrains Mono', monospace !important;
-        }
+        }}
 
-        .arandu-sidebar-brand {
+        div[data-testid="stHorizontalBlock"] {{
+            align-items: stretch;
+        }}
+
+        .arandu-wasm-banner {{
+            padding: 0.65rem 0.85rem;
+            border-radius: 10px;
+            background-color: var(--arandu-sage-22);
+            border: 1px solid var(--arandu-sage-border);
+            border-left: 4px solid var(--arandu-sage);
+            color: var(--arandu-text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.86rem;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-top: 0.5rem;
+        }}
+
+        .arandu-sidebar-brand {{
             text-align: center;
             padding: 0.75rem 0.6rem 0.9rem 0.6rem;
             border-radius: 12px;
-            background: linear-gradient(160deg, #161814 0%, #11120F 100%);
-            border: 1px solid #2E2920;
-            border-bottom: 2px solid #D4A359;
+            background: linear-gradient(160deg, var(--arandu-surface) 0%, var(--arandu-shadow-bg) 100%);
+            border: 1px solid var(--arandu-border);
+            border-bottom: 2px solid var(--arandu-gold);
             margin-bottom: 0.75rem;
-        }
-        .arandu-sidebar-brand img {
+        }}
+        .arandu-sidebar-brand img {{
             width: 78px;
             height: 78px;
             border-radius: 50%;
-            border: 2px solid #D4A359;
+            border: 2px solid var(--arandu-gold);
             object-fit: cover;
             margin-bottom: 0.45rem;
-            box-shadow: 0 4px 14px rgba(212, 163, 89, 0.22);
-        }
-        .arandu-sidebar-brand-name {
-            font-family: 'Cinzel', 'Fraunces', serif;
-            font-size: 1.25rem;
+            box-shadow: 0 4px 14px var(--arandu-gold-22);
+        }}
+        .arandu-sidebar-brand-name {{
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.28rem;
             font-weight: 700;
-            letter-spacing: 0.14em;
-            color: #D4A359;
+            letter-spacing: -0.01em;
+            color: var(--arandu-gold);
             margin: 0;
-        }
-        .arandu-sidebar-brand-sub {
-            font-size: 0.75rem;
-            color: #EDE4D3;
-            opacity: 0.85;
+        }}
+        .arandu-sidebar-brand-sub {{
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            color: var(--arandu-text);
+            opacity: 0.88;
+            line-height: 1.45;
             margin: 0.2rem 0 0 0;
-        }
+        }}
 
-        .arandu-hero {
+        .arandu-hero {{
             padding: 1.55rem 1.85rem;
             border-radius: 14px;
-            border: 1px solid #2E2920;
-            border-left: 4px solid #D4A359;
-            background: radial-gradient(circle at top right, rgba(122, 154, 101, 0.14), transparent 55%),
-                        linear-gradient(135deg, #161814 0%, #0E100C 100%);
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+            border: 1px solid var(--arandu-border);
+            border-left: 4px solid var(--arandu-gold);
+            background: radial-gradient(circle at top right, var(--arandu-sage-14), transparent 55%),
+                        linear-gradient(135deg, var(--arandu-surface) 0%, var(--arandu-deep-bg) 100%);
+            box-shadow: 0 10px 28px var(--arandu-shadow-45);
             margin-bottom: 1.25rem;
-        }
-        .arandu-hero-grid {
+        }}
+        .arandu-hero-grid {{
             display: flex;
             align-items: center;
             gap: 1.6rem;
             flex-wrap: wrap;
-        }
-        .arandu-hero-logo {
+        }}
+        .arandu-hero-logo {{
             width: 132px;
             height: 132px;
             flex-shrink: 0;
             border-radius: 50%;
-            background: #0A0B09;
-            border: 2px solid rgba(212, 163, 89, 0.65);
-            box-shadow: 0 6px 22px rgba(212, 163, 89, 0.20);
+            background: var(--arandu-bg);
+            border: 2px solid var(--arandu-gold-65);
+            box-shadow: 0 6px 22px var(--arandu-gold-20);
             object-fit: cover;
-        }
-        .arandu-hero h1 {
+        }}
+        .arandu-hero h1 {{
             margin: 0.35rem 0 0.45rem 0;
             font-size: 1.95rem;
-            color: #EDE4D3;
-        }
-        .arandu-pillars {
+            color: var(--arandu-text);
+        }}
+        .arandu-pillars {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
             gap: 0.65rem;
             margin-top: 0.85rem;
-        }
-        .arandu-pillar-item {
+        }}
+        .arandu-pillar-item {{
             padding: 0.55rem 0.75rem;
             border-radius: 9px;
-            background-color: rgba(10, 11, 9, 0.55);
-            border: 1px solid #2E2920;
-            border-left: 3px solid #7A9A65;
+            background-color: var(--arandu-bg-55);
+            border: 1px solid var(--arandu-border);
+            border-left: 3px solid var(--arandu-sage);
             font-size: 0.86rem;
-            line-height: 1.35;
-        }
-        .arandu-pillar-item strong {
-            color: #D4A359;
-        }
+            line-height: 1.45;
+        }}
+        .arandu-pillar-item strong {{
+            color: var(--arandu-gold);
+        }}
 
-        .arandu-abstract {
+        .arandu-abstract {{
             padding: 0.85rem 1.15rem;
             border-radius: 10px;
-            border: 1px solid #2E2920;
-            border-left: 4px solid #D4A359;
-            background: linear-gradient(90deg, rgba(212, 163, 89, 0.10), rgba(22, 24, 20, 0.92));
+            border: 1px solid var(--arandu-border);
+            border-left: 4px solid var(--arandu-gold);
+            background: linear-gradient(90deg, var(--arandu-gold-10), var(--arandu-surface-92));
             margin: 0.35rem 0 0.85rem 0;
             font-size: 0.98rem;
-            line-height: 1.5;
-        }
-        .arandu-verdict-card {
+            line-height: 1.65;
+        }}
+        .arandu-verdict-card {{
             padding: 0.95rem 1.15rem;
             border-radius: 12px;
-            border: 1px solid #2E2920;
-            background-color: #161814;
+            border: 1px solid var(--arandu-border);
+            background-color: var(--arandu-surface);
             margin: 0.55rem 0 1rem 0;
-        }
-        .arandu-verdict-pro {
-            border-left: 4px solid #7A9A65 !important;
-        }
-        .arandu-verdict-warn {
-            border-left: 4px solid #C86D44 !important;
-        }
+        }}
+        .arandu-verdict-pro {{
+            border-left: 4px solid var(--arandu-sage) !important;
+        }}
+        .arandu-verdict-warn {{
+            border-left: 4px solid var(--arandu-terracotta) !important;
+        }}
 
         .arandu-card,
-        .arandu-guru-card {
+        .arandu-guru-card {{
             padding: 1rem 1.2rem;
             border-radius: 12px;
-            border: 1px solid #2E2920;
-            border-left: 4px solid #D4A359;
-            background-color: #161814;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+            border: 1px solid var(--arandu-border);
+            border-left: 4px solid var(--arandu-gold);
+            background-color: var(--arandu-surface);
+            box-shadow: 0 6px 18px var(--arandu-shadow-32);
             margin-bottom: 0.8rem;
             height: 100%;
-        }
-        .arandu-card-sage {
-            border-left: 4px solid #687D5B !important;
-        }
+        }}
+        .arandu-card-sage {{
+            border-left: 4px solid var(--arandu-sage-border) !important;
+        }}
         .arandu-card h4,
-        .arandu-guru-card h4 {
+        .arandu-guru-card h4 {{
             margin: 0 0 0.45rem 0;
-            font-size: 1.02rem;
-            color: #D4A359;
-        }
-        .arandu-card-sage h4 {
-            color: #7A9A65;
-        }
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.04rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--arandu-gold);
+        }}
+        .arandu-card-sage h4 {{
+            color: var(--arandu-sage);
+        }}
 
-        .arandu-ejemplo-box {
+        .arandu-ejemplo-box {{
             padding: 1rem 1.2rem;
             border-radius: 12px;
-            border: 1px solid #2E2920;
-            border-left: 4px solid #687D5B;
-            background-color: #161814;
+            border: 1px solid var(--arandu-border);
+            border-left: 4px solid var(--arandu-sage-border);
+            background-color: var(--arandu-surface);
             margin: 0.6rem 0 1rem 0;
-        }
-        .arandu-edit-banner {
+        }}
+        .arandu-edit-banner {{
             padding: 0.8rem 1.05rem;
             border-radius: 10px;
-            border: 2px dashed #D4A359;
-            background-color: rgba(212, 163, 89, 0.10);
-            color: #EDE4D3;
+            border: 2px dashed var(--arandu-gold);
+            background-color: var(--arandu-gold-10);
+            color: var(--arandu-text);
             font-weight: 600;
             margin: 0.65rem 0 0.85rem 0;
-        }
-        div[data-testid="stDataEditor"] {
-            border: 2px dashed #D4A359 !important;
+        }}
+        div[data-testid="stDataEditor"] {{
+            border: 2px dashed var(--arandu-gold) !important;
             border-radius: 10px !important;
             padding: 0.35rem !important;
-            background-color: #161814 !important;
-        }
+            background-color: var(--arandu-surface) !important;
+        }}
 
-        .arandu-versus-card {
+        .arandu-versus-card {{
             padding: 1rem 1.2rem;
             border-radius: 12px;
-            border: 1px solid #2E2920;
-            background-color: #161814;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.30);
+            border: 1px solid var(--arandu-border);
+            background-color: var(--arandu-surface);
+            box-shadow: 0 6px 18px var(--arandu-shadow-30);
             margin-bottom: 0.85rem;
-        }
-        .arandu-badge {
+        }}
+        .arandu-badge {{
             display: inline-block;
             padding: 0.2rem 0.6rem;
             border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.76rem;
             font-weight: 600;
-            color: #D4A359;
-            background-color: rgba(212, 163, 89, 0.12);
-            border: 1px solid rgba(212, 163, 89, 0.45);
+            color: var(--arandu-gold);
+            background-color: var(--arandu-gold-12);
+            border: 1px solid var(--arandu-gold-45);
             margin-right: 0.35rem;
-        }
+        }}
 
         div.stButton > button,
-        div.stLinkButton > a {
-            border: 1px solid #D4A359 !important;
-            background-color: #1E201B !important;
-            color: #EDE4D3 !important;
+        div.stLinkButton > a {{
+            border: 1px solid var(--arandu-gold) !important;
+            background-color: var(--arandu-elevated) !important;
+            color: var(--arandu-text) !important;
             border-radius: 10px !important;
+            font-family: 'Inter', sans-serif !important;
             font-weight: 600 !important;
             transition: all 0.2s ease !important;
-        }
+        }}
         div.stButton > button:hover,
-        div.stLinkButton > a:hover {
-            background-color: rgba(181, 103, 63, 0.26) !important;
-            border-color: #B5673F !important;
-            color: #FFFDF9 !important;
-            box-shadow: 0 0 12px rgba(212, 163, 89, 0.24) !important;
-        }
+        div.stLinkButton > a:hover {{
+            background-color: var(--arandu-terracotta-26) !important;
+            border-color: var(--arandu-terracotta-dark) !important;
+            color: var(--arandu-node-ivory) !important;
+            box-shadow: 0 0 12px var(--arandu-gold-24) !important;
+        }}
 
-        button[data-baseweb="tab"] {
-            color: #EDE4D3 !important;
+        button[data-baseweb="tab"] {{
+            color: var(--arandu-text) !important;
+            font-family: 'Inter', sans-serif !important;
             font-weight: 600 !important;
-        }
-        button[data-baseweb="tab"]:hover {
-            color: #C86D44 !important;
-        }
-        button[data-baseweb="tab"][aria-selected="true"] {
-            color: #D4A359 !important;
-            border-bottom-color: #D4A359 !important;
-        }
+        }}
+        button[data-baseweb="tab"]:hover {{
+            color: var(--arandu-terracotta) !important;
+        }}
+        button[data-baseweb="tab"][aria-selected="true"] {{
+            color: var(--arandu-gold) !important;
+            border-bottom-color: var(--arandu-gold) !important;
+        }}
 
-        .arandu-nav-card {
-            background-color: #161814;
-            border: 1px solid #2E2920;
+        .arandu-nav-card {{
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: var(--arandu-surface);
+            border: 1px solid var(--arandu-border);
             border-radius: 12px;
             overflow: hidden;
             transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             margin-bottom: 0.45rem;
-        }
-        .arandu-nav-card:hover {
+        }}
+        .arandu-nav-card:hover {{
             transform: translateY(-4px);
-            border-color: #D4A359;
-            box-shadow: 0 10px 24px rgba(212, 163, 89, 0.16);
-        }
-        .arandu-nav-card-header {
+            border-color: var(--arandu-gold);
+            box-shadow: 0 10px 24px var(--arandu-gold-16);
+        }}
+        .arandu-nav-card-header {{
             height: 120px;
             width: 100%;
-            background-color: #121410;
-            border-bottom: 1px solid #2E2920;
+            flex-shrink: 0;
+            background-color: var(--arandu-canvas);
+            border-bottom: 1px solid var(--arandu-border);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
             padding: 0.45rem 0.65rem;
             box-sizing: border-box;
-        }
-        .arandu-nav-card-header svg {
+        }}
+        .arandu-nav-card-header svg {{
             width: 100%;
             height: 100%;
             max-height: 106px;
             display: block;
-        }
-        .arandu-nav-card-body {
-            padding: 0.9rem 1.05rem 0.95rem 1.05rem;
-        }
-        .arandu-nav-card-tag {
+        }}
+        .arandu-nav-card-body {{
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.45rem;
+            padding: 0.95rem 1.05rem 1.05rem 1.05rem;
+        }}
+        .arandu-nav-card-top {{
+            display: flex;
+            flex-direction: column;
+            gap: 0.28rem;
+        }}
+        .arandu-nav-card-tag {{
             display: inline-block;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: #7A9A65;
-            margin-bottom: 0.35rem;
-            letter-spacing: 0.02em;
-        }
-        .arandu-nav-card-title {
-            margin: 0 0 0.4rem 0;
-            font-family: 'Cinzel', 'Fraunces', serif;
-            font-size: 1.02rem;
-            font-weight: 700;
-            color: #EDE4D3;
-            line-height: 1.25;
-            min-height: 2.5em;
-            display: flex;
-            align-items: flex-start;
-        }
-        .arandu-nav-card:hover .arandu-nav-card-title {
-            color: #D4A359;
-        }
-        .arandu-nav-card-desc {
+            font-size: 0.74rem;
+            font-weight: 500;
+            color: var(--arandu-sage);
+            letter-spacing: 0.01em;
+        }}
+        .arandu-nav-card-title {{
             margin: 0;
-            font-size: 0.87rem;
-            line-height: 1.45;
-            color: #C7BFA9;
-            height: 2.9em;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-        .arandu-mini-grid {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--arandu-text);
+            line-height: 1.3;
+        }}
+        .arandu-nav-card:hover .arandu-nav-card-title {{
+            color: var(--arandu-gold);
+        }}
+        .arandu-nav-card-desc {{
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 400;
+            line-height: 1.55;
+            color: var(--arandu-muted);
+        }}
+        .arandu-mini-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
             gap: 0.6rem;
             margin: 0.35rem 0 0.95rem 0;
-        }
-        .arandu-mini-card {
+        }}
+        .arandu-mini-card {{
             padding: 0.65rem 0.85rem;
             border-radius: 10px;
-            background-color: #161814;
-            border: 1px solid #2E2920;
-            border-left: 3px solid #D4A359;
+            background-color: var(--arandu-surface);
+            border: 1px solid var(--arandu-border);
+            border-left: 3px solid var(--arandu-gold);
             transition: transform 0.2s ease, border-color 0.2s ease;
-        }
-        .arandu-mini-card:hover {
+        }}
+        .arandu-mini-card:hover {{
             transform: translateY(-2px);
-            border-color: #D4A359;
-        }
-        .arandu-mini-card-title {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: #EDE4D3;
-            margin: 0 0 0.2rem 0;
-        }
-        .arandu-mini-card-desc {
-            font-size: 0.8rem;
-            line-height: 1.35;
-            color: #C7BFA9;
+            border-color: var(--arandu-gold);
+        }}
+        .arandu-mini-card-title {{
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--arandu-text);
+            margin: 0 0 0.25rem 0;
+        }}
+        .arandu-mini-card-desc {{
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--arandu-muted);
             margin: 0;
-        }
-        @media (max-width: 768px) {
-            .arandu-nav-card-header {
+        }}
+        @media (max-width: 768px) {{
+            .arandu-nav-card-header {{
                 height: auto;
                 min-height: 108px;
-            }
-            .arandu-nav-card-title {
-                min-height: auto;
-            }
-            .arandu-nav-card-desc {
-                height: auto;
-                min-height: 2.9em;
-                -webkit-line-clamp: 3;
-            }
-            .arandu-mini-grid {
+            }}
+            .arandu-mini-grid {{
                 grid-template-columns: 1fr;
-            }
-        }
+            }}
+        }}
 
         .arandu-nav-card-header img.arandu-card-media-img,
-        .arandu-ficha-art img.arandu-card-media-img {
+        .arandu-ficha-art img.arandu-card-media-img {{
             width: 100%;
             height: 100%;
             object-fit: contain;
             display: block;
             border-radius: 6px;
-        }
-        .arandu-ficha-card {
-            background: linear-gradient(175deg, #171A14 0%, #10120E 58%, #16130E 100%);
-            border: 1px solid #2E2920;
+        }}
+        .arandu-ficha-card {{
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            background: linear-gradient(175deg, var(--arandu-card-top) 0%, var(--arandu-card-mid) 58%, var(--arandu-card-bot) 100%);
+            border: 1px solid var(--arandu-border);
             border-radius: 14px;
-            padding: 0.72rem 0.78rem 0.82rem 0.78rem;
-            box-shadow: inset 0 0 0 4px #11130F, inset 0 0 0 5px rgba(212, 163, 89, 0.22), 0 8px 20px rgba(0, 0, 0, 0.44);
+            padding: 0.75rem 0.82rem 0.85rem 0.82rem;
+            box-shadow: inset 0 0 0 4px var(--arandu-card-inset), inset 0 0 0 5px var(--arandu-gold-22), 0 8px 20px var(--arandu-shadow-44);
             margin-bottom: 0.45rem;
             transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
             position: relative;
-            overflow: hidden;
-        }
-        .arandu-ficha-card:hover {
+        }}
+        .arandu-ficha-card:hover {{
             transform: translateY(-5px);
-            border-color: #D4A359;
-            box-shadow: inset 0 0 0 4px #11130F, inset 0 0 0 5px rgba(212, 163, 89, 0.56), 0 14px 28px rgba(212, 163, 89, 0.18);
-        }
-        .arandu-ficha-card.is-active {
-            background: radial-gradient(circle at 50% 34%, rgba(212, 163, 89, 0.15), transparent 64%),
-                        linear-gradient(175deg, #1E2018 0%, #121410 62%, #1C170F 100%);
-            border: 1.5px solid #D4A359;
+            border-color: var(--arandu-gold);
+            box-shadow: inset 0 0 0 4px var(--arandu-card-inset), inset 0 0 0 5px var(--arandu-gold-56), 0 14px 28px var(--arandu-gold-18);
+        }}
+        .arandu-ficha-card.is-active {{
+            background: radial-gradient(circle at 50% 34%, var(--arandu-gold-15), transparent 64%),
+                        linear-gradient(175deg, var(--arandu-card-active-top) 0%, var(--arandu-canvas) 62%, var(--arandu-card-active-bot) 100%);
+            border: 1.5px solid var(--arandu-gold);
             transform: translateY(-4px);
-            box-shadow: inset 0 0 0 4px #121410, inset 0 0 0 5px rgba(212, 163, 89, 0.84), 0 14px 28px rgba(212, 163, 89, 0.26);
-        }
-        .arandu-ficha-top {
+            box-shadow: inset 0 0 0 4px var(--arandu-canvas), inset 0 0 0 5px var(--arandu-gold-84), 0 14px 28px var(--arandu-gold-26);
+        }}
+        .arandu-ficha-main {{
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+        }}
+        .arandu-ficha-top {{
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.45rem;
-            margin-bottom: 0.2rem;
-        }
+            margin-bottom: 0.22rem;
+        }}
         .arandu-ficha-top::before,
-        .arandu-ficha-top::after {
+        .arandu-ficha-top::after {{
             content: "";
             flex: 1;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(212, 163, 89, 0.45), transparent);
-        }
-        .arandu-ficha-num {
+            background: linear-gradient(90deg, transparent, var(--arandu-gold-45), transparent);
+        }}
+        .arandu-ficha-num {{
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -634,180 +793,168 @@ def obtener_css_arandu() -> str:
             height: 1.55rem;
             padding: 0 0.42rem;
             border-radius: 999px;
-            border: 1px solid rgba(212, 163, 89, 0.55);
-            background-color: rgba(212, 163, 89, 0.12);
+            border: 1px solid var(--arandu-gold-55);
+            background-color: var(--arandu-gold-12);
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
             font-weight: 700;
-            color: #D4A359;
+            color: var(--arandu-gold);
             line-height: 1;
-        }
-        .arandu-ficha-card.is-active .arandu-ficha-num {
-            background-color: #D4A359;
-            color: #121410;
-            border-color: #D4A359;
-        }
-        .arandu-ficha-badge {
+        }}
+        .arandu-ficha-card.is-active .arandu-ficha-num {{
+            background-color: var(--arandu-gold);
+            color: var(--arandu-canvas);
+            border-color: var(--arandu-gold);
+        }}
+        .arandu-ficha-badge {{
             display: inline-block;
             margin-left: 0.35rem;
-            padding: 0.12rem 0.45rem;
+            padding: 0.14rem 0.5rem;
             border-radius: 999px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.62rem;
+            font-size: 0.66rem;
             font-weight: 700;
-            letter-spacing: 0.08em;
-            color: #121410;
-            background-color: #D4A359;
-        }
-        .arandu-ficha-tag {
+            letter-spacing: 0.02em;
+            color: var(--arandu-canvas);
+            background-color: var(--arandu-gold);
+        }}
+        .arandu-ficha-tag {{
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.64rem;
-            letter-spacing: 0.09em;
-            color: #7A9A65;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            color: var(--arandu-sage);
             text-align: center;
-            margin: 0.1rem 0 0.42rem 0;
-            text-transform: uppercase;
-        }
-        .arandu-ficha-card.is-active .arandu-ficha-tag {
-            color: #D4A359;
-        }
-        .arandu-ficha-art {
+            margin: 0.12rem 0 0.45rem 0;
+        }}
+        .arandu-ficha-card.is-active .arandu-ficha-tag {{
+            color: var(--arandu-gold);
+        }}
+        .arandu-ficha-art {{
             width: 100%;
             height: 158px;
-            background: #0C0E0A;
-            border: 1px solid #2E2920;
+            background: var(--arandu-frame-bg);
+            border: 1px solid var(--arandu-border);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0.3rem;
             box-sizing: border-box;
-            margin-bottom: 0.56rem;
+            margin-bottom: 0.6rem;
             overflow: hidden;
-        }
-        .arandu-ficha-card.is-active .arandu-ficha-art {
-            border-color: rgba(212, 163, 89, 0.65);
-            background: radial-gradient(circle at 50% 45%, rgba(212, 163, 89, 0.09), #0C0E0A 72%);
-        }
-        .arandu-ficha-art svg {
+        }}
+        .arandu-ficha-card.is-active .arandu-ficha-art {{
+            border-color: var(--arandu-gold-65);
+            background: radial-gradient(circle at 50% 45%, var(--arandu-gold-09), var(--arandu-frame-bg) 72%);
+        }}
+        .arandu-ficha-art svg {{
             width: 100%;
             height: 100%;
             max-height: 148px;
             display: block;
-        }
-        .arandu-ficha-title {
-            font-family: 'Cinzel', 'Fraunces', serif;
-            font-size: 0.92rem;
+        }}
+        .arandu-ficha-title {{
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.96rem;
             font-weight: 700;
-            color: #EDE4D3;
+            letter-spacing: -0.01em;
+            color: var(--arandu-text);
             text-align: center;
-            line-height: 1.24;
-            min-height: 2.55em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 0 0.32rem 0;
-        }
+            line-height: 1.28;
+            margin: 0 0 0.38rem 0;
+        }}
         .arandu-ficha-card:hover .arandu-ficha-title,
-        .arandu-ficha-card.is-active .arandu-ficha-title {
-            color: #D4A359;
-        }
-        .arandu-ficha-desc {
-            font-size: 0.79rem;
-            line-height: 1.38;
-            color: #C7BFA9;
+        .arandu-ficha-card.is-active .arandu-ficha-title {{
+            color: var(--arandu-gold);
+        }}
+        .arandu-ficha-desc {{
+            font-family: 'Inter', sans-serif;
+            font-size: 0.83rem;
+            font-weight: 400;
+            line-height: 1.52;
+            color: var(--arandu-muted);
             text-align: center;
-            height: 2.8em;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            margin: 0 0 0.48rem 0;
-        }
-        .arandu-ficha-foot {
+            margin: 0 0 0.6rem 0;
+        }}
+        .arandu-ficha-foot {{
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.68rem;
-            color: #D4A359;
-            border-top: 1px solid rgba(212, 163, 89, 0.24);
-            padding-top: 0.38rem;
+            font-size: 0.72rem;
+            color: var(--arandu-gold);
+            border-top: 1px solid var(--arandu-gold-24);
+            padding-top: 0.45rem;
             text-align: center;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .arandu-ficha-activa-banner {
+            line-height: 1.4;
+            letter-spacing: 0.01em;
+            margin-top: auto;
+        }}
+        .arandu-ficha-activa-banner {{
             padding: 0.65rem 1.05rem;
             border-radius: 10px;
-            border: 1px solid #2E2920;
-            border-left: 4px solid #D4A359;
-            background: linear-gradient(90deg, rgba(212, 163, 89, 0.12), #161814 55%);
+            border: 1px solid var(--arandu-border);
+            border-left: 4px solid var(--arandu-gold);
+            background: linear-gradient(90deg, var(--arandu-gold-12), var(--arandu-surface) 55%);
             margin: 0.55rem 0 0.9rem 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
             flex-wrap: wrap;
-        }
-        .arandu-ficha-activa-titulo {
-            font-family: 'Cinzel', 'Fraunces', serif;
-            font-size: 1.02rem;
+        }}
+        .arandu-ficha-activa-titulo {{
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.04rem;
             font-weight: 700;
-            color: #D4A359;
-        }
-        .arandu-ficha-activa-pista {
+            letter-spacing: -0.01em;
+            color: var(--arandu-gold);
+        }}
+        .arandu-ficha-activa-pista {{
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.78rem;
-            color: #7A9A65;
-        }
-        .arandu-verdict-head {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 0.96rem;
-            font-weight: 700;
+            color: var(--arandu-sage);
+        }}
+        .arandu-verdict-head {{
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.98rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
             padding: 0.35rem 0.65rem;
             border-radius: 7px;
             margin-bottom: 0.55rem;
-            letter-spacing: 0.01em;
-        }
-        .arandu-verdict-head-pro {
-            color: #EDE4D3;
-            background-color: rgba(104, 125, 91, 0.18);
-            border-left: 3px solid #7A9A65;
-        }
-        .arandu-verdict-head-warn {
-            color: #EDE4D3;
-            background-color: rgba(181, 103, 63, 0.18);
-            border-left: 3px solid #C86D44;
-        }
-        @media (max-width: 768px) {
-            .arandu-ficha-art {
+        }}
+        .arandu-verdict-head-pro {{
+            color: var(--arandu-text);
+            background-color: var(--arandu-sage-18);
+            border-left: 3px solid var(--arandu-sage);
+        }}
+        .arandu-verdict-head-warn {{
+            color: var(--arandu-text);
+            background-color: var(--arandu-terracotta-18);
+            border-left: 3px solid var(--arandu-terracotta);
+        }}
+        @media (max-width: 768px) {{
+            .arandu-ficha-art {{
                 height: 132px;
-            }
-            .arandu-ficha-title,
-            .arandu-ficha-desc {
-                min-height: auto;
-                height: auto;
-                -webkit-line-clamp: 3;
-            }
-        }
+            }}
+        }}
 
         [data-testid="stSkeleton"],
-        .arandu-skeleton-box {
+        .arandu-skeleton-box {{
             background: linear-gradient(
                 90deg,
-                #161814 25%,
-                #26241E 50%,
-                #161814 75%
+                var(--arandu-surface) 25%,
+                var(--arandu-grid) 50%,
+                var(--arandu-surface) 75%
             ) !important;
             background-size: 200% 100% !important;
-            border: 1px solid #2E2920 !important;
+            border: 1px solid var(--arandu-border) !important;
             border-radius: 10px !important;
             animation: arandu-skeleton-shimmer 1.6s ease-in-out infinite !important;
-        }
-        @keyframes arandu-skeleton-shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
+        }}
+        @keyframes arandu-skeleton-shimmer {{
+            0% {{ background-position: 200% 0; }}
+            100% {{ background-position: -200% 0; }}
+        }}
         </style>
         """
 
@@ -815,143 +962,152 @@ def obtener_css_arandu() -> str:
 @st.cache_data(show_spinner=False)
 def obtener_svg_tarjeta_arandu(clave_svg: str) -> str:
     """Retorna una ilustración SVG minimalista e inline en paleta Arandú para tarjetas del catálogo."""
+    colores_svg = {
+        "borde": PALETA_ARANDU["borde"],
+        "salvia": PALETA_ARANDU["salvia_borde"],
+        "oro": PALETA_ARANDU["oro"],
+        "texto": PALETA_ARANDU["texto_principal"],
+        "terracota": PALETA_ARANDU["terracota_oscuro"],
+        "lienzo": PALETA_ARANDU["bg_lienzo"],
+        "secundario": PALETA_ARANDU["bg_secundario"],
+    }
     svgs: dict[str, str] = {
         "fundamentos": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Precisión binaria y series escalonadas">'
-            '<line x1="22" y1="98" x2="298" y2="98" stroke="#2E2920" stroke-width="1.5"/>'
-            '<rect x="34" y="64" width="24" height="34" rx="3" fill="#687D5B" opacity="0.45" stroke="#687D5B"/>'
-            '<rect x="64" y="50" width="24" height="48" rx="3" fill="#687D5B" opacity="0.65" stroke="#687D5B"/>'
-            '<rect x="94" y="38" width="24" height="60" rx="3" fill="#D4A359" opacity="0.45" stroke="#D4A359"/>'
-            '<rect x="124" y="29" width="24" height="69" rx="3" fill="#D4A359" opacity="0.72" stroke="#D4A359"/>'
-            '<path d="M164,86 Q216,74 286,24" fill="none" stroke="#EDE4D3" stroke-width="2" stroke-dasharray="4 3"/>'
-            '<polyline points="164,86 196,86 196,70 228,70 228,51 260,51 260,31 286,31" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
-            '<rect x="260" y="24" width="12" height="7" rx="1.5" fill="#B5673F"/>'
-            '<circle cx="286" cy="24" r="4" fill="#D4A359"/>'
+            '<line x1="22" y1="98" x2="298" y2="98" stroke="{borde}" stroke-width="1.5"/>'
+            '<rect x="34" y="64" width="24" height="34" rx="3" fill="{salvia}" opacity="0.45" stroke="{salvia}"/>'
+            '<rect x="64" y="50" width="24" height="48" rx="3" fill="{salvia}" opacity="0.65" stroke="{salvia}"/>'
+            '<rect x="94" y="38" width="24" height="60" rx="3" fill="{oro}" opacity="0.45" stroke="{oro}"/>'
+            '<rect x="124" y="29" width="24" height="69" rx="3" fill="{oro}" opacity="0.72" stroke="{oro}"/>'
+            '<path d="M164,86 Q216,74 286,24" fill="none" stroke="{texto}" stroke-width="2" stroke-dasharray="4 3"/>'
+            '<polyline points="164,86 196,86 196,70 228,70 228,51 260,51 260,31 286,31" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+            '<rect x="260" y="24" width="12" height="7" rx="1.5" fill="{terracota}"/>'
+            '<circle cx="286" cy="24" r="4" fill="{oro}"/>'
             '</svg>'
         ),
         "raices": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Curva cruzando el eje X con tangente">'
-            '<line x1="24" y1="74" x2="296" y2="74" stroke="#687D5B" stroke-width="1.5" stroke-dasharray="4 4"/>'
-            '<line x1="54" y1="16" x2="54" y2="104" stroke="#2E2920" stroke-width="1.4"/>'
-            '<path d="M40,98 C105,94 148,54 190,42 C232,30 258,20 282,16" fill="none" stroke="#EDE4D3" stroke-width="2.6"/>'
-            '<line x1="92" y1="102" x2="262" y2="18" stroke="#D4A359" stroke-width="2" stroke-dasharray="5 3"/>'
-            '<line x1="224" y1="36" x2="224" y2="74" stroke="#B5673F" stroke-width="1.5" stroke-dasharray="3 3"/>'
-            '<circle cx="224" cy="36" r="4.5" fill="#B5673F" stroke="#EDE4D3" stroke-width="1.2"/>'
-            '<circle cx="149" cy="74" r="5.5" fill="#D4A359" stroke="#121410" stroke-width="1.5"/>'
-            '<circle cx="131" cy="74" r="3.5" fill="#687D5B"/>'
+            '<line x1="24" y1="74" x2="296" y2="74" stroke="{salvia}" stroke-width="1.5" stroke-dasharray="4 4"/>'
+            '<line x1="54" y1="16" x2="54" y2="104" stroke="{borde}" stroke-width="1.4"/>'
+            '<path d="M40,98 C105,94 148,54 190,42 C232,30 258,20 282,16" fill="none" stroke="{texto}" stroke-width="2.6"/>'
+            '<line x1="92" y1="102" x2="262" y2="18" stroke="{oro}" stroke-width="2" stroke-dasharray="5 3"/>'
+            '<line x1="224" y1="36" x2="224" y2="74" stroke="{terracota}" stroke-width="1.5" stroke-dasharray="3 3"/>'
+            '<circle cx="224" cy="36" r="4.5" fill="{terracota}" stroke="{texto}" stroke-width="1.2"/>'
+            '<circle cx="149" cy="74" r="5.5" fill="{oro}" stroke="{lienzo}" stroke-width="1.5"/>'
+            '<circle cx="131" cy="74" r="3.5" fill="{salvia}"/>'
             '</svg>'
         ),
         "sistemas": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Matriz diagonal iluminada y autovectores">'
             '<g transform="translate(36,20)">'
-            '<rect x="0" y="0" width="84" height="80" rx="6" fill="none" stroke="#2E2920" stroke-width="1.5"/>'
-            '<rect x="8" y="8" width="15" height="14" rx="2.5" fill="#D4A359"/>'
-            '<rect x="27" y="8" width="15" height="14" rx="2.5" fill="#687D5B" opacity="0.35"/>'
-            '<rect x="46" y="8" width="15" height="14" rx="2.5" fill="#687D5B" opacity="0.25"/>'
-            '<rect x="65" y="8" width="13" height="14" rx="2.5" fill="#687D5B" opacity="0.2"/>'
-            '<rect x="8" y="25" width="15" height="14" rx="2.5" fill="#2E2920" opacity="0.4"/>'
-            '<rect x="27" y="25" width="15" height="14" rx="2.5" fill="#D4A359"/>'
-            '<rect x="46" y="25" width="15" height="14" rx="2.5" fill="#687D5B" opacity="0.35"/>'
-            '<rect x="65" y="25" width="13" height="14" rx="2.5" fill="#687D5B" opacity="0.25"/>'
-            '<rect x="8" y="42" width="15" height="14" rx="2.5" fill="#2E2920" opacity="0.35"/>'
-            '<rect x="27" y="42" width="15" height="14" rx="2.5" fill="#2E2920" opacity="0.4"/>'
-            '<rect x="46" y="42" width="15" height="14" rx="2.5" fill="#D4A359"/>'
-            '<rect x="65" y="42" width="13" height="14" rx="2.5" fill="#687D5B" opacity="0.35"/>'
-            '<rect x="8" y="59" width="15" height="13" rx="2.5" fill="#2E2920" opacity="0.3"/>'
-            '<rect x="27" y="59" width="15" height="13" rx="2.5" fill="#2E2920" opacity="0.35"/>'
-            '<rect x="46" y="59" width="15" height="13" rx="2.5" fill="#2E2920" opacity="0.4"/>'
-            '<rect x="65" y="59" width="13" height="13" rx="2.5" fill="#D4A359"/>'
+            '<rect x="0" y="0" width="84" height="80" rx="6" fill="none" stroke="{borde}" stroke-width="1.5"/>'
+            '<rect x="8" y="8" width="15" height="14" rx="2.5" fill="{oro}"/>'
+            '<rect x="27" y="8" width="15" height="14" rx="2.5" fill="{salvia}" opacity="0.35"/>'
+            '<rect x="46" y="8" width="15" height="14" rx="2.5" fill="{salvia}" opacity="0.25"/>'
+            '<rect x="65" y="8" width="13" height="14" rx="2.5" fill="{salvia}" opacity="0.2"/>'
+            '<rect x="8" y="25" width="15" height="14" rx="2.5" fill="{borde}" opacity="0.4"/>'
+            '<rect x="27" y="25" width="15" height="14" rx="2.5" fill="{oro}"/>'
+            '<rect x="46" y="25" width="15" height="14" rx="2.5" fill="{salvia}" opacity="0.35"/>'
+            '<rect x="65" y="25" width="13" height="14" rx="2.5" fill="{salvia}" opacity="0.25"/>'
+            '<rect x="8" y="42" width="15" height="14" rx="2.5" fill="{borde}" opacity="0.35"/>'
+            '<rect x="27" y="42" width="15" height="14" rx="2.5" fill="{borde}" opacity="0.4"/>'
+            '<rect x="46" y="42" width="15" height="14" rx="2.5" fill="{oro}"/>'
+            '<rect x="65" y="42" width="13" height="14" rx="2.5" fill="{salvia}" opacity="0.35"/>'
+            '<rect x="8" y="59" width="15" height="13" rx="2.5" fill="{borde}" opacity="0.3"/>'
+            '<rect x="27" y="59" width="15" height="13" rx="2.5" fill="{borde}" opacity="0.35"/>'
+            '<rect x="46" y="59" width="15" height="13" rx="2.5" fill="{borde}" opacity="0.4"/>'
+            '<rect x="65" y="59" width="13" height="13" rx="2.5" fill="{oro}"/>'
             '</g>'
-            '<line x1="168" y1="94" x2="286" y2="94" stroke="#2E2920" stroke-width="1.5"/>'
-            '<line x1="168" y1="94" x2="168" y2="20" stroke="#2E2920" stroke-width="1.5"/>'
-            '<line x1="168" y1="94" x2="266" y2="32" stroke="#D4A359" stroke-width="2.6"/>'
-            '<polygon points="272,27 260,30 266,38" fill="#D4A359"/>'
-            '<line x1="168" y1="94" x2="244" y2="76" stroke="#B5673F" stroke-width="2.2"/>'
-            '<polygon points="251,74 240,72 243,81" fill="#B5673F"/>'
-            '<circle cx="168" cy="94" r="4" fill="#EDE4D3"/>'
+            '<line x1="168" y1="94" x2="286" y2="94" stroke="{borde}" stroke-width="1.5"/>'
+            '<line x1="168" y1="94" x2="168" y2="20" stroke="{borde}" stroke-width="1.5"/>'
+            '<line x1="168" y1="94" x2="266" y2="32" stroke="{oro}" stroke-width="2.6"/>'
+            '<polygon points="272,27 260,30 266,38" fill="{oro}"/>'
+            '<line x1="168" y1="94" x2="244" y2="76" stroke="{terracota}" stroke-width="2.2"/>'
+            '<polygon points="251,74 240,72 243,81" fill="{terracota}"/>'
+            '<circle cx="168" cy="94" r="4" fill="{texto}"/>'
             '</svg>'
         ),
         "interpolacion": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Nodos discretos unidos por curva polinomial">'
-            '<line x1="22" y1="96" x2="298" y2="96" stroke="#2E2920" stroke-width="1.4"/>'
-            '<path d="M38,84 C68,36 102,26 136,54 C168,80 198,86 232,46 C252,24 270,22 286,36" fill="none" stroke="#D4A359" stroke-width="2.6"/>'
-            '<line x1="184" y1="74" x2="184" y2="96" stroke="#687D5B" stroke-width="1.5" stroke-dasharray="3 3"/>'
-            '<circle cx="38" cy="84" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.6"/>'
-            '<circle cx="92" cy="36" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.6"/>'
-            '<circle cx="146" cy="61" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.6"/>'
-            '<circle cx="222" cy="56" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.6"/>'
-            '<circle cx="276" cy="28" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.6"/>'
-            '<circle cx="184" cy="74" r="5" fill="#687D5B" stroke="#EDE4D3" stroke-width="1.5"/>'
+            '<line x1="22" y1="96" x2="298" y2="96" stroke="{borde}" stroke-width="1.4"/>'
+            '<path d="M38,84 C68,36 102,26 136,54 C168,80 198,86 232,46 C252,24 270,22 286,36" fill="none" stroke="{oro}" stroke-width="2.6"/>'
+            '<line x1="184" y1="74" x2="184" y2="96" stroke="{salvia}" stroke-width="1.5" stroke-dasharray="3 3"/>'
+            '<circle cx="38" cy="84" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.6"/>'
+            '<circle cx="92" cy="36" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.6"/>'
+            '<circle cx="146" cy="61" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.6"/>'
+            '<circle cx="222" cy="56" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.6"/>'
+            '<circle cx="276" cy="28" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.6"/>'
+            '<circle cx="184" cy="74" r="5" fill="{salvia}" stroke="{texto}" stroke-width="1.5"/>'
             '</svg>'
         ),
         "integracion": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Área bajo la curva con trapecios y arcos parabólicos">'
-            '<line x1="24" y1="96" x2="296" y2="96" stroke="#2E2920" stroke-width="1.5"/>'
-            '<polygon points="46,96 46,72 98,54 98,96" fill="#687D5B" opacity="0.32" stroke="#687D5B" stroke-width="1.3"/>'
-            '<polygon points="98,96 98,54 150,36 150,96" fill="#687D5B" opacity="0.24" stroke="#687D5B" stroke-width="1.3"/>'
-            '<polygon points="150,96 150,36 202,44 202,96" fill="#D4A359" opacity="0.24" stroke="#D4A359" stroke-width="1.3"/>'
-            '<polygon points="202,96 202,44 254,66 254,96" fill="#D4A359" opacity="0.18" stroke="#D4A359" stroke-width="1.3"/>'
-            '<path d="M46,72 Q98,42 150,36 Q202,32 254,66" fill="none" stroke="#EDE4D3" stroke-width="2.5"/>'
-            '<path d="M150,36 Q202,28 254,66" fill="none" stroke="#D4A359" stroke-width="2" stroke-dasharray="4 3"/>'
-            '<circle cx="46" cy="72" r="3.5" fill="#EDE4D3"/>'
-            '<circle cx="98" cy="54" r="3.5" fill="#EDE4D3"/>'
-            '<circle cx="150" cy="36" r="4" fill="#D4A359"/>'
-            '<circle cx="202" cy="44" r="3.5" fill="#B5673F"/>'
-            '<circle cx="254" cy="66" r="3.5" fill="#EDE4D3"/>'
+            '<line x1="24" y1="96" x2="296" y2="96" stroke="{borde}" stroke-width="1.5"/>'
+            '<polygon points="46,96 46,72 98,54 98,96" fill="{salvia}" opacity="0.32" stroke="{salvia}" stroke-width="1.3"/>'
+            '<polygon points="98,96 98,54 150,36 150,96" fill="{salvia}" opacity="0.24" stroke="{salvia}" stroke-width="1.3"/>'
+            '<polygon points="150,96 150,36 202,44 202,96" fill="{oro}" opacity="0.24" stroke="{oro}" stroke-width="1.3"/>'
+            '<polygon points="202,96 202,44 254,66 254,96" fill="{oro}" opacity="0.18" stroke="{oro}" stroke-width="1.3"/>'
+            '<path d="M46,72 Q98,42 150,36 Q202,32 254,66" fill="none" stroke="{texto}" stroke-width="2.5"/>'
+            '<path d="M150,36 Q202,28 254,66" fill="none" stroke="{oro}" stroke-width="2" stroke-dasharray="4 3"/>'
+            '<circle cx="46" cy="72" r="3.5" fill="{texto}"/>'
+            '<circle cx="98" cy="54" r="3.5" fill="{texto}"/>'
+            '<circle cx="150" cy="36" r="4" fill="{oro}"/>'
+            '<circle cx="202" cy="44" r="3.5" fill="{terracota}"/>'
+            '<circle cx="254" cy="66" r="3.5" fill="{texto}"/>'
             '</svg>'
         ),
         "edo": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Campo de pendientes y trayectoria paso a paso">'
-            '<g stroke="#687D5B" stroke-width="1.4" opacity="0.72">'
+            '<g stroke="{salvia}" stroke-width="1.4" opacity="0.72">'
             '<line x1="36" y1="30" x2="52" y2="24"/><line x1="92" y1="28" x2="108" y2="23"/><line x1="148" y1="32" x2="164" y2="28"/><line x1="204" y1="40" x2="220" y2="34"/><line x1="260" y1="30" x2="276" y2="22"/>'
             '<line x1="36" y1="60" x2="52" y2="52"/><line x1="92" y1="56" x2="108" y2="47"/><line x1="148" y1="58" x2="164" y2="50"/><line x1="204" y1="64" x2="220" y2="54"/><line x1="260" y1="56" x2="276" y2="44"/>'
             '<line x1="36" y1="90" x2="52" y2="80"/><line x1="92" y1="86" x2="108" y2="75"/><line x1="148" y1="88" x2="164" y2="78"/><line x1="204" y1="92" x2="220" y2="82"/><line x1="260" y1="84" x2="276" y2="70"/>'
             '</g>'
-            '<polyline points="42,92 98,74 156,56 214,42 272,24" fill="none" stroke="#D4A359" stroke-width="2.5"/>'
-            '<circle cx="42" cy="92" r="4" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>'
-            '<circle cx="98" cy="74" r="3.8" fill="#D4A359"/>'
-            '<circle cx="156" cy="56" r="3.8" fill="#D4A359"/>'
-            '<circle cx="214" cy="42" r="3.8" fill="#D4A359"/>'
-            '<circle cx="272" cy="24" r="4.5" fill="#B5673F" stroke="#EDE4D3" stroke-width="1.3"/>'
+            '<polyline points="42,92 98,74 156,56 214,42 272,24" fill="none" stroke="{oro}" stroke-width="2.5"/>'
+            '<circle cx="42" cy="92" r="4" fill="{texto}" stroke="{terracota}" stroke-width="1.4"/>'
+            '<circle cx="98" cy="74" r="3.8" fill="{oro}"/>'
+            '<circle cx="156" cy="56" r="3.8" fill="{oro}"/>'
+            '<circle cx="214" cy="42" r="3.8" fill="{oro}"/>'
+            '<circle cx="272" cy="24" r="4.5" fill="{terracota}" stroke="{texto}" stroke-width="1.3"/>'
             '</svg>'
         ),
         "arena_versus": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Dos curvas de convergencia compitiendo hacia un punto">'
-            '<line x1="24" y1="94" x2="296" y2="94" stroke="#2E2920" stroke-width="1.5"/>'
-            '<line x1="24" y1="58" x2="296" y2="58" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 4"/>'
-            '<path d="M36,24 C86,28 112,56 172,58 L268,58" fill="none" stroke="#D4A359" stroke-width="2.7"/>'
-            '<path d="M36,88 C108,86 164,74 228,62 L268,58" fill="none" stroke="#B5673F" stroke-width="2.5"/>'
-            '<circle cx="172" cy="58" r="4" fill="#D4A359"/>'
-            '<circle cx="268" cy="58" r="6" fill="#EDE4D3" stroke="#D4A359" stroke-width="2.2"/>'
-            '<circle cx="36" cy="24" r="3.5" fill="#D4A359"/>'
-            '<circle cx="36" cy="88" r="3.5" fill="#B5673F"/>'
+            '<line x1="24" y1="94" x2="296" y2="94" stroke="{borde}" stroke-width="1.5"/>'
+            '<line x1="24" y1="58" x2="296" y2="58" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="4 4"/>'
+            '<path d="M36,24 C86,28 112,56 172,58 L268,58" fill="none" stroke="{oro}" stroke-width="2.7"/>'
+            '<path d="M36,88 C108,86 164,74 228,62 L268,58" fill="none" stroke="{terracota}" stroke-width="2.5"/>'
+            '<circle cx="172" cy="58" r="4" fill="{oro}"/>'
+            '<circle cx="268" cy="58" r="6" fill="{texto}" stroke="{oro}" stroke-width="2.2"/>'
+            '<circle cx="36" cy="24" r="3.5" fill="{oro}"/>'
+            '<circle cx="36" cy="88" r="3.5" fill="{terracota}"/>'
             '</svg>'
         ),
         "laboratorios": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Progresión de Fibonacci hacia la razón áurea">'
-            '<line x1="24" y1="98" x2="296" y2="98" stroke="#2E2920" stroke-width="1.5"/>'
-            '<line x1="24" y1="38" x2="296" y2="38" stroke="#D4A359" stroke-width="1.4" stroke-dasharray="5 4"/>'
-            '<rect x="40" y="82" width="24" height="16" rx="2.5" fill="#687D5B" opacity="0.6"/>'
-            '<rect x="76" y="72" width="24" height="26" rx="2.5" fill="#687D5B" opacity="0.75"/>'
-            '<rect x="112" y="60" width="24" height="38" rx="2.5" fill="#D4A359" opacity="0.6"/>'
-            '<rect x="148" y="48" width="24" height="50" rx="2.5" fill="#D4A359" opacity="0.8"/>'
-            '<rect x="184" y="38" width="24" height="60" rx="2.5" fill="#B5673F" opacity="0.8"/>'
-            '<polyline points="52,74 88,52 124,42 160,39 196,38 268,38" fill="none" stroke="#EDE4D3" stroke-width="2.2"/>'
-            '<circle cx="268" cy="38" r="4.5" fill="#D4A359"/>'
+            '<line x1="24" y1="98" x2="296" y2="98" stroke="{borde}" stroke-width="1.5"/>'
+            '<line x1="24" y1="38" x2="296" y2="38" stroke="{oro}" stroke-width="1.4" stroke-dasharray="5 4"/>'
+            '<rect x="40" y="82" width="24" height="16" rx="2.5" fill="{salvia}" opacity="0.6"/>'
+            '<rect x="76" y="72" width="24" height="26" rx="2.5" fill="{salvia}" opacity="0.75"/>'
+            '<rect x="112" y="60" width="24" height="38" rx="2.5" fill="{oro}" opacity="0.6"/>'
+            '<rect x="148" y="48" width="24" height="50" rx="2.5" fill="{oro}" opacity="0.8"/>'
+            '<rect x="184" y="38" width="24" height="60" rx="2.5" fill="{terracota}" opacity="0.8"/>'
+            '<polyline points="52,74 88,52 124,42 160,39 196,38 268,38" fill="none" stroke="{texto}" stroke-width="2.2"/>'
+            '<circle cx="268" cy="38" r="4.5" fill="{oro}"/>'
             '</svg>'
         ),
         "feedback": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aportes y evaluación docente y estudiantil">'
-            '<rect x="78" y="24" width="164" height="64" rx="10" fill="#161814" stroke="#D4A359" stroke-width="1.8"/>'
-            '<line x1="98" y1="44" x2="202" y2="44" stroke="#EDE4D3" stroke-width="2.4" stroke-linecap="round"/>'
-            '<line x1="98" y1="58" x2="220" y2="58" stroke="#687D5B" stroke-width="2.2" stroke-linecap="round"/>'
-            '<line x1="98" y1="72" x2="174" y2="72" stroke="#B5673F" stroke-width="2.2" stroke-linecap="round"/>'
-            '<circle cx="242" cy="24" r="9" fill="#D4A359"/>'
-            '<polygon points="104,88 122,88 104,102" fill="#161814" stroke="#D4A359" stroke-width="1.6"/>'
+            '<rect x="78" y="24" width="164" height="64" rx="10" fill="{secundario}" stroke="{oro}" stroke-width="1.8"/>'
+            '<line x1="98" y1="44" x2="202" y2="44" stroke="{texto}" stroke-width="2.4" stroke-linecap="round"/>'
+            '<line x1="98" y1="58" x2="220" y2="58" stroke="{salvia}" stroke-width="2.2" stroke-linecap="round"/>'
+            '<line x1="98" y1="72" x2="174" y2="72" stroke="{terracota}" stroke-width="2.2" stroke-linecap="round"/>'
+            '<circle cx="242" cy="24" r="9" fill="{oro}"/>'
+            '<polygon points="104,88 122,88 104,102" fill="{secundario}" stroke="{oro}" stroke-width="1.6"/>'
             '</svg>'
         ),
     }
-    return svgs.get(clave_svg, svgs["arena_versus"])
+    return svgs.get(clave_svg, svgs["arena_versus"]).format(**colores_svg)
 
 
 _EXTENSIONES_IMAGEN_METODO = (".png", ".jpg", ".jpeg", ".svg")
@@ -1001,8 +1157,10 @@ def _construir_html_tarjeta_catalogo_cached(
         '<div class="arandu-nav-card">'
         f'<div class="arandu-nav-card-header">{media_html}</div>'
         '<div class="arandu-nav-card-body">'
+        '<div class="arandu-nav-card-top">'
         f"{tag_html}"
         f'<div class="arandu-nav-card-title">{html.escape(titulo)}</div>'
+        "</div>"
         f'<p class="arandu-nav-card-desc">{html.escape(descripcion)}</p>'
         "</div>"
         "</div>"
@@ -1041,232 +1199,232 @@ def construir_html_mini_tarjetas(items: tuple[tuple[str, str], ...]) -> str:
 
 _FICHA_SVG_FRAME_PREFIX = (
     '<svg viewBox="0 0 180 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{label}">'
-    '<rect x="5" y="5" width="170" height="180" rx="8" fill="#0C0E0A" stroke="#2E2920" stroke-width="1.2"/>'
-    '<rect x="10" y="10" width="160" height="170" rx="5" fill="none" stroke="#D4A359" stroke-opacity="0.28" stroke-width="0.9"/>'
-    '<rect x="20" y="34" width="140" height="132" rx="6" fill="#121410" stroke="#2E2920" stroke-width="1.1"/>'
-    '<line x1="18" y1="22" x2="26" y2="22" stroke="#D4A359" stroke-opacity="0.55" stroke-width="1.2"/>'
-    '<line x1="154" y1="22" x2="162" y2="22" stroke="#D4A359" stroke-opacity="0.55" stroke-width="1.2"/>'
-    '<line x1="64" y1="22" x2="116" y2="22" stroke="#D4A359" stroke-opacity="0.35" stroke-width="1"/>'
-    '<circle cx="90" cy="22" r="2.2" fill="#D4A359"/>'
+    '<rect x="5" y="5" width="170" height="180" rx="8" fill="{marco}" stroke="{borde}" stroke-width="1.2"/>'
+    '<rect x="10" y="10" width="160" height="170" rx="5" fill="none" stroke="{oro}" stroke-opacity="0.28" stroke-width="0.9"/>'
+    '<rect x="20" y="34" width="140" height="132" rx="6" fill="{lienzo}" stroke="{borde}" stroke-width="1.1"/>'
+    '<line x1="18" y1="22" x2="26" y2="22" stroke="{oro}" stroke-opacity="0.55" stroke-width="1.2"/>'
+    '<line x1="154" y1="22" x2="162" y2="22" stroke="{oro}" stroke-opacity="0.55" stroke-width="1.2"/>'
+    '<line x1="64" y1="22" x2="116" y2="22" stroke="{oro}" stroke-opacity="0.35" stroke-width="1"/>'
+    '<circle cx="90" cy="22" r="2.2" fill="{oro}"/>'
 )
 
 _BORRADOR_METODO_SVGS: dict[str, tuple[str, str]] = {
     "taylor": (
         "Esquema Series de Taylor",
-        '<line x1="30" y1="146" x2="150" y2="146" stroke="#2E2920" stroke-width="1.2"/>'
-        '<path d="M36,142 Q96,128 144,48" fill="none" stroke="#EDE4D3" stroke-width="2" stroke-dasharray="4 3"/>'
-        '<polyline points="36,142 64,142 64,124 92,124 92,98 120,98 120,66 144,66" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
-        '<rect x="120" y="54" width="24" height="12" rx="2" fill="#687D5B" opacity="0.55" stroke="#687D5B"/>'
-        '<circle cx="144" cy="48" r="4.5" fill="#D4A359" stroke="#121410" stroke-width="1.2"/>',
+        '<line x1="30" y1="146" x2="150" y2="146" stroke="{borde}" stroke-width="1.2"/>'
+        '<path d="M36,142 Q96,128 144,48" fill="none" stroke="{texto}" stroke-width="2" stroke-dasharray="4 3"/>'
+        '<polyline points="36,142 64,142 64,124 92,124 92,98 120,98 120,66 144,66" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+        '<rect x="120" y="54" width="24" height="12" rx="2" fill="{salvia}" opacity="0.55" stroke="{salvia}"/>'
+        '<circle cx="144" cy="48" r="4.5" fill="{oro}" stroke="{lienzo}" stroke-width="1.2"/>',
     ),
     "aritmetica_maquina": (
         "Esquema Aritmética de Máquina",
-        '<line x1="90" y1="44" x2="90" y2="148" stroke="#D4A359" stroke-width="1.8"/>'
-        '<polygon points="72,148 108,148 96,138 84,138" fill="#2E2920" stroke="#D4A359" stroke-width="1"/>'
-        '<line x1="40" y1="74" x2="140" y2="56" stroke="#EDE4D3" stroke-width="2.2"/>'
-        '<line x1="44" y1="74" x2="36" y2="108" stroke="#687D5B" stroke-width="1.3"/><line x1="44" y1="74" x2="54" y2="108" stroke="#687D5B" stroke-width="1.3"/>'
-        '<path d="M32,108 Q45,118 58,108 Z" fill="#687D5B" opacity="0.7" stroke="#687D5B"/>'
-        '<line x1="136" y1="56" x2="126" y2="92" stroke="#B5673F" stroke-width="1.3"/><line x1="136" y1="56" x2="146" y2="92" stroke="#B5673F" stroke-width="1.3"/>'
-        '<path d="M122,92 Q136,102 150,92 Z" fill="#B5673F" opacity="0.7" stroke="#B5673F"/>'
-        '<circle cx="90" cy="65" r="4" fill="#D4A359"/>',
+        '<line x1="90" y1="44" x2="90" y2="148" stroke="{oro}" stroke-width="1.8"/>'
+        '<polygon points="72,148 108,148 96,138 84,138" fill="{borde}" stroke="{oro}" stroke-width="1"/>'
+        '<line x1="40" y1="74" x2="140" y2="56" stroke="{texto}" stroke-width="2.2"/>'
+        '<line x1="44" y1="74" x2="36" y2="108" stroke="{salvia}" stroke-width="1.3"/><line x1="44" y1="74" x2="54" y2="108" stroke="{salvia}" stroke-width="1.3"/>'
+        '<path d="M32,108 Q45,118 58,108 Z" fill="{salvia}" opacity="0.7" stroke="{salvia}"/>'
+        '<line x1="136" y1="56" x2="126" y2="92" stroke="{terracota}" stroke-width="1.3"/><line x1="136" y1="56" x2="146" y2="92" stroke="{terracota}" stroke-width="1.3"/>'
+        '<path d="M122,92 Q136,102 150,92 Z" fill="{terracota}" opacity="0.7" stroke="{terracota}"/>'
+        '<circle cx="90" cy="65" r="4" fill="{oro}"/>',
     ),
     "cancelacion": (
         "Esquema Cancelación Cuadrática",
-        '<line x1="30" y1="134" x2="150" y2="134" stroke="#2E2920" stroke-width="1.2"/>'
-        '<line x1="36" y1="68" x2="138" y2="94" stroke="#EDE4D3" stroke-width="2.2"/>'
-        '<line x1="36" y1="74" x2="138" y2="97" stroke="#B5673F" stroke-width="2" stroke-dasharray="3 2"/>'
-        '<circle cx="138" cy="95" r="14" fill="none" stroke="#D4A359" stroke-width="1.8"/>'
-        '<line x1="126" y1="95" x2="150" y2="95" stroke="#D4A359" stroke-width="1.4"/>'
-        '<circle cx="138" cy="95" r="3.5" fill="#D4A359"/>'
-        '<path d="M46,120 Q90,104 134,120" fill="none" stroke="#687D5B" stroke-width="1.6"/>',
+        '<line x1="30" y1="134" x2="150" y2="134" stroke="{borde}" stroke-width="1.2"/>'
+        '<line x1="36" y1="68" x2="138" y2="94" stroke="{texto}" stroke-width="2.2"/>'
+        '<line x1="36" y1="74" x2="138" y2="97" stroke="{terracota}" stroke-width="2" stroke-dasharray="3 2"/>'
+        '<circle cx="138" cy="95" r="14" fill="none" stroke="{oro}" stroke-width="1.8"/>'
+        '<line x1="126" y1="95" x2="150" y2="95" stroke="{oro}" stroke-width="1.4"/>'
+        '<circle cx="138" cy="95" r="3.5" fill="{oro}"/>'
+        '<path d="M46,120 Q90,104 134,120" fill="none" stroke="{salvia}" stroke-width="1.6"/>',
     ),
     "horner": (
         "Esquema Forma Anidada de Horner",
-        '<rect x="34" y="52" width="112" height="96" rx="12" fill="none" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
-        '<rect x="48" y="66" width="84" height="68" rx="9" fill="none" stroke="#D4A359" stroke-opacity="0.7" stroke-width="1.6"/>'
-        '<rect x="64" y="82" width="52" height="36" rx="6" fill="#181A14" stroke="#D4A359" stroke-width="2"/>'
-        '<polygon points="90,89 99,100 90,111 81,100" fill="#D4A359"/>'
-        '<circle cx="34" cy="100" r="3.5" fill="#EDE4D3"/><circle cx="146" cy="100" r="3.5" fill="#B5673F"/>',
+        '<rect x="34" y="52" width="112" height="96" rx="12" fill="none" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="4 3"/>'
+        '<rect x="48" y="66" width="84" height="68" rx="9" fill="none" stroke="{oro}" stroke-opacity="0.7" stroke-width="1.6"/>'
+        '<rect x="64" y="82" width="52" height="36" rx="6" fill="{horner}" stroke="{oro}" stroke-width="2"/>'
+        '<polygon points="90,89 99,100 90,111 81,100" fill="{oro}"/>'
+        '<circle cx="34" cy="100" r="3.5" fill="{texto}"/><circle cx="146" cy="100" r="3.5" fill="{terracota}"/>',
     ),
     "biseccion": (
         "Esquema Bisección y Bolzano",
-        '<line x1="28" y1="100" x2="152" y2="100" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
-        '<line x1="46" y1="54" x2="46" y2="148" stroke="#687D5B" stroke-width="1.6"/>'
-        '<line x1="134" y1="54" x2="134" y2="148" stroke="#B5673F" stroke-width="1.6"/>'
-        '<line x1="90" y1="46" x2="90" y2="152" stroke="#D4A359" stroke-width="2" stroke-dasharray="3 2"/>'
-        '<path d="M36,138 C64,128 112,72 144,58" fill="none" stroke="#EDE4D3" stroke-width="2.4"/>'
-        '<circle cx="46" cy="134" r="3.8" fill="#687D5B"/><circle cx="134" cy="63" r="3.8" fill="#B5673F"/>'
-        '<polygon points="90,91 96,100 90,109 84,100" fill="#D4A359" stroke="#121410" stroke-width="1"/>',
+        '<line x1="28" y1="100" x2="152" y2="100" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="4 3"/>'
+        '<line x1="46" y1="54" x2="46" y2="148" stroke="{salvia}" stroke-width="1.6"/>'
+        '<line x1="134" y1="54" x2="134" y2="148" stroke="{terracota}" stroke-width="1.6"/>'
+        '<line x1="90" y1="46" x2="90" y2="152" stroke="{oro}" stroke-width="2" stroke-dasharray="3 2"/>'
+        '<path d="M36,138 C64,128 112,72 144,58" fill="none" stroke="{texto}" stroke-width="2.4"/>'
+        '<circle cx="46" cy="134" r="3.8" fill="{salvia}"/><circle cx="134" cy="63" r="3.8" fill="{terracota}"/>'
+        '<polygon points="90,91 96,100 90,109 84,100" fill="{oro}" stroke="{lienzo}" stroke-width="1"/>',
     ),
     "regula_falsi": (
         "Esquema Regula Falsi Secante",
-        '<line x1="28" y1="100" x2="152" y2="100" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
-        '<path d="M38,142 Q96,126 142,54" fill="none" stroke="#EDE4D3" stroke-width="2.3"/>'
-        '<line x1="42" y1="140" x2="138" y2="60" stroke="#D4A359" stroke-width="2"/>'
-        '<line x1="138" y1="60" x2="138" y2="100" stroke="#B5673F" stroke-width="1.2" stroke-dasharray="2 2"/>'
-        '<circle cx="42" cy="140" r="4" fill="#687D5B"/><circle cx="138" cy="60" r="4" fill="#B5673F"/>'
-        '<circle cx="90" cy="100" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>'
-        '<circle cx="107" cy="100" r="3.2" fill="#EDE4D3"/>',
+        '<line x1="28" y1="100" x2="152" y2="100" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="4 3"/>'
+        '<path d="M38,142 Q96,126 142,54" fill="none" stroke="{texto}" stroke-width="2.3"/>'
+        '<line x1="42" y1="140" x2="138" y2="60" stroke="{oro}" stroke-width="2"/>'
+        '<line x1="138" y1="60" x2="138" y2="100" stroke="{terracota}" stroke-width="1.2" stroke-dasharray="2 2"/>'
+        '<circle cx="42" cy="140" r="4" fill="{salvia}"/><circle cx="138" cy="60" r="4" fill="{terracota}"/>'
+        '<circle cx="90" cy="100" r="5" fill="{oro}" stroke="{lienzo}" stroke-width="1.3"/>'
+        '<circle cx="107" cy="100" r="3.2" fill="{texto}"/>',
     ),
     "newton_raphson": (
         "Esquema Newton-Raphson Tangente",
-        '<line x1="28" y1="126" x2="152" y2="126" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
-        '<path d="M40,148 Q106,124 142,46" fill="none" stroke="#EDE4D3" stroke-width="2.4"/>'
-        '<line x1="74" y1="144" x2="148" y2="48" stroke="#D4A359" stroke-width="2.2"/>'
-        '<line x1="130" y1="71" x2="130" y2="126" stroke="#B5673F" stroke-width="1.4" stroke-dasharray="3 2"/>'
-        '<circle cx="130" cy="71" r="4.5" fill="#B5673F" stroke="#EDE4D3" stroke-width="1.1"/>'
-        '<circle cx="88" cy="126" r="5.5" fill="#D4A359" stroke="#121410" stroke-width="1.4"/>'
-        '<circle cx="103" cy="126" r="3.2" fill="#687D5B"/>',
+        '<line x1="28" y1="126" x2="152" y2="126" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="4 3"/>'
+        '<path d="M40,148 Q106,124 142,46" fill="none" stroke="{texto}" stroke-width="2.4"/>'
+        '<line x1="74" y1="144" x2="148" y2="48" stroke="{oro}" stroke-width="2.2"/>'
+        '<line x1="130" y1="71" x2="130" y2="126" stroke="{terracota}" stroke-width="1.4" stroke-dasharray="3 2"/>'
+        '<circle cx="130" cy="71" r="4.5" fill="{terracota}" stroke="{texto}" stroke-width="1.1"/>'
+        '<circle cx="88" cy="126" r="5.5" fill="{oro}" stroke="{lienzo}" stroke-width="1.4"/>'
+        '<circle cx="103" cy="126" r="3.2" fill="{salvia}"/>',
     ),
     "punto_fijo": (
         "Esquema Punto Fijo y Aitken",
-        '<line x1="36" y1="146" x2="144" y2="48" stroke="#687D5B" stroke-width="1.6" stroke-dasharray="4 3"/>'
-        '<path d="M34,116 Q88,108 144,64" fill="none" stroke="#EDE4D3" stroke-width="2.3"/>'
-        '<polyline points="48,146 48,113 84,113 84,99 100,99 100,91" fill="none" stroke="#D4A359" stroke-width="1.9"/>'
-        '<path d="M48,146 Q92,138 106,86" fill="none" stroke="#B5673F" stroke-width="1.6" stroke-dasharray="3 2"/>'
-        '<circle cx="106" cy="83" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>',
+        '<line x1="36" y1="146" x2="144" y2="48" stroke="{salvia}" stroke-width="1.6" stroke-dasharray="4 3"/>'
+        '<path d="M34,116 Q88,108 144,64" fill="none" stroke="{texto}" stroke-width="2.3"/>'
+        '<polyline points="48,146 48,113 84,113 84,99 100,99 100,91" fill="none" stroke="{oro}" stroke-width="1.9"/>'
+        '<path d="M48,146 Q92,138 106,86" fill="none" stroke="{terracota}" stroke-width="1.6" stroke-dasharray="3 2"/>'
+        '<circle cx="106" cy="83" r="5" fill="{oro}" stroke="{lienzo}" stroke-width="1.3"/>',
     ),
     "gauss": (
         "Esquema Eliminación de Gauss",
         '<g transform="translate(46,56)">'
-        '<rect x="0" y="0" width="24" height="24" rx="3" fill="#D4A359"/><rect x="30" y="0" width="24" height="24" rx="3" fill="#687D5B" opacity="0.65"/><rect x="60" y="0" width="24" height="24" rx="3" fill="#687D5B" opacity="0.45"/>'
-        '<rect x="0" y="30" width="24" height="24" rx="3" fill="#2E2920" opacity="0.35"/><rect x="30" y="30" width="24" height="24" rx="3" fill="#D4A359"/><rect x="60" y="30" width="24" height="24" rx="3" fill="#687D5B" opacity="0.55"/>'
-        '<rect x="0" y="60" width="24" height="24" rx="3" fill="#2E2920" opacity="0.25"/><rect x="30" y="60" width="24" height="24" rx="3" fill="#2E2920" opacity="0.35"/><rect x="60" y="60" width="24" height="24" rx="3" fill="#D4A359"/>'
+        '<rect x="0" y="0" width="24" height="24" rx="3" fill="{oro}"/><rect x="30" y="0" width="24" height="24" rx="3" fill="{salvia}" opacity="0.65"/><rect x="60" y="0" width="24" height="24" rx="3" fill="{salvia}" opacity="0.45"/>'
+        '<rect x="0" y="30" width="24" height="24" rx="3" fill="{borde}" opacity="0.35"/><rect x="30" y="30" width="24" height="24" rx="3" fill="{oro}"/><rect x="60" y="30" width="24" height="24" rx="3" fill="{salvia}" opacity="0.55"/>'
+        '<rect x="0" y="60" width="24" height="24" rx="3" fill="{borde}" opacity="0.25"/><rect x="30" y="60" width="24" height="24" rx="3" fill="{borde}" opacity="0.35"/><rect x="60" y="60" width="24" height="24" rx="3" fill="{oro}"/>'
         '</g>',
     ),
     "gauss_jordan": (
         "Esquema Gauss-Jordan Diagonal",
         '<g transform="translate(46,56)">'
-        '<rect x="0" y="0" width="24" height="24" rx="3" fill="#D4A359"/><rect x="30" y="0" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/><rect x="60" y="0" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/>'
-        '<rect x="0" y="30" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/><rect x="30" y="30" width="24" height="24" rx="3" fill="#D4A359"/><rect x="60" y="30" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/>'
-        '<rect x="0" y="60" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/><rect x="30" y="60" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/><rect x="60" y="60" width="24" height="24" rx="3" fill="#D4A359"/>'
-        '<line x1="-4" y1="-4" x2="88" y2="88" stroke="#EDE4D3" stroke-width="1.6" stroke-dasharray="3 3"/>'
+        '<rect x="0" y="0" width="24" height="24" rx="3" fill="{oro}"/><rect x="30" y="0" width="24" height="24" rx="3" fill="{borde}" opacity="0.3"/><rect x="60" y="0" width="24" height="24" rx="3" fill="{borde}" opacity="0.3"/>'
+        '<rect x="0" y="30" width="24" height="24" rx="3" fill="{borde}" opacity="0.3"/><rect x="30" y="30" width="24" height="24" rx="3" fill="{oro}"/><rect x="60" y="30" width="24" height="24" rx="3" fill="{borde}" opacity="0.3"/>'
+        '<rect x="0" y="60" width="24" height="24" rx="3" fill="{borde}" opacity="0.3"/><rect x="30" y="60" width="24" height="24" rx="3" fill="{borde}" opacity="0.3"/><rect x="60" y="60" width="24" height="24" rx="3" fill="{oro}"/>'
+        '<line x1="-4" y1="-4" x2="88" y2="88" stroke="{texto}" stroke-width="1.6" stroke-dasharray="3 3"/>'
         '</g>',
     ),
     "lu": (
         "Esquema Factorización LU",
-        '<polygon points="44,62 44,142 124,142" fill="#687D5B" opacity="0.55" stroke="#687D5B" stroke-width="2"/>'
-        '<polygon points="56,56 136,56 136,136" fill="#D4A359" opacity="0.52" stroke="#D4A359" stroke-width="2"/>'
-        '<line x1="40" y1="54" x2="140" y2="144" stroke="#EDE4D3" stroke-width="1.6" stroke-dasharray="4 3"/>',
+        '<polygon points="44,62 44,142 124,142" fill="{salvia}" opacity="0.55" stroke="{salvia}" stroke-width="2"/>'
+        '<polygon points="56,56 136,56 136,136" fill="{oro}" opacity="0.52" stroke="{oro}" stroke-width="2"/>'
+        '<line x1="40" y1="54" x2="140" y2="144" stroke="{texto}" stroke-width="1.6" stroke-dasharray="4 3"/>',
     ),
     "gauss_seidel": (
         "Esquema Iteración Gauss-Seidel",
-        '<circle cx="90" cy="100" r="38" fill="none" stroke="#2E2920" stroke-width="1.5"/>'
-        '<path d="M90,62 A38,38 0 0,1 128,100" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
-        '<path d="M128,100 A38,38 0 0,1 90,138" fill="none" stroke="#687D5B" stroke-width="2.4"/>'
-        '<path d="M90,138 A38,38 0 0,1 52,100" fill="none" stroke="#B5673F" stroke-width="2.4"/>'
-        '<path d="M52,100 A38,38 0 0,1 90,62" fill="none" stroke="#EDE4D3" stroke-width="2"/>'
-        '<circle cx="90" cy="62" r="4.5" fill="#D4A359"/><circle cx="128" cy="100" r="4.5" fill="#687D5B"/>'
-        '<circle cx="90" cy="138" r="4.5" fill="#B5673F"/><circle cx="52" cy="100" r="4.5" fill="#EDE4D3"/>'
-        '<circle cx="90" cy="100" r="6" fill="#D4A359"/>',
+        '<circle cx="90" cy="100" r="38" fill="none" stroke="{borde}" stroke-width="1.5"/>'
+        '<path d="M90,62 A38,38 0 0,1 128,100" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+        '<path d="M128,100 A38,38 0 0,1 90,138" fill="none" stroke="{salvia}" stroke-width="2.4"/>'
+        '<path d="M90,138 A38,38 0 0,1 52,100" fill="none" stroke="{terracota}" stroke-width="2.4"/>'
+        '<path d="M52,100 A38,38 0 0,1 90,62" fill="none" stroke="{texto}" stroke-width="2"/>'
+        '<circle cx="90" cy="62" r="4.5" fill="{oro}"/><circle cx="128" cy="100" r="4.5" fill="{salvia}"/>'
+        '<circle cx="90" cy="138" r="4.5" fill="{terracota}"/><circle cx="52" cy="100" r="4.5" fill="{texto}"/>'
+        '<circle cx="90" cy="100" r="6" fill="{oro}"/>',
     ),
     "potencias": (
         "Esquema Método de Potencias",
-        '<line x1="42" y1="142" x2="144" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
-        '<line x1="42" y1="142" x2="42" y2="54" stroke="#2E2920" stroke-width="1.3"/>'
-        '<line x1="42" y1="142" x2="128" y2="122" stroke="#687D5B" stroke-width="1.8" stroke-dasharray="3 2"/>'
-        '<line x1="42" y1="142" x2="136" y2="96" stroke="#B5673F" stroke-width="2"/>'
-        '<line x1="42" y1="142" x2="138" y2="62" stroke="#D4A359" stroke-width="2.8"/>'
-        '<polygon points="144,57 132,61 139,69" fill="#D4A359"/>'
-        '<circle cx="42" cy="142" r="4" fill="#EDE4D3"/>',
+        '<line x1="42" y1="142" x2="144" y2="142" stroke="{borde}" stroke-width="1.3"/>'
+        '<line x1="42" y1="142" x2="42" y2="54" stroke="{borde}" stroke-width="1.3"/>'
+        '<line x1="42" y1="142" x2="128" y2="122" stroke="{salvia}" stroke-width="1.8" stroke-dasharray="3 2"/>'
+        '<line x1="42" y1="142" x2="136" y2="96" stroke="{terracota}" stroke-width="2"/>'
+        '<line x1="42" y1="142" x2="138" y2="62" stroke="{oro}" stroke-width="2.8"/>'
+        '<polygon points="144,57 132,61 139,69" fill="{oro}"/>'
+        '<circle cx="42" cy="142" r="4" fill="{texto}"/>',
     ),
     "faddeev": (
         "Esquema Faddeev-Leverrier",
-        '<line x1="30" y1="100" x2="150" y2="100" stroke="#2E2920" stroke-width="1.3"/>'
-        '<path d="M36,64 C56,144 74,144 90,100 C106,56 124,56 144,136" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
-        '<circle cx="51" cy="100" r="4.5" fill="#687D5B" stroke="#EDE4D3" stroke-width="1"/>'
-        '<circle cx="90" cy="100" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>'
-        '<circle cx="129" cy="100" r="4.5" fill="#B5673F" stroke="#EDE4D3" stroke-width="1"/>',
+        '<line x1="30" y1="100" x2="150" y2="100" stroke="{borde}" stroke-width="1.3"/>'
+        '<path d="M36,64 C56,144 74,144 90,100 C106,56 124,56 144,136" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+        '<circle cx="51" cy="100" r="4.5" fill="{salvia}" stroke="{texto}" stroke-width="1"/>'
+        '<circle cx="90" cy="100" r="5" fill="{oro}" stroke="{lienzo}" stroke-width="1.3"/>'
+        '<circle cx="129" cy="100" r="4.5" fill="{terracota}" stroke="{texto}" stroke-width="1"/>',
     ),
     "interp_lineal": (
         "Esquema Interpolación Lineal",
-        '<line x1="30" y1="142" x2="150" y2="142" stroke="#2E2920" stroke-width="1.2"/>'
-        '<line x1="46" y1="126" x2="134" y2="66" stroke="#D4A359" stroke-width="2.6"/>'
-        '<line x1="90" y1="96" x2="90" y2="142" stroke="#687D5B" stroke-width="1.5" stroke-dasharray="3 2"/>'
-        '<circle cx="46" cy="126" r="5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.5"/>'
-        '<circle cx="134" cy="66" r="5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.5"/>'
-        '<circle cx="90" cy="96" r="4.5" fill="#687D5B" stroke="#EDE4D3" stroke-width="1.3"/>',
+        '<line x1="30" y1="142" x2="150" y2="142" stroke="{borde}" stroke-width="1.2"/>'
+        '<line x1="46" y1="126" x2="134" y2="66" stroke="{oro}" stroke-width="2.6"/>'
+        '<line x1="90" y1="96" x2="90" y2="142" stroke="{salvia}" stroke-width="1.5" stroke-dasharray="3 2"/>'
+        '<circle cx="46" cy="126" r="5" fill="{texto}" stroke="{terracota}" stroke-width="1.5"/>'
+        '<circle cx="134" cy="66" r="5" fill="{texto}" stroke="{terracota}" stroke-width="1.5"/>'
+        '<circle cx="90" cy="96" r="4.5" fill="{salvia}" stroke="{texto}" stroke-width="1.3"/>',
     ),
     "cuadratica_inversa": (
         "Esquema Cuadrática Inversa",
-        '<line x1="34" y1="98" x2="146" y2="98" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
-        '<path d="M40,66 Q90,158 140,66" fill="none" stroke="#EDE4D3" stroke-width="2.3"/>'
-        '<circle cx="46" cy="76" r="4.2" fill="#B5673F"/><circle cx="90" cy="112" r="4.2" fill="#B5673F"/><circle cx="134" cy="76" r="4.2" fill="#B5673F"/>'
-        '<circle cx="114" cy="98" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>',
+        '<line x1="34" y1="98" x2="146" y2="98" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="4 3"/>'
+        '<path d="M40,66 Q90,158 140,66" fill="none" stroke="{texto}" stroke-width="2.3"/>'
+        '<circle cx="46" cy="76" r="4.2" fill="{terracota}"/><circle cx="90" cy="112" r="4.2" fill="{terracota}"/><circle cx="134" cy="76" r="4.2" fill="{terracota}"/>'
+        '<circle cx="114" cy="98" r="5" fill="{oro}" stroke="{lienzo}" stroke-width="1.3"/>',
     ),
     "lagrange": (
         "Esquema Polinomio de Lagrange",
-        '<path d="M36,136 C64,56 106,142 144,62" fill="none" stroke="#D4A359" stroke-width="2.5"/>'
-        '<path d="M36,78 Q90,136 144,122" fill="none" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="3 3"/>'
-        '<circle cx="44" cy="114" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>'
-        '<circle cx="72" cy="82" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>'
-        '<circle cx="112" cy="110" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>'
-        '<circle cx="138" cy="70" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>',
+        '<path d="M36,136 C64,56 106,142 144,62" fill="none" stroke="{oro}" stroke-width="2.5"/>'
+        '<path d="M36,78 Q90,136 144,122" fill="none" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="3 3"/>'
+        '<circle cx="44" cy="114" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.4"/>'
+        '<circle cx="72" cy="82" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.4"/>'
+        '<circle cx="112" cy="110" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.4"/>'
+        '<circle cx="138" cy="70" r="4.5" fill="{texto}" stroke="{terracota}" stroke-width="1.4"/>',
     ),
     "newton_gregory": (
         "Esquema Newton-Gregory Diferencias",
-        '<line x1="34" y1="142" x2="146" y2="142" stroke="#2E2920" stroke-width="1.2"/>'
-        '<path d="M44,128 Q92,102 138,56" fill="none" stroke="#D4A359" stroke-width="2.5"/>'
-        '<polyline points="44,128 74,128 74,110 106,110 106,86 138,86 138,56" fill="none" stroke="#687D5B" stroke-width="1.6" stroke-dasharray="3 2"/>'
-        '<circle cx="44" cy="128" r="4" fill="#EDE4D3"/><circle cx="74" cy="110" r="4" fill="#EDE4D3"/>'
-        '<circle cx="106" cy="86" r="4" fill="#EDE4D3"/><circle cx="138" cy="56" r="4.5" fill="#B5673F"/>',
+        '<line x1="34" y1="142" x2="146" y2="142" stroke="{borde}" stroke-width="1.2"/>'
+        '<path d="M44,128 Q92,102 138,56" fill="none" stroke="{oro}" stroke-width="2.5"/>'
+        '<polyline points="44,128 74,128 74,110 106,110 106,86 138,86 138,56" fill="none" stroke="{salvia}" stroke-width="1.6" stroke-dasharray="3 2"/>'
+        '<circle cx="44" cy="128" r="4" fill="{texto}"/><circle cx="74" cy="110" r="4" fill="{texto}"/>'
+        '<circle cx="106" cy="86" r="4" fill="{texto}"/><circle cx="138" cy="56" r="4.5" fill="{terracota}"/>',
     ),
     "diferenciacion": (
         "Esquema Diferenciación Gregory",
-        '<path d="M36,138 C64,72 108,128 144,62" fill="none" stroke="#EDE4D3" stroke-width="2.4"/>'
-        '<line x1="48" y1="128" x2="132" y2="68" stroke="#D4A359" stroke-width="2.2"/>'
-        '<circle cx="90" cy="98" r="11" fill="none" stroke="#687D5B" stroke-width="1.5"/>'
-        '<circle cx="90" cy="98" r="4.5" fill="#D4A359" stroke="#121410" stroke-width="1.2"/>',
+        '<path d="M36,138 C64,72 108,128 144,62" fill="none" stroke="{texto}" stroke-width="2.4"/>'
+        '<line x1="48" y1="128" x2="132" y2="68" stroke="{oro}" stroke-width="2.2"/>'
+        '<circle cx="90" cy="98" r="11" fill="none" stroke="{salvia}" stroke-width="1.5"/>'
+        '<circle cx="90" cy="98" r="4.5" fill="{oro}" stroke="{lienzo}" stroke-width="1.2"/>',
     ),
     "trapecios": (
         "Esquema Regla de Trapecios",
-        '<line x1="32" y1="142" x2="148" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
-        '<polygon points="42,142 42,114 74,84 74,142" fill="#687D5B" opacity="0.34" stroke="#687D5B" stroke-width="1.3"/>'
-        '<polygon points="74,142 74,84 106,70 106,142" fill="#D4A359" opacity="0.28" stroke="#D4A359" stroke-width="1.3"/>'
-        '<polygon points="106,142 106,70 138,98 138,142" fill="#687D5B" opacity="0.34" stroke="#687D5B" stroke-width="1.3"/>'
-        '<path d="M42,114 Q90,56 138,98" fill="none" stroke="#EDE4D3" stroke-width="2.2"/>',
+        '<line x1="32" y1="142" x2="148" y2="142" stroke="{borde}" stroke-width="1.3"/>'
+        '<polygon points="42,142 42,114 74,84 74,142" fill="{salvia}" opacity="0.34" stroke="{salvia}" stroke-width="1.3"/>'
+        '<polygon points="74,142 74,84 106,70 106,142" fill="{oro}" opacity="0.28" stroke="{oro}" stroke-width="1.3"/>'
+        '<polygon points="106,142 106,70 138,98 138,142" fill="{salvia}" opacity="0.34" stroke="{salvia}" stroke-width="1.3"/>'
+        '<path d="M42,114 Q90,56 138,98" fill="none" stroke="{texto}" stroke-width="2.2"/>',
     ),
     "simpson_13": (
         "Esquema Simpson Un Tercio",
-        '<line x1="32" y1="142" x2="148" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
-        '<path d="M42,142 L42,112 Q90,52 138,98 L138,142 Z" fill="#D4A359" opacity="0.24" stroke="#D4A359" stroke-width="1.8"/>'
-        '<line x1="90" y1="74" x2="90" y2="142" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="3 2"/>'
-        '<circle cx="42" cy="112" r="3.8" fill="#EDE4D3"/><circle cx="90" cy="74" r="4.5" fill="#D4A359"/><circle cx="138" cy="98" r="3.8" fill="#EDE4D3"/>',
+        '<line x1="32" y1="142" x2="148" y2="142" stroke="{borde}" stroke-width="1.3"/>'
+        '<path d="M42,142 L42,112 Q90,52 138,98 L138,142 Z" fill="{oro}" opacity="0.24" stroke="{oro}" stroke-width="1.8"/>'
+        '<line x1="90" y1="74" x2="90" y2="142" stroke="{salvia}" stroke-width="1.4" stroke-dasharray="3 2"/>'
+        '<circle cx="42" cy="112" r="3.8" fill="{texto}"/><circle cx="90" cy="74" r="4.5" fill="{oro}"/><circle cx="138" cy="98" r="3.8" fill="{texto}"/>',
     ),
     "simpson_38": (
         "Esquema Simpson Tres Octavos",
-        '<line x1="30" y1="142" x2="150" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
-        '<path d="M38,142 L38,116 C64,62 114,58 142,108 L142,142 Z" fill="#687D5B" opacity="0.24" stroke="#D4A359" stroke-width="1.8"/>'
-        '<line x1="72" y1="78" x2="72" y2="142" stroke="#B5673F" stroke-width="1.3" stroke-dasharray="3 2"/>'
-        '<line x1="108" y1="74" x2="108" y2="142" stroke="#B5673F" stroke-width="1.3" stroke-dasharray="3 2"/>'
-        '<circle cx="38" cy="116" r="3.5" fill="#EDE4D3"/><circle cx="72" cy="78" r="3.8" fill="#B5673F"/>'
-        '<circle cx="108" cy="74" r="3.8" fill="#B5673F"/><circle cx="142" cy="108" r="3.5" fill="#EDE4D3"/>',
+        '<line x1="30" y1="142" x2="150" y2="142" stroke="{borde}" stroke-width="1.3"/>'
+        '<path d="M38,142 L38,116 C64,62 114,58 142,108 L142,142 Z" fill="{salvia}" opacity="0.24" stroke="{oro}" stroke-width="1.8"/>'
+        '<line x1="72" y1="78" x2="72" y2="142" stroke="{terracota}" stroke-width="1.3" stroke-dasharray="3 2"/>'
+        '<line x1="108" y1="74" x2="108" y2="142" stroke="{terracota}" stroke-width="1.3" stroke-dasharray="3 2"/>'
+        '<circle cx="38" cy="116" r="3.5" fill="{texto}"/><circle cx="72" cy="78" r="3.8" fill="{terracota}"/>'
+        '<circle cx="108" cy="74" r="3.8" fill="{terracota}"/><circle cx="142" cy="108" r="3.5" fill="{texto}"/>',
     ),
     "euler_heun": (
         "Esquema Euler y Heun",
-        '<path d="M40,136 Q92,102 142,56" fill="none" stroke="#EDE4D3" stroke-width="2" stroke-dasharray="4 3"/>'
-        '<polyline points="40,136 90,118 140,86" fill="none" stroke="#B5673F" stroke-width="2"/>'
-        '<polyline points="40,136 90,104 140,60" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
-        '<circle cx="40" cy="136" r="4" fill="#EDE4D3"/><circle cx="90" cy="104" r="4" fill="#D4A359"/><circle cx="140" cy="60" r="4.5" fill="#D4A359"/>',
+        '<path d="M40,136 Q92,102 142,56" fill="none" stroke="{texto}" stroke-width="2" stroke-dasharray="4 3"/>'
+        '<polyline points="40,136 90,118 140,86" fill="none" stroke="{terracota}" stroke-width="2"/>'
+        '<polyline points="40,136 90,104 140,60" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+        '<circle cx="40" cy="136" r="4" fill="{texto}"/><circle cx="90" cy="104" r="4" fill="{oro}"/><circle cx="140" cy="60" r="4.5" fill="{oro}"/>',
     ),
     "runge_kutta": (
         "Esquema Runge-Kutta RK4",
-        '<g stroke="#687D5B" stroke-width="1.5" opacity="0.85">'
+        '<g stroke="{salvia}" stroke-width="1.5" opacity="0.85">'
         '<line x1="46" y1="128" x2="64" y2="116"/><line x1="74" y1="108" x2="94" y2="92"/><line x1="104" y1="84" x2="124" y2="66"/>'
         '</g>'
-        '<path d="M42,136 C74,116 106,88 142,56" fill="none" stroke="#D4A359" stroke-width="2.6"/>'
-        '<circle cx="42" cy="136" r="4" fill="#EDE4D3"/><circle cx="74" cy="112" r="3.8" fill="#687D5B"/>'
-        '<circle cx="108" cy="84" r="3.8" fill="#B5673F"/><circle cx="142" cy="56" r="4.8" fill="#D4A359"/>',
+        '<path d="M42,136 C74,116 106,88 142,56" fill="none" stroke="{oro}" stroke-width="2.6"/>'
+        '<circle cx="42" cy="136" r="4" fill="{texto}"/><circle cx="74" cy="112" r="3.8" fill="{salvia}"/>'
+        '<circle cx="108" cy="84" r="3.8" fill="{terracota}"/><circle cx="142" cy="56" r="4.8" fill="{oro}"/>',
     ),
     "milne": (
         "Esquema Predictor-Corrector Milne",
-        '<polyline points="38,136 62,120 86,102 110,84" fill="none" stroke="#687D5B" stroke-width="2.2"/>'
-        '<line x1="110" y1="84" x2="142" y2="74" stroke="#B5673F" stroke-width="1.8" stroke-dasharray="3 2"/>'
-        '<line x1="110" y1="84" x2="142" y2="56" stroke="#D4A359" stroke-width="2.4"/>'
-        '<line x1="142" y1="74" x2="142" y2="56" stroke="#EDE4D3" stroke-width="1.4" stroke-dasharray="2 2"/>'
-        '<circle cx="38" cy="136" r="3.5" fill="#687D5B"/><circle cx="62" cy="120" r="3.5" fill="#687D5B"/>'
-        '<circle cx="86" cy="102" r="3.5" fill="#687D5B"/><circle cx="110" cy="84" r="4" fill="#EDE4D3"/>'
-        '<circle cx="142" cy="74" r="3.5" fill="#B5673F"/><circle cx="142" cy="56" r="4.8" fill="#D4A359"/>',
+        '<polyline points="38,136 62,120 86,102 110,84" fill="none" stroke="{salvia}" stroke-width="2.2"/>'
+        '<line x1="110" y1="84" x2="142" y2="74" stroke="{terracota}" stroke-width="1.8" stroke-dasharray="3 2"/>'
+        '<line x1="110" y1="84" x2="142" y2="56" stroke="{oro}" stroke-width="2.4"/>'
+        '<line x1="142" y1="74" x2="142" y2="56" stroke="{texto}" stroke-width="1.4" stroke-dasharray="2 2"/>'
+        '<circle cx="38" cy="136" r="3.5" fill="{salvia}"/><circle cx="62" cy="120" r="3.5" fill="{salvia}"/>'
+        '<circle cx="86" cy="102" r="3.5" fill="{salvia}"/><circle cx="110" cy="84" r="4" fill="{texto}"/>'
+        '<circle cx="142" cy="74" r="3.5" fill="{terracota}"/><circle cx="142" cy="56" r="4.8" fill="{oro}"/>',
     ),
 }
 
@@ -1274,9 +1432,19 @@ _BORRADOR_METODO_SVGS: dict[str, tuple[str, str]] = {
 @st.cache_data(show_spinner=False)
 def obtener_svg_borrador_metodo(clave_svg: str) -> str:
     """Retorna la ilustración vertical SVG borrador por defecto para una ficha de método."""
+    colores_ficha = {
+        "marco": PALETA_ARANDU["bg_marco"],
+        "borde": PALETA_ARANDU["borde"],
+        "oro": PALETA_ARANDU["oro"],
+        "lienzo": PALETA_ARANDU["bg_lienzo"],
+        "texto": PALETA_ARANDU["texto_principal"],
+        "salvia": PALETA_ARANDU["salvia_borde"],
+        "terracota": PALETA_ARANDU["terracota_oscuro"],
+        "horner": PALETA_ARANDU["bg_horner"],
+    }
     label, body = _BORRADOR_METODO_SVGS.get(clave_svg, _BORRADOR_METODO_SVGS["biseccion"])
-    prefix = _FICHA_SVG_FRAME_PREFIX.format(label=html.escape(label))
-    return f"{prefix}{body}</svg>"
+    prefix = _FICHA_SVG_FRAME_PREFIX.format(label=html.escape(label), **colores_ficha)
+    return f"{prefix}{body.format(**colores_ficha)}</svg>"
 
 
 @st.cache_data(show_spinner=False)
@@ -1291,13 +1459,14 @@ def _construir_html_ficha_metodo_cached(
     firma_asset: tuple[str, int, str] | None,
 ) -> str:
     clase_activa = " is-active" if activa else ""
-    badge = '<span class="arandu-ficha-badge">ACTIVO</span>' if activa else ""
+    badge = '<span class="arandu-ficha-badge">Activo</span>' if activa else ""
     if firma_asset is not None:
         media_html = _leer_asset_metodo_html(*firma_asset, alt=titulo)
     else:
         media_html = obtener_svg_borrador_metodo(clave_svg)
     return (
         f'<div class="arandu-ficha-card{clase_activa}">'
+        '<div class="arandu-ficha-main">'
         '<div class="arandu-ficha-top">'
         f'<span class="arandu-ficha-num">{html.escape(numero)}</span>{badge}'
         "</div>"
@@ -1305,6 +1474,7 @@ def _construir_html_ficha_metodo_cached(
         f'<div class="arandu-ficha-art">{media_html}</div>'
         f'<div class="arandu-ficha-title">{html.escape(titulo)}</div>'
         f'<p class="arandu-ficha-desc">{html.escape(resumen)}</p>'
+        "</div>"
         f'<div class="arandu-ficha-foot">{html.escape(pista)}</div>'
         "</div>"
     )
