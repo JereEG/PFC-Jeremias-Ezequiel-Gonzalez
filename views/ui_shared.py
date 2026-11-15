@@ -37,6 +37,8 @@ from views.theme import (
     PALETA_ARANDU,
     PLOTLY_CONFIG_ARANDU,
     aplicar_estilo_arandu,
+    construir_html_mini_tarjetas,
+    construir_html_tarjeta_catalogo,
     estilizar_figura_arandu,
     obtener_logo_arandu_src,
 )
@@ -356,6 +358,43 @@ def render_slider_paso_k(
     return int(st.slider(label, min_value=min_val, max_value=max_val, value=val_def, key=key))
 
 
+def render_tarjeta_catalogo(
+    clave_svg: str,
+    titulo: str,
+    descripcion: str,
+    ruta: str,
+    texto_boton: str,
+    key: str,
+    subtitulo_tag: str = "",
+    primary: bool = False,
+) -> None:
+    """Renderiza una tarjeta visual Refactoring.Guru (SVG inline + 2 líneas) con navegación."""
+    with st.container():
+        st.markdown(
+            construir_html_tarjeta_catalogo(
+                clave_svg=clave_svg,
+                titulo=titulo,
+                descripcion=descripcion,
+                subtitulo_tag=subtitulo_tag,
+            ),
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            texto_boton,
+            key=key,
+            type="primary" if primary else "secondary",
+            use_container_width=True,
+        ):
+            st.switch_page(ruta)
+
+
+def render_mini_catalogo_vista(
+    items: list[tuple[str, str]] | tuple[tuple[str, str], ...],
+) -> None:
+    """Renderiza tarjetas compactas para distinguir rápidamente los métodos de la vista."""
+    st.markdown(construir_html_mini_tarjetas(tuple(items)), unsafe_allow_html=True)
+
+
 __all__ = [
     "ARANDU_BARK",
     "ARANDU_CARD_BORDER",
@@ -390,9 +429,11 @@ __all__ = [
     "render_bloque_1_teoria_y_ejemplo",
     "render_controles_edicion_practica",
     "render_dataframe_acotado",
+    "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",
     "render_slider_paso_k",
+    "render_tarjeta_catalogo",
     "rerun_fragmento_seguro",
     "restaurar_estado_practica",
 ]
