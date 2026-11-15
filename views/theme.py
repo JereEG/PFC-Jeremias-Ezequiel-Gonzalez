@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import plotly.graph_objects as go
-import plotly.io as pio
 import streamlit as st
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
 
 ARANDU_GOLD = "#D4A359"
 ARANDU_OBSIDIAN = "#0A0B09"
@@ -61,61 +63,101 @@ _ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 LOGO_JPG_PATH = _ASSETS_DIR / "logo_arandu.jpg"
 LOGO_SVG_PATH = _ASSETS_DIR / "svg" / "arandu.svg"
 
-PLOTLY_ARANDU_TEMPLATE = go.layout.Template(
-    layout=go.Layout(
-        paper_bgcolor="rgba(10, 11, 9, 0)",
-        plot_bgcolor=ARANDU_PLOT_BG,
-        font=dict(
-            color=ARANDU_IVORY,
-            family="'Plus Jakarta Sans', sans-serif",
-            size=13,
-        ),
-        title=dict(
+FEEDBACK_FORMS_URL = "https://forms.gle/Sy6M1NWzHRxMbuiBA"
+PLOTLY_CONFIG_ARANDU: dict[str, object] = {
+    "displayModeBar": "hover",
+    "displaylogo": False,
+}
+
+_MIME_TYPES: dict[str, str] = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".pdf": "application/pdf",
+}
+
+
+def _resolver_ruta_asset(ruta_relativa: str) -> Path | None:
+    limpia = ruta_relativa.strip().replace("\\", "/").lstrip("/")
+    if limpia.startswith("assets/"):
+        limpia = limpia[7:]
+    for raiz in (_ASSETS_DIR, Path("assets")):
+        base = raiz.resolve()
+        destino = (base / limpia).resolve()
+        if destino != base and destino.is_relative_to(base) and destino.is_file():
+            return destino
+    return None
+
+
+@st.cache_resource(show_spinner=False)
+def obtener_plotly_arandu_template():
+    """Instancia una única referencia global de la plantilla Plotly de Arandú."""
+    import plotly.graph_objects as go
+    import plotly.io as pio
+
+    template = go.layout.Template(
+        layout=go.Layout(
+            paper_bgcolor="rgba(10, 11, 9, 0)",
+            plot_bgcolor=ARANDU_PLOT_BG,
             font=dict(
                 color=ARANDU_IVORY,
-                family="'Cinzel', 'Fraunces', serif",
-                size=17,
-            )
-        ),
-        colorway=COLORWAY_ARANDU,
-        legend=dict(
-            bgcolor="rgba(22, 24, 20, 0.72)",
-            bordercolor=ARANDU_CARD_BORDER,
-            borderwidth=1,
-            font=dict(color=ARANDU_IVORY, size=12),
-        ),
-        hoverlabel=dict(
-            bgcolor=ARANDU_BARK,
-            bordercolor=ARANDU_TERRACOTTA_DARK,
-            font=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=12),
-        ),
-        xaxis=dict(
-            gridcolor=ARANDU_GRID,
-            linecolor=ARANDU_CARD_BORDER,
-            zeroline=True,
-            zerolinecolor=ARANDU_TERRACOTTA_DARK,
-            zerolinewidth=1.6,
-            tickfont=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=11),
-        ),
-        yaxis=dict(
-            gridcolor=ARANDU_GRID,
-            linecolor=ARANDU_CARD_BORDER,
-            zeroline=True,
-            zerolinecolor=ARANDU_TERRACOTTA_DARK,
-            zerolinewidth=1.6,
-            tickfont=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=11),
-        ),
+                family="'Plus Jakarta Sans', sans-serif",
+                size=13,
+            ),
+            title=dict(
+                font=dict(
+                    color=ARANDU_IVORY,
+                    family="'Cinzel', 'Fraunces', serif",
+                    size=17,
+                )
+            ),
+            colorway=COLORWAY_ARANDU,
+            legend=dict(
+                bgcolor="rgba(22, 24, 20, 0.72)",
+                bordercolor=ARANDU_CARD_BORDER,
+                borderwidth=1,
+                font=dict(color=ARANDU_IVORY, size=12),
+            ),
+            hoverlabel=dict(
+                bgcolor=ARANDU_BARK,
+                bordercolor=ARANDU_TERRACOTTA_DARK,
+                font=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=12),
+            ),
+            xaxis=dict(
+                gridcolor=ARANDU_GRID,
+                linecolor=ARANDU_CARD_BORDER,
+                zeroline=True,
+                zerolinecolor=ARANDU_TERRACOTTA_DARK,
+                zerolinewidth=1.6,
+                tickfont=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=11),
+            ),
+            yaxis=dict(
+                gridcolor=ARANDU_GRID,
+                linecolor=ARANDU_CARD_BORDER,
+                zeroline=True,
+                zerolinecolor=ARANDU_TERRACOTTA_DARK,
+                zerolinewidth=1.6,
+                tickfont=dict(color=ARANDU_IVORY, family="'JetBrains Mono', monospace", size=11),
+            ),
+        )
     )
-)
+    pio.templates["arandu"] = template
+    pio.templates.default = "arandu"
+    return template
 
-pio.templates["arandu"] = PLOTLY_ARANDU_TEMPLATE
-pio.templates.default = "arandu"
+
+def __getattr__(name: str):
+    if name == "PLOTLY_ARANDU_TEMPLATE":
+        return obtener_plotly_arandu_template()
+    raise AttributeError(f"module 'views.theme' has no attribute {name!r}")
 
 
 def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     """Aplica la plantilla y colores orgánicos de Arandú a cualquier figura Plotly."""
+    template = obtener_plotly_arandu_template()
     fig.update_layout(
-        template=PLOTLY_ARANDU_TEMPLATE,
+        template=template,
         paper_bgcolor="rgba(10, 11, 9, 0)",
         plot_bgcolor=ARANDU_PLOT_BG,
         font=dict(color=ARANDU_IVORY, family="'Plus Jakarta Sans', sans-serif"),
@@ -138,21 +180,62 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
 
 
 @st.cache_data(show_spinner=False)
+def leer_asset_bytes(ruta_relativa: str) -> bytes | None:
+    """Lee un archivo binario de assets/ una sola vez y lo retiene en caché."""
+    ruta = _resolver_ruta_asset(ruta_relativa)
+    return ruta.read_bytes() if ruta is not None else None
+
+
+@st.cache_data(show_spinner=False)
+def leer_asset_texto(ruta_relativa: str) -> str | None:
+    """Lee un archivo de texto (p. ej. SVG) de assets/ una sola vez en caché."""
+    raw = leer_asset_bytes(ruta_relativa)
+    return raw.decode("utf-8") if raw is not None else None
+
+
+@st.cache_data(show_spinner=False)
+def obtener_asset_base64(ruta_relativa: str) -> str | None:
+    """Retorna el contenido de un archivo de assets/ (imagen o PDF) codificado en base64."""
+    raw = leer_asset_bytes(ruta_relativa)
+    return base64.b64encode(raw).decode("ascii") if raw is not None else None
+
+
+@st.cache_data(show_spinner=False)
+def obtener_asset_data_uri(ruta_relativa: str, mime_type: str | None = None) -> str | None:
+    """Construye y cachea un data URI RFC 2397 para imágenes o PDFs dentro de assets/."""
+    encoded = obtener_asset_base64(ruta_relativa)
+    if encoded is None:
+        return None
+    ext = Path(ruta_relativa).suffix.lower()
+    mime = mime_type or _MIME_TYPES.get(ext, "application/octet-stream")
+    return f"data:{mime};base64,{encoded}"
+
+
+@st.cache_data(show_spinner=False)
 def obtener_logo_arandu_src(prefer_svg: bool = False) -> str | None:
-    """Retorna un data URI (PNG/JPEG o SVG transparente) del logo oficial Arandú."""
-    candidatos = (LOGO_SVG_PATH, LOGO_JPG_PATH) if prefer_svg else (LOGO_JPG_PATH, LOGO_SVG_PATH)
-    for ruta in candidatos:
-        if ruta.is_file():
-            mime = "image/svg+xml" if ruta.suffix.lower() == ".svg" else "image/jpeg"
-            encoded = base64.b64encode(ruta.read_bytes()).decode("ascii")
-            return f"data:{mime};base64,{encoded}"
+    """Retorna un data URI cacheado (JPEG o SVG transparente) del logo oficial Arandú."""
+    candidatos = ("svg/arandu.svg", "logo_arandu.jpg") if prefer_svg else ("logo_arandu.jpg", "svg/arandu.svg")
+    for rel in candidatos:
+        uri = obtener_asset_data_uri(rel)
+        if uri is not None:
+            return uri
     return None
 
 
-def aplicar_estilo_arandu() -> None:
-    """Inyecta tipografías, tarjetas Guru, tablas doradas y controles orgánicos de Arandú."""
-    st.markdown(
-        """
+@st.cache_data(show_spinner=False)
+def obtener_logos_app() -> tuple[bytes | str | None, str | bytes]:
+    """Retorna (sidebar_logo, page_icon) cacheados para app.py sin lecturas repetidas a disco."""
+    jpg_bytes = leer_asset_bytes("logo_arandu.jpg")
+    svg_txt = leer_asset_texto("svg/arandu.svg")
+    sidebar_logo = jpg_bytes if jpg_bytes is not None else svg_txt
+    page_icon: str | bytes = svg_txt if svg_txt is not None else (jpg_bytes if jpg_bytes is not None else "🌳")
+    return sidebar_logo, page_icon
+
+
+@st.cache_data(show_spinner=False)
+def obtener_css_arandu() -> str:
+    """Genera y cachea la hoja CSS y tipografías de Arandú una sola vez en memoria."""
+    return """
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Fraunces:opsz,wght@9..144,600&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -256,6 +339,30 @@ def aplicar_estilo_arandu() -> None:
             color: #D4A359;
         }
 
+        .arandu-abstract {
+            padding: 0.85rem 1.15rem;
+            border-radius: 10px;
+            border: 1px solid #2E2920;
+            border-left: 4px solid #D4A359;
+            background: linear-gradient(90deg, rgba(212, 163, 89, 0.10), rgba(22, 24, 20, 0.92));
+            margin: 0.35rem 0 0.85rem 0;
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+        .arandu-verdict-card {
+            padding: 0.95rem 1.15rem;
+            border-radius: 12px;
+            border: 1px solid #2E2920;
+            background-color: #161814;
+            margin: 0.55rem 0 1rem 0;
+        }
+        .arandu-verdict-pro {
+            border-left: 4px solid #7A9A65 !important;
+        }
+        .arandu-verdict-warn {
+            border-left: 4px solid #C86D44 !important;
+        }
+
         .arandu-card,
         .arandu-guru-card {
             padding: 1rem 1.2rem;
@@ -353,7 +460,10 @@ def aplicar_estilo_arandu() -> None:
             border-bottom-color: #D4A359 !important;
         }
         </style>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+
+
+def aplicar_estilo_arandu() -> None:
+    """Inyecta tipografías, tarjetas Guru, tablas doradas y controles orgánicos de Arandú."""
+    st.markdown(obtener_css_arandu(), unsafe_allow_html=True)
 
