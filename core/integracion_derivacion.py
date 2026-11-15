@@ -22,8 +22,15 @@ from __future__ import annotations
 import math
 import time
 from typing import Any
+
 import numpy as np
-import sympy as sp
+
+from core._cache_utils import (
+    compilar_lambdify_1d,
+    evaluar_fn_vectorizado,
+    integral_sympy_cached,
+)
+from core.catalogo_ejercicios import INTEGRALES_PRECOMPUTADAS
 
 
 COLORES_REGLAS = {
@@ -356,14 +363,15 @@ def _curva_lagrange_bloque(xs: np.ndarray, ys: np.ndarray, n_pts: int = 35) -> t
     """Genera los puntos (x_curva, y_curva) del polinomio interpolante exacto del bloque."""
     x_grid = np.linspace(float(xs[0]), float(xs[-1]), n_pts)
     n = len(xs)
-    y_grid = np.zeros_like(x_grid)
-    for i in range(n):
-        L_i = np.ones_like(x_grid)
-        for j in range(n):
-            if i != j:
-                L_i *= (x_grid - xs[j]) / (xs[i] - xs[j])
-        y_grid += ys[i] * L_i
-    return x_grid.tolist(), y_grid.tolist()
+    with np.errstate(all="ignore"):
+        y_grid = np.zeros_like(x_grid)
+        for i in range(n):
+            L_i = np.ones_like(x_grid)
+            for j in range(n):
+                if i != j:
+                    L_i *= (x_grid - xs[j]) / (xs[i] - xs[j])
+            y_grid += ys[i] * L_i
+    return x_grid.tolist(), [float(v) if np.isfinite(v) else None for v in y_grid.tolist()]
 
 
 def _construir_subbloques_segmento(
@@ -563,21 +571,27 @@ def integrar_adaptativo_en_vivo(
     area_total = float(sum(b["area"] for b in bloques_globales))
     reglas_globales = list(dict.fromkeys(b["regla"] for b in bloques_globales))
 
-    # Verificación exacta con SymPy si se provee expresión f_str
+    # Verificación exacta precomputada (cátedra) o cacheada en SymPy
     exacta_info = None
     if f_str and f_str.strip():
         try:
-            x_sym = sp.Symbol("x")
-            f_simb = sp.sympify(f_str, locals={"x": x_sym, "e": sp.E, "pi": sp.pi, "ln": sp.log})
+            clave_f = " ".join(f_str.strip().split())
             a_tot, b_tot = float(x[0]), float(x[-1])
-            integral_exacta = float(sp.N(sp.integrate(f_simb, (x_sym, a_tot, b_tot))))
+            if clave_f in INTEGRALES_PRECOMPUTADAS:
+                pre_int = INTEGRALES_PRECOMPUTADAS[clave_f]
+                integral_exacta = float(pre_int["exact_eval"](a_tot, b_tot))
+                f_latex_int = pre_int["f_latex"]
+            else:
+                res_int = integral_sympy_cached(clave_f, a_tot, b_tot)
+                integral_exacta = float(res_int["integral_exacta"])
+                f_latex_int = res_int["f_latex"]
             err_abs = abs(integral_exacta - area_total)
             err_pct = (err_abs / abs(integral_exacta) * 100.0) if abs(integral_exacta) > 1e-14 else 0.0
             exacta_info = {
                 "integral_exacta": integral_exacta,
                 "error_absoluto": err_abs,
                 "error_relativo_pct": err_pct,
-                "f_latex": sp.latex(f_simb),
+                "f_latex": f_latex_int,
             }
         except Exception:
             exacta_info = None
@@ -633,19 +647,22 @@ def remuestrear_tabla_integracion(
         return list(x_base), list(y_base), float(xb[1] - xb[0])
 
     if f_str and f_str.strip():
-        xsym = sp.Symbol("x")
-        expr = sp.sympify(f_str, locals={"x": xsym, "e": sp.E, "pi": sp.pi, "ln": sp.log})
-        fn = sp.lambdify(xsym, expr, modules=["numpy", "math"])
-        y_nuevos = np.array([float(np.real(fn(float(xv)))) for xv in x_nuevos], dtype=float)
+        clave_f = " ".join(f_str.strip().split())
+        if clave_f in INTEGRALES_PRECOMPUTADAS:
+            fn_np = INTEGRALES_PRECOMPUTADAS[clave_f]["fn_np"]
+        else:
+            fn_np = compilar_lambdify_1d(clave_f)
+        y_vals = evaluar_fn_vectorizado(fn_np, x_nuevos, limite_abs=None)
+        y_nuevos = np.array([v if v is not None else float("nan") for v in y_vals], dtype=float)
     else:
-        # Interpolación polinómica de referencia sobre los puntos base
-        y_nuevos = np.zeros_like(x_nuevos)
-        n = len(xb)
-        for i in range(n):
-            L_i = np.ones_like(x_nuevos)
-            for j in range(n):
-                if i != j:
-                    L_i *= (x_nuevos - xb[j]) / (xb[i] - xb[j])
-            y_nuevos += yb[i] * L_i
+        with np.errstate(all="ignore"):
+            y_nuevos = np.zeros_like(x_nuevos)
+            n = len(xb)
+            for i in range(n):
+                L_i = np.ones_like(x_nuevos)
+                for j in range(n):
+                    if i != j:
+                        L_i *= (x_nuevos - xb[j]) / (xb[i] - xb[j])
+                y_nuevos += yb[i] * L_i
 
     return [round(float(v), 6) for v in x_nuevos], [round(float(v), 6) for v in y_nuevos], h_eff

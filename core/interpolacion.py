@@ -21,8 +21,18 @@ from __future__ import annotations
 import math
 import time
 from typing import Any
+
 import numpy as np
-import sympy as sp
+
+from core._cache_utils import (
+    compilar_lambdify_1d,
+    construir_lagrange_latex_cached,
+    evaluar_fn_vectorizado,
+)
+from core.catalogo_ejercicios import (
+    EXPRESIONES_PRECOMPUTADAS_RAICES,
+    LAGRANGE_PRECOMPUTADOS,
+)
 
 
 def diagnosticar_espaciamiento_nodos(x_puntos: list[float] | np.ndarray) -> dict[str, Any]:
@@ -102,16 +112,15 @@ def regenerar_tabla_interpolacion(
         return list(x_base), list(y_base), float(xb[1] - xb[0])
 
     if f_expr and f_expr.strip():
-        xsym = sp.Symbol("x")
-        expr = sp.sympify(f_expr, locals={"x": xsym, "e": sp.E, "pi": sp.pi, "ln": sp.log})
-        fn = sp.lambdify(xsym, expr, modules=["numpy", "math"])
-        y_nuevos = np.array([float(np.real(fn(float(xv)))) for xv in x_nuevos], dtype=float)
+        clave = " ".join(f_expr.strip().split())
+        if clave in EXPRESIONES_PRECOMPUTADAS_RAICES:
+            fn_np = EXPRESIONES_PRECOMPUTADAS_RAICES[clave]["fn_np"]
+        else:
+            fn_np = compilar_lambdify_1d(clave)
+        y_vals = evaluar_fn_vectorizado(fn_np, x_nuevos, limite_abs=None)
+        y_nuevos = np.array([v if v is not None else float("nan") for v in y_vals], dtype=float)
     else:
-        # Evaluar sobre el polinomio interpolador de Lagrange de los datos base
-        y_nuevos = np.array(
-            [interpolar_lagrange(xb, yb, float(xv))["y_interpolado"] for xv in x_nuevos],
-            dtype=float,
-        )
+        y_nuevos = evaluar_curva_lagrange(xb, yb, x_nuevos)
 
     return [round(float(v), 6) for v in x_nuevos], [round(float(v), 6) for v in y_nuevos], h_eff
 
@@ -333,29 +342,57 @@ def interpolar_lagrange(
     }
 
 
+def evaluar_curva_lagrange(
+    x_puntos: list[float] | np.ndarray,
+    y_puntos: list[float] | np.ndarray,
+    x_grid: np.ndarray,
+    indice_base: int | None = None,
+) -> np.ndarray:
+    """Evalúa vectorizadamente en NumPy P(x) o la función base L_k(x) sobre toda la grilla."""
+    x = np.asarray(x_puntos, dtype=float)
+    y = np.asarray(y_puntos, dtype=float)
+    xg = np.asarray(x_grid, dtype=float)
+    n = len(x)
+    with np.errstate(all="ignore"):
+        if indice_base is not None:
+            k = int(indice_base)
+            L_k = np.ones_like(xg, dtype=float)
+            for j in range(n):
+                if j != k:
+                    L_k *= (xg - x[j]) / (x[k] - x[j])
+            return L_k
+        y_total = np.zeros_like(xg, dtype=float)
+        for i in range(n):
+            L_i = np.ones_like(xg, dtype=float)
+            for j in range(n):
+                if j != i:
+                    L_i *= (xg - x[j]) / (x[i] - x[j])
+            y_total += y[i] * L_i
+        return y_total
+
+
 def construir_polinomio_simbolico_lagrange(
     x_puntos: list[float] | np.ndarray,
     y_puntos: list[float] | np.ndarray,
 ) -> dict[str, Any]:
-    x_sym = sp.Symbol("x")
-    x = np.array(x_puntos, dtype=float)
-    y = np.array(y_puntos, dtype=float)
-    n = len(x)
-    P_sym = sp.Integer(0)
-    bases_simbolicas = []
-    for i in range(n):
-        L_i_sym = sp.Integer(1)
-        for j in range(n):
-            if j != i:
-                L_i_sym *= (x_sym - x[j]) / (x[i] - x[j])
-        bases_simbolicas.append(sp.simplify(L_i_sym))
-        P_sym += y[i] * L_i_sym
-    P_expandido = sp.expand(P_sym)
+    x_tup = tuple(round(float(v), 10) for v in x_puntos)
+    y_tup = tuple(round(float(v), 10) for v in y_puntos)
+    if (x_tup, y_tup) in LAGRANGE_PRECOMPUTADOS:
+        pre = LAGRANGE_PRECOMPUTADOS[(x_tup, y_tup)]
+        return {
+            "polinomio_simbolico": None,
+            "polinomio_expandido": None,
+            "latex_expandido": pre["latex_expandido"],
+            "bases_latex": pre["bases_latex"],
+            "bases_simbolicas": [],
+        }
+    meta = construir_lagrange_latex_cached(x_tup, y_tup)
     return {
-        "polinomio_simbolico": P_sym,
-        "polinomio_expandido": P_expandido,
-        "latex_expandido": sp.latex(P_expandido),
-        "bases_simbolicas": bases_simbolicas,
+        "polinomio_simbolico": None,
+        "polinomio_expandido": None,
+        "latex_expandido": meta["latex_expandido"],
+        "bases_latex": meta["bases_latex"],
+        "bases_simbolicas": [],
     }
 
 
@@ -484,6 +521,32 @@ def evaluar_curva_gregory_parcial(
     grado: int,
     modo: str = "ascendente",
 ) -> np.ndarray:
-    """Evalúa el polinomio de Newton-Gregory truncado hasta el orden `grado` sobre `x_grid`."""
-    fn = interpolar_newton_gregory_ascendente if modo == "ascendente" else interpolar_newton_gregory_descendente
-    return np.array([fn(x_puntos, y_puntos, float(xg), grado_max=grado)["y_interpolado"] for xg in x_grid])
+    """Evalúa vectorizadamente el polinomio de Newton-Gregory truncado hasta `grado`."""
+    x = np.asarray(x_puntos, dtype=float)
+    y = np.asarray(y_puntos, dtype=float)
+    xg = np.asarray(x_grid, dtype=float)
+    diag = diagnosticar_espaciamiento_nodos(x)
+    if not diag["es_equiespaciado"]:
+        raise ValueError(f"Newton-Gregory inválido: {diag['mensaje']}")
+    h = float(diag["h_nominal"])
+    n = len(x)
+    max_k = min(max(int(grado), 0), n - 1)
+    tabla = calcular_diferencias_ascendentes(y)
+
+    with np.errstate(all="ignore"):
+        if modo == "ascendente":
+            u = (xg - x[0]) / h
+            y_acc = np.full_like(xg, float(tabla[0, 0]), dtype=float)
+            coef = np.ones_like(xg, dtype=float)
+            for k in range(1, max_k + 1):
+                coef = coef * (u - (k - 1)) / k
+                y_acc = y_acc + coef * float(tabla[0, k])
+            return y_acc
+
+        v = (xg - x[-1]) / h
+        y_acc = np.full_like(xg, float(tabla[n - 1, 0]), dtype=float)
+        coef = np.ones_like(xg, dtype=float)
+        for k in range(1, max_k + 1):
+            coef = coef * (v + (k - 1)) / k
+            y_acc = y_acc + coef * float(tabla[n - 1 - k, k])
+        return y_acc

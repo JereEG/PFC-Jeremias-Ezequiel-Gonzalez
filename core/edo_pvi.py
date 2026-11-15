@@ -10,98 +10,71 @@ import math
 from typing import Any, Callable
 
 import numpy as np
-import sympy as sp
-from sympy.parsing.sympy_parser import (
-    convert_xor,
-    implicit_multiplication_application,
-    parse_expr,
-    standard_transformations,
-)
 
-_TRANSFORMACIONES = standard_transformations + (
-    implicit_multiplication_application,
-    convert_xor,
+from core._cache_utils import (
+    analizar_edo_exacta_cached,
+    analizar_edo_f_cached,
+    compilar_lambdify_edo_exacta,
+    compilar_lambdify_edo_f,
 )
+from core.catalogo_ejercicios import EDO_PRECOMPUTADAS
 
 
 def compilar_funcion_edo(f_str: str) -> dict[str, Any]:
-    """Compila una expresión f(x, y) para y' = f(x, y)."""
-    texto = (f_str or "").strip()
+    """Compila una expresión f(x, y) para y' = f(x, y) usando caché o precomputación."""
+    texto = " ".join((f_str or "").strip().split())
     if not texto:
         raise ValueError("La expresión f(x, y) no puede estar vacía.")
 
-    x_sym, y_sym = sp.symbols("x y")
-    entorno = {
-        "x": x_sym,
-        "y": y_sym,
-        "e": sp.E,
-        "pi": sp.pi,
-        "sin": sp.sin,
-        "cos": sp.cos,
-        "tan": sp.tan,
-        "exp": sp.exp,
-        "log": sp.log,
-        "ln": sp.log,
-        "sqrt": sp.sqrt,
-        "abs": sp.Abs,
-    }
-    try:
-        expr = parse_expr(texto, local_dict=entorno, transformations=_TRANSFORMACIONES)
-    except Exception as exc:
-        raise ValueError(f"No se pudo interpretar f(x, y) = '{texto}': {exc}") from exc
-
-    fn_np = sp.lambdify((x_sym, y_sym), expr, modules=["numpy", "math"])
+    if texto in EDO_PRECOMPUTADAS["f"]:
+        pre = EDO_PRECOMPUTADAS["f"][texto]
+        f_latex = pre["f_latex"]
+        fn_np = pre["fn_np"]
+    else:
+        f_latex = analizar_edo_f_cached(texto)
+        fn_np = compilar_lambdify_edo_f(texto)
 
     def fn(x_val: float, y_val: float) -> float:
-        res = float(fn_np(float(x_val), float(y_val)))
+        with np.errstate(all="ignore"):
+            res = float(np.real(fn_np(float(x_val), float(y_val))))
         if not math.isfinite(res):
             raise ValueError(f"f({x_val}, {y_val}) produjo un valor no finito ({res}).")
         return res
 
     return {
-        "x_sym": x_sym,
-        "y_sym": y_sym,
-        "expr": expr,
-        "f_latex": sp.latex(expr),
+        "x_sym": None,
+        "y_sym": None,
+        "expr": None,
+        "f_latex": f_latex,
         "fn": fn,
+        "fn_np": fn_np,
     }
 
 
 def compilar_exacta_edo(y_str: str) -> dict[str, Any]:
-    """Compila una solución analítica exacta y(x) opcional."""
-    texto = (y_str or "").strip()
+    """Compila una solución analítica exacta y(x) opcional usando caché o precomputación."""
+    texto = " ".join((y_str or "").strip().split())
     if not texto:
         raise ValueError("La expresión exacta y(x) está vacía.")
 
-    x_sym = sp.Symbol("x")
-    entorno = {
-        "x": x_sym,
-        "e": sp.E,
-        "pi": sp.pi,
-        "sin": sp.sin,
-        "cos": sp.cos,
-        "tan": sp.tan,
-        "exp": sp.exp,
-        "log": sp.log,
-        "ln": sp.log,
-        "sqrt": sp.sqrt,
-        "abs": sp.Abs,
-    }
-    try:
-        expr = parse_expr(texto, local_dict=entorno, transformations=_TRANSFORMACIONES)
-    except Exception as exc:
-        raise ValueError(f"No se pudo interpretar y_exacta(x) = '{texto}': {exc}") from exc
-
-    fn_np = sp.lambdify(x_sym, expr, modules=["numpy", "math"])
+    if texto in EDO_PRECOMPUTADAS["exacta"]:
+        pre = EDO_PRECOMPUTADAS["exacta"][texto]
+        y_latex = pre["y_latex"]
+        fn_np = pre["fn_np"]
+    else:
+        y_latex = analizar_edo_exacta_cached(texto)
+        fn_np = compilar_lambdify_edo_exacta(texto)
 
     def fn(x_val: float) -> float:
-        return float(fn_np(float(x_val)))
+        with np.errstate(all="ignore"):
+            return float(np.real(fn_np(float(x_val))))
 
     return {
-        "x_sym": x_sym,
-        "expr": expr,
-        "y_latex": sp.latex(expr),
+        "x_sym": None,
+        "expr": None,
+        "y_latex": y_latex,
         "fn": fn,
+        "fn_np": fn_np,
     }
 
 

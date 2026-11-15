@@ -23,75 +23,125 @@ from __future__ import annotations
 import math
 import time
 from typing import Any, Callable
+
 import numpy as np
-import sympy as sp
+
+from core._cache_utils import (
+    analizar_g_pf_sympy_cached,
+    analizar_raices_sympy_cached,
+    compilar_lambdify_pf,
+    compilar_lambdify_raices,
+)
+from core.catalogo_ejercicios import (
+    EXPRESIONES_PRECOMPUTADAS_PUNTO_FIJO,
+    EXPRESIONES_PRECOMPUTADAS_RAICES,
+)
+
+
+def _wrap_escalar_real(f_call: Any) -> Callable[[float], float]:
+    def inner(val: float) -> float:
+        with np.errstate(all="ignore"):
+            res = f_call(float(val))
+            return float(np.real(res))
+    return inner
 
 
 def compilar_funcion_raices(f_str: str) -> dict[str, Any]:
     """
-    Compila una expresión matemática f(x) y calcula automáticamente f'(x) y f''(x) con SymPy.
-    Retorna funciones numéricas invocables y sus representaciones LaTeX.
+    Compila una expresión matemática f(x) y calcula f'(x) y f''(x).
+    Usa diccionario precomputado para expresiones de cátedra y caché SymPy/NumPy para personalizadas.
     """
-    x_sym = sp.Symbol("x")
-    entorno = {"x": x_sym, "e": sp.E, "pi": sp.pi, "ln": sp.log}
-    try:
-        f_simb = sp.sympify(f_str, locals=entorno)
-        d1_simb = sp.diff(f_simb, x_sym)
-        d2_simb = sp.diff(d1_simb, x_sym)
-        fn_raw = sp.lambdify(x_sym, f_simb, modules=["numpy", "math"])
-        d1_raw = sp.lambdify(x_sym, d1_simb, modules=["numpy", "math"])
-        d2_raw = sp.lambdify(x_sym, d2_simb, modules=["numpy", "math"])
-    except Exception as e:
-        raise ValueError(f"Expresión matemática inválida '{f_str}': {e}")
+    clave = " ".join((f_str or "").strip().split())
+    if clave in EXPRESIONES_PRECOMPUTADAS_RAICES:
+        pre = EXPRESIONES_PRECOMPUTADAS_RAICES[clave]
+        return {
+            "x_sym": None,
+            "f_simb": None,
+            "d1_simb": None,
+            "d2_simb": None,
+            "f_latex": pre["f_latex"],
+            "d1_latex": pre["d1_latex"],
+            "d2_latex": pre["d2_latex"],
+            "descartes": pre["descartes"],
+            "fn": _wrap_escalar_real(pre["fn_np"]),
+            "d1": _wrap_escalar_real(pre["d1_np"]),
+            "d2": _wrap_escalar_real(pre["d2_np"]),
+            "fn_np": pre["fn_np"],
+            "d1_np": pre["d1_np"],
+            "d2_np": pre["d2_np"],
+        }
 
-    def _wrap(f_call: Any) -> Callable[[float], float]:
-        def inner(val: float) -> float:
-            res = f_call(float(val))
-            return float(np.real(res))
-        return inner
-
+    meta = analizar_raices_sympy_cached(clave)
+    fn_raw, d1_raw, d2_raw = compilar_lambdify_raices(clave)
     return {
-        "x_sym": x_sym,
-        "f_simb": f_simb,
-        "d1_simb": d1_simb,
-        "d2_simb": d2_simb,
-        "f_latex": sp.latex(f_simb),
-        "d1_latex": sp.latex(d1_simb),
-        "d2_latex": sp.latex(d2_simb),
-        "fn": _wrap(fn_raw),
-        "d1": _wrap(d1_raw),
-        "d2": _wrap(d2_raw),
+        "x_sym": None,
+        "f_simb": None,
+        "d1_simb": None,
+        "d2_simb": None,
+        "f_latex": meta["f_latex"],
+        "d1_latex": meta["d1_latex"],
+        "d2_latex": meta["d2_latex"],
+        "descartes": meta["descartes"],
+        "fn": _wrap_escalar_real(fn_raw),
+        "d1": _wrap_escalar_real(d1_raw),
+        "d2": _wrap_escalar_real(d2_raw),
+        "fn_np": fn_raw,
+        "d1_np": d1_raw,
+        "d2_np": d2_raw,
     }
 
 
 def compilar_g_punto_fijo(g_str: str) -> dict[str, Any]:
-    """Compila x = g(x) y g'(x) para verificar contractividad |g'(x)| < 1."""
-    x_sym = sp.Symbol("x")
-    entorno = {"x": x_sym, "e": sp.E, "pi": sp.pi, "ln": sp.log}
-    try:
-        g_simb = sp.sympify(g_str, locals=entorno)
-        dg_simb = sp.diff(g_simb, x_sym)
-        gn_raw = sp.lambdify(x_sym, g_simb, modules=["numpy", "math"])
-        dg_raw = sp.lambdify(x_sym, dg_simb, modules=["numpy", "math"])
-    except Exception as e:
-        raise ValueError(f"Expresión g(x) inválida '{g_str}': {e}")
+    """Compila x = g(x) y g'(x) usando precomputación estática o caché vectorizada NumPy."""
+    clave = " ".join((g_str or "").strip().split())
+    if clave in EXPRESIONES_PRECOMPUTADAS_PUNTO_FIJO:
+        pre = EXPRESIONES_PRECOMPUTADAS_PUNTO_FIJO[clave]
+        return {
+            "g_simb": None,
+            "dg_simb": None,
+            "g_latex": pre["g_latex"],
+            "dg_latex": pre["dg_latex"],
+            "gn": _wrap_escalar_real(pre["gn_np"]),
+            "dgn": _wrap_escalar_real(pre["dgn_np"]),
+            "gn_np": pre["gn_np"],
+            "dgn_np": pre["dgn_np"],
+        }
 
+    meta = analizar_g_pf_sympy_cached(clave)
+    gn_raw, dgn_raw = compilar_lambdify_pf(clave)
     return {
-        "g_simb": g_simb,
-        "dg_simb": dg_simb,
-        "g_latex": sp.latex(g_simb),
-        "dg_latex": sp.latex(dg_simb),
-        "gn": lambda v: float(np.real(gn_raw(float(v)))),
-        "dgn": lambda v: float(np.real(dg_raw(float(v)))),
+        "g_simb": None,
+        "dg_simb": None,
+        "g_latex": meta["g_latex"],
+        "dg_latex": meta["dg_latex"],
+        "gn": _wrap_escalar_real(gn_raw),
+        "dgn": _wrap_escalar_real(dgn_raw),
+        "gn_np": gn_raw,
+        "dgn_np": dgn_raw,
     }
 
 
-def analizar_descartes(f_simb: sp.Expr, x_sym: sp.Symbol) -> dict[str, Any]:
-    """Aplica la Regla de los Signos de Descartes a un polinomio simbólico."""
+def analizar_descartes(f_simb: Any, x_sym: Any = None) -> dict[str, Any]:
+    """Aplica la Regla de los Signos de Descartes (o reutiliza el resultado precomputado)."""
+    if isinstance(f_simb, dict):
+        if "descartes" in f_simb:
+            return f_simb["descartes"]
+        if "es_polinomio" in f_simb:
+            return f_simb
+    if isinstance(f_simb, str):
+        clave = " ".join(f_simb.strip().split())
+        if clave in EXPRESIONES_PRECOMPUTADAS_RAICES:
+            return EXPRESIONES_PRECOMPUTADAS_RAICES[clave]["descartes"]
+        return analizar_raices_sympy_cached(clave)["descartes"]
+
+    import sympy as sp
+
+    if x_sym is None:
+        x_sym = sp.Symbol("x")
     if not f_simb.is_polynomial(x_sym) or f_simb == 0:
         return {
             "es_polinomio": False,
-            "mensaje": "La función es trascendente o no polinómica: la Regla de Descartes aplica únicamente a polinomios.",
+            "mensaje": "La función no es polinómica: el conteo de cambios de signo (Regla de Descartes) aplica únicamente a polinomios.",
         }
 
     poly_pos = sp.Poly(f_simb, x_sym)

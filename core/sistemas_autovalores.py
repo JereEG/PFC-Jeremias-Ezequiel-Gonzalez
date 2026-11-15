@@ -564,10 +564,12 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
     if reales:
         lam_min_g, lam_max_g = min(reales), max(reales)
         pad = max(1.5, 0.25 * (lam_max_g - lam_min_g))
-        lam_grid = np.linspace(lam_min_g - pad, lam_max_g + pad, 240)
+        lam_grid = np.linspace(lam_min_g - pad, lam_max_g + pad, 220)
     else:
-        lam_grid = np.linspace(-10.0, 10.0, 240)
-    p_vals = np.polyval([signo_ext * c for c in coef_poly], lam_grid)
+        lam_grid = np.linspace(-10.0, 10.0, 220)
+    with np.errstate(all="ignore"):
+        p_vals = np.polyval([signo_ext * c for c in coef_poly], lam_grid)
+    p_clean = [float(v) if np.isfinite(v) else None for v in p_vals.tolist()]
 
     return {
         "coeficientes_polinomio": coef_poly,
@@ -583,7 +585,7 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
         ],
         "autovalores_reales": reales,
         "autovectores": autovectores,
-        "curva_polinomio": {"lambda": lam_grid.tolist(), "p_lambda": p_vals.tolist()},
+        "curva_polinomio": {"lambda": lam_grid.tolist(), "p_lambda": p_clean},
         "historial_pasos": historial_pasos,
         "duracion": time.perf_counter() - t_ini,
     }
