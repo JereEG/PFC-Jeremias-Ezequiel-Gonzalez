@@ -80,7 +80,7 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
 
     # Bloque B: Desarrollo e Intuición (escaneable y progresivo)
     with st.container(border=True):
-        st.markdown("#### Cómo funciona en la práctica")
+        st.markdown("### Cómo funciona en la práctica")
         if guru.get("que_resuelve"):
             st.markdown(f"- **Problema que resuelve:** {guru['que_resuelve']}")
         if guru.get("intuicion_geometrica"):
@@ -101,7 +101,7 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
             for detalle in profundizacion:
                 st.markdown(f"- {detalle}")
             if ejemplo:
-                st.markdown(f"##### Ejemplo resuelto: {ejemplo.get('titulo', '')}")
+                st.markdown(f"#### Ejemplo resuelto: {ejemplo.get('titulo', '')}")
                 if ejemplo.get("enunciado"):
                     st.markdown(f"**Enunciado:** {ejemplo['enunciado']}")
                 pasos = ejemplo.get("pasos", [])
@@ -455,7 +455,7 @@ def render_selector_fichas_metodos(
     titulo_esc = html.escape(f"Método {ficha_activa['numero']} — {ficha_activa['titulo']}")
     pista_esc = html.escape(ficha_activa["pista"])
     st.markdown(
-        '<div class="arandu-ficha-activa-banner">'
+        '<div class="arandu-ficha-activa-banner" role="status" aria-live="polite">'
         f'<span class="arandu-ficha-activa-titulo">{titulo_esc}</span>'
         f'<span class="arandu-ficha-activa-pista">{pista_esc}</span>'
         "</div>",

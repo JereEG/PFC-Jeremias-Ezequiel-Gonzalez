@@ -255,7 +255,9 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
     .splash-retry {{
       display: none;
       margin-top: 1rem;
-      padding: 0.55rem 1.15rem;
+      padding: 0.65rem 1.25rem;
+      min-height: 44px;
+      min-width: 44px;
       border-radius: 10px;
       border: 1px solid var(--arandu-gold);
       background: var(--arandu-elevated);
@@ -265,6 +267,31 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
     }}
     .splash-retry.visible {{
       display: inline-block;
+    }}
+    a:focus-visible,
+    button:focus-visible,
+    [tabindex]:focus-visible {{
+      outline: 3px solid var(--arandu-gold);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 5px var(--arandu-gold-20);
+    }}
+    .splash-noscript {{
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--arandu-terracota);
+      background: var(--arandu-elevated);
+      color: var(--arandu-text);
+      font-size: 0.9rem;
+      max-width: 520px;
+    }}
+    @media (prefers-reduced-motion: reduce) {{
+      .splash-spinner,
+      .sk-bar,
+      #arandu-splash {{
+        animation: none !important;
+        transition: none !important;
+      }}
     }}
     #arandu-net-pill {{
       display: none;
@@ -291,15 +318,20 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
   </style>
 </head>
 <body>
-  <div id="arandu-splash" role="status" aria-live="polite">
+  <div id="arandu-splash" role="status" aria-live="polite" aria-busy="true">
     <img src="./assets/svg/arandu.svg" class="splash-logo" alt="Isotipo de Arandú" />
     <h1 class="splash-title">Arandú — Métodos Computacionales</h1>
     <span class="splash-badge">v{APP_VERSION} • PWA Offline WebAssembly</span>
-    <div class="splash-spinner" id="arandu-spinner"></div>
+    <div class="splash-spinner" id="arandu-spinner" aria-hidden="true"></div>
     <p id="arandu-status" class="splash-status">
       Inicializando Python y librerías científicas (<code>numpy</code>, <code>sympy</code>, <code>pandas</code>, <code>plotly</code>) en tu navegador.<br />
       La primera carga guarda todo localmente para funcionar 100% sin conexión.
     </p>
+    <noscript>
+      <p class="splash-noscript">
+        Arandú requiere JavaScript y WebAssembly habilitados para ejecutar Python localmente sin conexión.
+      </p>
+    </noscript>
     <div class="splash-skeleton-grid" aria-hidden="true">
       <div class="sk-panel">
         <div class="sk-bar w-60"></div>

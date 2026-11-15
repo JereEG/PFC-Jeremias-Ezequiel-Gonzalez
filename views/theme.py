@@ -49,16 +49,16 @@ PALETA_ARANDU_CLARO: dict[str, str] = {
     "bg_principal": "#F4EFE6",
     "bg_secundario": "#EAE3D5",
     "bg_lienzo": "#F8F4EC",
-    "oro": "#9F6D22",
-    "salvia": "#4E6E43",
-    "terracota": "#A84E28",
-    "texto_principal": "#232820",
-    "texto_secundario": "#4B473D",
-    "borde": "#D6CCB8",
-    "salvia_borde": "#5A774F",
-    "terracota_oscuro": "#8D3F1F",
+    "oro": "#7A500F",
+    "salvia": "#3A5730",
+    "terracota": "#8E3B18",
+    "texto_principal": "#1F241D",
+    "texto_secundario": "#444036",
+    "borde": "#8B8170",
+    "salvia_borde": "#46643C",
+    "terracota_oscuro": "#7A3112",
     "marfil_nodo": "#FFFDF9",
-    "texto_atenuado": "#6E6758",
+    "texto_atenuado": "#564F43",
     "grilla": "#DDD4C2",
     "bg_elevado": "#EFE8DA",
     "bg_marco": "#EBE3D4",
@@ -442,7 +442,7 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         }
         button[kind="primary"], [data-testid="stBaseButton-primary"] {
             background-color: var(--arandu-gold) !important;
-            color: var(--arandu-node-ivory) !important;
+            color: var(--arandu-canvas) !important;
             border-color: var(--arandu-gold) !important;
         }
         [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stExpander"],
@@ -698,15 +698,24 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             background-color: var(--arandu-elevated) !important;
             color: var(--arandu-text) !important;
             border-radius: 10px !important;
+            min-height: 44px !important;
             font-family: 'Inter', sans-serif !important;
             font-weight: 600 !important;
             transition: all 0.2s ease !important;
         }}
+        div.stButton > button[kind="primary"],
+        div.stButton > [data-testid="stBaseButton-primary"] {{
+            background-color: var(--arandu-gold) !important;
+            color: var(--arandu-canvas) !important;
+            border-color: var(--arandu-gold) !important;
+        }}
         div.stButton > button:hover,
-        div.stLinkButton > a:hover {{
+        div.stLinkButton > a:hover,
+        div.stButton > button[kind="primary"]:hover,
+        div.stButton > [data-testid="stBaseButton-primary"]:hover {{
             background-color: var(--arandu-terracotta-26) !important;
             border-color: var(--arandu-terracotta-dark) !important;
-            color: var(--arandu-node-ivory) !important;
+            color: var(--arandu-text) !important;
             box-shadow: 0 0 12px var(--arandu-gold-24) !important;
         }}
 
@@ -714,9 +723,77 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             color: var(--arandu-text) !important;
             font-family: 'Inter', sans-serif !important;
             font-weight: 600 !important;
+            min-height: 44px !important;
+        }}
+        [data-testid="stSidebarNav"] a,
+        [data-testid="stExpander"] summary {{
+            min-height: 44px !important;
+        }}
+        [data-baseweb="input"],
+        [data-baseweb="select"] > div,
+        [data-baseweb="textarea"] {{
+            border-color: var(--arandu-text-faint) !important;
+            min-height: 44px;
+        }}
+        [data-testid="stMarkdownContainer"] a {{
+            color: var(--arandu-gold) !important;
+            text-decoration: underline !important;
+            text-underline-offset: 3px;
+        }}
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        summary:focus-visible,
+        [tabindex]:focus-visible,
+        [role="button"]:focus-visible,
+        [role="tab"]:focus-visible,
+        [role="slider"]:focus-visible {{
+            outline: 3px solid var(--arandu-gold) !important;
+            outline-offset: 2px !important;
+            box-shadow: 0 0 0 5px var(--arandu-gold-24) !important;
+        }}
+        .arandu-sr-only {{
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            clip-path: inset(50%) !important;
+            border: 0 !important;
+        }}
+        .arandu-sidebar-heading {{
+            font-family: 'Outfit', sans-serif !important;
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            color: var(--arandu-text) !important;
+            margin: 0 0 0.35rem 0 !important;
+            line-height: 1.3 !important;
+        }}
+        .arandu-vs-divider {{
+            text-align: center !important;
+            font-family: 'Outfit', sans-serif !important;
+            font-size: 1.55rem !important;
+            font-weight: 700 !important;
+            color: var(--arandu-gold) !important;
+            padding-top: 1.1rem !important;
+            margin: 0 !important;
+            line-height: 1.2 !important;
+        }}
+        @media (prefers-reduced-motion: reduce) {{
+            *, *::before, *::after {{
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }}
         }}
         button[data-baseweb="tab"]:hover {{
-            color: var(--arandu-terracotta) !important;
+            color: var(--arandu-text) !important;
+            border-bottom-color: var(--arandu-gold) !important;
         }}
         button[data-baseweb="tab"][aria-selected="true"] {{
             color: var(--arandu-gold) !important;
@@ -1136,12 +1213,12 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         }}
         .arandu-ng-pill-asc {{
             background-color: var(--arandu-sage-22);
-            color: var(--arandu-sage);
+            color: var(--arandu-text);
             border: 1px solid var(--arandu-sage-55);
         }}
         .arandu-ng-pill-desc {{
             background-color: var(--arandu-gold-18);
-            color: var(--arandu-gold);
+            color: var(--arandu-text);
             border: 1px solid var(--arandu-gold-45);
         }}
         .arandu-ng-pill-muted {{
@@ -1207,7 +1284,8 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             font-weight: 700;
         }}
         .arandu-ng-cell-trunc {{
-            opacity: 0.38;
+            opacity: 0.72;
+            border-style: dashed !important;
         }}
         .arandu-ng-badge-asc,
         .arandu-ng-badge-desc {{
@@ -1235,7 +1313,8 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             border-color: var(--arandu-gold-45);
         }}
         .arandu-ng-formula-muted {{
-            opacity: 0.45;
+            opacity: 0.72;
+            border-style: dashed !important;
         }}
         .arandu-ng-formula-head {{
             display: flex;

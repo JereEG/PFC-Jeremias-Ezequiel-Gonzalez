@@ -577,13 +577,13 @@ def _construir_html_tabla_escalonada_gregory(
     show_desc = modo_visual != "Solo Ascendente (Δ)"
 
     ths = [
-        "<th class='arandu-ng-diff-th'>i</th>",
-        "<th class='arandu-ng-diff-th'>xᵢ</th>",
-        "<th class='arandu-ng-diff-th'>yᵢ (k=0)</th>",
+        "<th scope='col' class='arandu-ng-diff-th'>i</th>",
+        "<th scope='col' class='arandu-ng-diff-th'>xᵢ</th>",
+        "<th scope='col' class='arandu-ng-diff-th'>yᵢ (k=0)</th>",
     ]
     for k in range(1, n):
         etiqueta = f"Δ{_superindice(k)}y" if k > 1 else "Δy"
-        ths.append(f"<th class='arandu-ng-diff-th'>{etiqueta} (k={k})</th>")
+        ths.append(f"<th scope='col' class='arandu-ng-diff-th'>{etiqueta} (k={k})</th>")
 
     filas_html = []
     for r in range(total_rows):
@@ -591,7 +591,7 @@ def _construir_html_tabla_escalonada_gregory(
         if r % 2 == 0:
             idx = r // 2
             tag = " (x₀)" if idx == 0 else (" (xₙ)" if idx == n - 1 else "")
-            celdas.append(f"<td class='arandu-ng-diff-idx'>{idx}</td>")
+            celdas.append(f"<th scope='row' class='arandu-ng-diff-idx'>{idx}</th>")
             celdas.append(f"<td class='arandu-ng-diff-idx'>{xs[idx]:.4g}{tag}</td>")
         else:
             celdas.append("<td class='arandu-ng-diff-empty'></td>")
@@ -618,11 +618,29 @@ def _construir_html_tabla_escalonada_gregory(
 
                 badge = ""
                 if act_asc and act_desc:
-                    badge = f"<span class='arandu-ng-badge-desc'>Δ{_superindice(k)}y₀ = ∇{_superindice(k)}yₙ</span>"
+                    badge = (
+                        f"<span class='arandu-ng-badge-desc'>"
+                        f"<span class='arandu-sr-only'>Ruta ascendente y descendente: </span>"
+                        f"Δ{_superindice(k)}y₀ = ∇{_superindice(k)}yₙ</span>"
+                    )
                 elif act_asc:
-                    badge = f"<span class='arandu-ng-badge-asc'>Δ{_superindice(k)}y₀</span>"
+                    badge = (
+                        f"<span class='arandu-ng-badge-asc'>"
+                        f"<span class='arandu-sr-only'>Ruta ascendente: </span>"
+                        f"Δ{_superindice(k)}y₀</span>"
+                    )
                 elif act_desc:
-                    badge = f"<span class='arandu-ng-badge-desc'>∇{_superindice(k)}yₙ</span>"
+                    badge = (
+                        f"<span class='arandu-ng-badge-desc'>"
+                        f"<span class='arandu-sr-only'>Ruta descendente: </span>"
+                        f"∇{_superindice(k)}yₙ</span>"
+                    )
+
+                trunc_sr = (
+                    f"<span class='arandu-sr-only'> (orden superior al grado actual {k_vis})</span>"
+                    if k > k_vis
+                    else ""
+                )
 
                 if k == 0:
                     tip = f"y{_subindice(i)} = f({xs[i]:.4g}) = {val:.6g}"
@@ -636,15 +654,20 @@ def _construir_html_tabla_escalonada_gregory(
 
                 celdas.append(
                     f"<td class='{' '.join(clases)}' title='{html.escape(tip)}'>"
-                    f"{badge}{val:.5f}</td>"
+                    f"{badge}{val:.5f}{trunc_sr}</td>"
                 )
             else:
                 celdas.append("<td class='arandu-ng-diff-empty'></td>")
         filas_html.append(f"<tr>{''.join(celdas)}</tr>")
 
     return (
-        "<div class='arandu-ng-diff-wrap'>"
-        "<table class='arandu-ng-diff-table'>"
+        "<div class='arandu-ng-diff-wrap' role='region' "
+        "aria-label='Tabla escalonada de diferencias finitas de Newton-Gregory' tabindex='0'>"
+        "<table class='arandu-ng-diff-table' "
+        "aria-label='Diferencias finitas escalonadas de Newton-Gregory'>"
+        "<caption class='arandu-sr-only'>"
+        "Tabla escalonada de diferencias finitas ascendentes y descendentes de Newton-Gregory."
+        "</caption>"
         f"<thead><tr>{''.join(ths)}</tr></thead>"
         f"<tbody>{''.join(filas_html)}</tbody>"
         "</table></div>"
@@ -706,15 +729,21 @@ def _construir_desglose_formula_lado(
         )
 
     clase_mut = " arandu-ng-formula-muted" if atenuado else ""
+    aviso_atenuado = (
+        "<div class='arandu-sr-only'>Enfoque secundario para la posición actual de x estrella.</div>"
+        if atenuado
+        else ""
+    )
     titulo = "Polinomio Ascendente (Progresivo)" if es_asc else "Polinomio Descendente (Regresivo)"
     html_card = (
         f"<div class='arandu-ng-formula-card arandu-ng-formula-card-{suf}{clase_mut}'>"
+        f"{aviso_atenuado}"
         "<div class='arandu-ng-formula-head'>"
         "<div>"
         f"<div class='arandu-ng-summary-head'>{html.escape(titulo)}</div>"
         f"<div class='arandu-ng-summary-sub'>Anclada en {ancla_sym} = {ancla_val:g} | {param_nom} = {param_val:.4f}</div>"
         "</div>"
-        f"<div class='arandu-ng-formula-icon-{suf}'>{simbolo}</div>"
+        f"<div class='arandu-ng-formula-icon-{suf}' aria-hidden='true'>{simbolo}</div>"
         "</div>"
         f"{''.join(filas)}"
         f"<div class='arandu-ng-step-total-{suf}'>"

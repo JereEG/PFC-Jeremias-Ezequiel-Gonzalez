@@ -56,7 +56,7 @@ def vista_inicio() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown("### Catálogo de Métodos y Herramientas")
+    st.markdown("## Catálogo de Métodos y Herramientas")
     st.caption(
         "Seleccioná un módulo para recorrer su explicación progresiva (Resumen → Intuición → Criterios) y simular paso a paso."
     )

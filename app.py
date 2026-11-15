@@ -184,7 +184,7 @@ with st.sidebar:
     )
     st.markdown("---")
     with st.container(border=True):
-        st.markdown("#### Feedback")
+        st.markdown('<h2 class="arandu-sidebar-heading">Feedback</h2>', unsafe_allow_html=True)
         st.caption("¿Probaste la plataforma? Contanos qué te pareció o reportá mejoras:")
         st.link_button(
             "Dar Feedback",
@@ -194,7 +194,7 @@ with st.sidebar:
     if es_entorno_offline_wasm():
         st.markdown(
             """
-            <div class="arandu-wasm-banner">
+            <div class="arandu-wasm-banner" role="status">
                 Motor Local Activo (100% Sin Internet)
             </div>
             """,
@@ -202,7 +202,7 @@ with st.sidebar:
         )
     else:
         with st.container(border=True):
-            st.markdown("#### Modo Offline (PWA)")
+            st.markdown('<h2 class="arandu-sidebar-heading">Modo Offline (PWA)</h2>', unsafe_allow_html=True)
             st.caption("Ideal para instalar en notebook y estudiar sin Wi-Fi")
             st.link_button(
                 "Versión 100% Sin Conexión (PWA)",
