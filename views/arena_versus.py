@@ -56,6 +56,7 @@ from core.sistemas_autovalores import (
     metodo_potencias_min,
     verificar_dominancia_diagonal,
 )
+from views.theme import PALETA_ARANDU
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -78,7 +79,7 @@ def _render_ficha_tecnica(titulo_slot: str, ficha: dict, color_acento: str) -> N
     with st.container(border=True):
         st.markdown(
             f'<div style="border-left: 3px solid {color_acento}; padding-left: 0.65rem; '
-            f'margin-bottom: 0.6rem; font-size: 1.05rem; font-weight: 700; color: #EDE4D3;">'
+            f'margin-bottom: 0.6rem; font-size: 1.05rem; font-weight: 700; color: var(--arandu-text);">'
             f"{titulo_html}</div>",
             unsafe_allow_html=True,
         )
@@ -151,8 +152,8 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 y=err_a_s,
                 mode="lines+markers",
                 name=nombre_a,
-                line=dict(color="#D4A359", width=2.5),
-                marker=dict(size=7, color="#D4A359"),
+                line=dict(color=PALETA_ARANDU["oro"], width=2.5),
+                marker=dict(size=7, color=PALETA_ARANDU["oro"]),
             )
         )
     if err_b:
@@ -163,8 +164,8 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 y=err_b_s,
                 mode="lines+markers",
                 name=nombre_b,
-                line=dict(color="#C86D44", width=2.5, dash="dot"),
-                marker=dict(size=7, color="#C86D44"),
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dot"),
+                marker=dict(size=7, color=PALETA_ARANDU["terracota"]),
             )
         )
     fig.update_yaxes(type="log")
@@ -214,8 +215,8 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 
     fig = crear_figura_base_plotly("Comparación de Soluciones xᵢ", "Incógnita", "Valor xᵢ", altura=340)
     etiquetas = [f"x_{i+1}" for i in range(len(sa))]
-    fig.add_trace(go.Bar(x=etiquetas, y=sa, name=nombre_a, marker_color="#D4A359"))
-    fig.add_trace(go.Bar(x=etiquetas, y=sb, name=nombre_b, marker_color="#C86D44"))
+    fig.add_trace(go.Bar(x=etiquetas, y=sa, name=nombre_a, marker_color=PALETA_ARANDU["oro"]))
+    fig.add_trace(go.Bar(x=etiquetas, y=sb, name=nombre_b, marker_color=PALETA_ARANDU["terracota"]))
     fig.update_layout(barmode="group")
     render_plotly_arandu(fig, key="plot_vs_sistemas")
 
@@ -257,14 +258,14 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         fad = metodo_faddeev_leverrier(A)
         curva = fad["curva_polinomio"]
         fig = crear_figura_base_plotly("Polinomio Característico P(λ) y Autovalores Estimados", "λ", "P(λ)")
-        fig.add_hline(y=0, line_dash="dash", line_color="#B5673F")
+        fig.add_hline(y=0, line_dash="dash", line_color=PALETA_ARANDU["terracota_oscuro"])
         fig.add_trace(
             go.Scatter(
                 x=curva["lambda"],
                 y=limpiar_valores_plotly(curva["p_lambda"], limite_abs=1e9),
                 mode="lines",
                 name="P(λ) Faddeev",
-                line=dict(color="#D4A359", width=2.5),
+                line=dict(color=PALETA_ARANDU["oro"], width=2.5),
             )
         )
         if fad["autovalores_reales"]:
@@ -274,14 +275,14 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
                     y=[0] * len(fad["autovalores_reales"]),
                     mode="markers",
                     name="Raíces exactas",
-                    marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+                    marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
                 )
             )
         render_plotly_arandu(fig, key="plot_vs_aut_fad")
     else:
         fig = crear_figura_base_plotly("Trayectoria de Potencias λ_k", "Iteración", "λ_k")
-        fig.add_trace(go.Scatter(x=list(range(1, len(sa) + 1)), y=limpiar_valores_plotly(sa), mode="lines+markers", name=nombre_a, line=dict(color="#7A9A65", width=2.5)))
-        fig.add_trace(go.Scatter(x=list(range(1, len(sb) + 1)), y=limpiar_valores_plotly(sb), mode="lines+markers", name=nombre_b, line=dict(color="#C86D44", width=2.5)))
+        fig.add_trace(go.Scatter(x=list(range(1, len(sa) + 1)), y=limpiar_valores_plotly(sa), mode="lines+markers", name=nombre_a, line=dict(color=PALETA_ARANDU["salvia"], width=2.5)))
+        fig.add_trace(go.Scatter(x=list(range(1, len(sb) + 1)), y=limpiar_valores_plotly(sb), mode="lines+markers", name=nombre_b, line=dict(color=PALETA_ARANDU["terracota"], width=2.5)))
         render_plotly_arandu(fig, key="plot_vs_aut_pot")
 
 
@@ -318,11 +319,11 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
             y=ys,
             mode="markers",
             name="Nodos tabla",
-            marker=dict(size=10, color="#FFFDF9", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=10, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
 
-    for col, clave, nombre, color in ((ca, m_a, nombre_a, "#7A9A65"), (cb, m_b, nombre_b, "#C86D44")):
+    for col, clave, nombre, color in ((ca, m_a, nombre_a, PALETA_ARANDU["salvia"]), (cb, m_b, nombre_b, PALETA_ARANDU["terracota"])):
         try:
             val, _dur, nota, modo_g = _correr(clave)
             col.metric(nombre, f"{val:.6f}", nota)
@@ -377,7 +378,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
                 y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
                 mode="lines",
                 name=f"A: {b['regla']}",
-                line=dict(color="#7A9A65", width=2.4),
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.4),
             )
         )
     for b in res_b["bloques"]:
@@ -387,7 +388,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
                 y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
                 mode="lines",
                 name=f"B: {b['regla']}",
-                line=dict(color="#C86D44", width=2.0, dash="dash"),
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.0, dash="dash"),
             )
         )
     fig.add_trace(
@@ -396,7 +397,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
             y=ys,
             mode="markers",
             name="Nodos",
-            marker=dict(size=9, color="#FFFDF9", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=9, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_vs_integ")
@@ -450,13 +451,13 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 y=yg,
                 mode="lines",
                 name="Solución Exacta",
-                line=dict(color="#D4A359", width=2.8, dash="dash"),
+                line=dict(color=PALETA_ARANDU["oro"], width=2.8, dash="dash"),
             )
         )
     pares_a = muestrear_para_grafico(list(zip(ra["x"], ra["y"])), max_puntos=300)
     pares_b = muestrear_para_grafico(list(zip(rb["x"], rb["y"])), max_puntos=300)
-    fig.add_trace(go.Scatter(x=[p[0] for p in pares_a], y=[p[1] for p in pares_a], mode="lines+markers", name=nombre_a, line=dict(color="#7A9A65", width=2.4)))
-    fig.add_trace(go.Scatter(x=[p[0] for p in pares_b], y=[p[1] for p in pares_b], mode="lines+markers", name=nombre_b, line=dict(color="#C86D44", width=2.4)))
+    fig.add_trace(go.Scatter(x=[p[0] for p in pares_a], y=[p[1] for p in pares_a], mode="lines+markers", name=nombre_a, line=dict(color=PALETA_ARANDU["salvia"], width=2.4)))
+    fig.add_trace(go.Scatter(x=[p[0] for p in pares_b], y=[p[1] for p in pares_b], mode="lines+markers", name=nombre_b, line=dict(color=PALETA_ARANDU["terracota"], width=2.4)))
     render_plotly_arandu(fig, key="plot_vs_edo")
 
 
@@ -505,9 +506,9 @@ def vista_arena_versus() -> None:
 
     cf_a, cf_b = st.columns(2)
     with cf_a:
-        _render_ficha_tecnica("Contendiente A", ficha_a, "#D4A359")
+        _render_ficha_tecnica("Contendiente A", ficha_a, "var(--arandu-gold)")
     with cf_b:
-        _render_ficha_tecnica("Contendiente B", ficha_b, "#C86D44")
+        _render_ficha_tecnica("Contendiente B", ficha_b, "var(--arandu-terracotta)")
 
     exp = obtener_expectativa_versus(fam_sel, m_a, m_b)
     ce1, ce2 = st.columns(2)

@@ -35,7 +35,7 @@ def vista_inicio() -> None:
                     <span class="arandu-badge">FaCENA - UNNE</span>
                     <span class="arandu-badge">{badge_entorno}</span>
                     <h1>Arandú — Métodos Computacionales</h1>
-                    <p style="margin:0; font-size:1.02rem; color:#EDE4D3;">
+                    <p style="margin:0; font-size:1.02rem; color:var(--arandu-text);">
                         Plataforma interactiva de <b>Arandú</b> para comprender, editar y comparar algoritmos numéricos con rigor académico y lectura enfocada en sistemas:
                     </p>
                     <div class="arandu-pillars">
@@ -65,73 +65,73 @@ def vista_inicio() -> None:
         (
             "fundamentos",
             "Fundamentos y Errores",
-            "Traduce funciones a bucles de CPU y mide el error al redondear dígitos.",
+            "Traduce funciones a bucles de CPU y mide el error al redondear dígitos flotantes.",
             "views/view_fundamentos.py",
             "Explorar Fundamentos",
-            "UNIDAD 01 • ERRORES",
+            "Unidad 01 · Errores",
             False,
         ),
         (
             "raices",
             "Raíces de Ecuaciones",
-            "Halla dónde una curva cruza cero acotando intervalos o trazando tangentes.",
+            "Encuentra dónde una curva cruza cero acotando intervalos o trazando rectas tangentes sucesivas.",
             "views/view_raices.py",
             "Explorar Raíces",
-            "UNIDAD 02 • NO LINEALES",
+            "Unidad 02 · No lineales",
             False,
         ),
         (
             "sistemas",
             "Álgebra Lineal y Autovalores",
-            "Resuelve sistemas Ax = b por triangulación o iteración y extrae eigenvalores.",
+            "Resuelve sistemas lineales por triangulación o iteración y extrae sus autovalores dominantes.",
             "views/view_sistemas.py",
             "Explorar Sistemas",
-            "UNIDAD 03–04 • MATRICES",
+            "Unidad 03–04 · Matrices",
             False,
         ),
         (
             "interpolacion",
             "Interpolación Polinomial",
-            "Construye curvas continuas que pasan exactamente por puntos medidos.",
+            "Construye curvas polinomiales continuas que pasan exactamente por tablas de datos medidos.",
             "views/view_interpolacion.py",
             "Explorar Interpolación",
-            "UNIDAD 05 • POLINOMIOS",
+            "Unidad 05 · Polinomios",
             False,
         ),
         (
             "integracion",
             "Integración y Derivación",
-            "Estima pendientes locales y áreas acumuladas adaptando subintervalos en vivo.",
+            "Estima derivadas numéricas locales y calcula áreas acumuladas adaptando los subintervalos en vivo.",
             "views/view_integracion.py",
             "Explorar Integración",
-            "UNIDAD 06 • CUADRATURA",
+            "Unidad 06 · Cuadratura",
             False,
         ),
         (
             "edo",
             "Ecuaciones Diferenciales (EDO)",
-            "Simula trayectorias paso a paso desde un punto inicial con error controlado.",
+            "Simula trayectorias paso a paso desde un punto inicial manteniendo el error controlado.",
             "views/view_edo.py",
             "Explorar EDO / PVI",
-            "UNIDAD 07 • PVI",
+            "Unidad 07 · PVI",
             False,
         ),
         (
             "arena_versus",
             "Arena Versus (Duelo)",
-            "Enfrenta dos algoritmos de la misma familia y compara velocidad y error.",
+            "Enfrenta dos algoritmos de la misma familia para comparar velocidad, iteraciones y error.",
             "views/arena_versus.py",
             "Entrar a Arena Versus",
-            "COMPARADOR DIRECTO",
+            "Comparador directo",
             True,
         ),
         (
             "laboratorios",
             "Histórico de Cursada",
-            "Repasa los TPs 1 al 7, la serie de Fibonacci N=200 y la razón áurea.",
+            "Repasa los siete trabajos prácticos, la sucesión de Fibonacci y la razón áurea.",
             "views/view_laboratorios.py",
             "Ver Laboratorios",
-            "ANEXO CURRICULAR",
+            "Anexo curricular",
             False,
         ),
     ]
@@ -173,8 +173,8 @@ def vista_inicio() -> None:
                 construir_html_tarjeta_catalogo(
                     clave_svg="feedback",
                     titulo="Feedback y Aportes",
-                    descripcion="Envía sugerencias de cátedra o reporta casos límite del simulador.",
-                    subtitulo_tag="COMUNIDAD • PFC",
+                    descripcion="Envía sugerencias de cátedra, mejoras pedagógicas o reporta casos límite del simulador interactivo.",
+                    subtitulo_tag="Comunidad · PFC",
                 ),
                 unsafe_allow_html=True,
             )

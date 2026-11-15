@@ -18,6 +18,7 @@ from core.integracion_derivacion import (
     integrar_adaptativo_en_vivo,
     remuestrear_tabla_integracion,
 )
+from views.theme import PALETA_ARANDU
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -98,8 +99,8 @@ def _frag_diferenciacion(defaults: dict) -> None:
             y=ys,
             mode="lines+markers",
             name="Datos f(x)",
-            line=dict(color="#D4A359", width=2.5),
-            marker=dict(size=7, color="#D4A359"),
+            line=dict(color=PALETA_ARANDU["oro"], width=2.5),
+            marker=dict(size=7, color=PALETA_ARANDU["oro"]),
         )
     )
     if orden == 1:
@@ -110,7 +111,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
                 y=[y_en_x - res["derivada"] * dx, y_en_x + res["derivada"] * dx],
                 mode="lines",
                 name=f"Recta tangente (m={res['derivada']:.4f})",
-                line=dict(color="#C86D44", width=2.5, dash="dash"),
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dash"),
             )
         )
     fig.add_trace(
@@ -119,7 +120,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
             y=[y_en_x],
             mode="markers",
             name="Punto x*",
-            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_int_deriv")
@@ -281,9 +282,14 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         "f(x)",
     )
     fill_por_regla = {
-        "Trapecio": "rgba(200, 109, 68, 0.25)",
-        "Simpson 1/3": "rgba(122, 154, 101, 0.25)",
-        "Simpson 3/8": "rgba(212, 163, 89, 0.25)",
+        "Trapecio": PALETA_ARANDU["terracota_fill"],
+        "Simpson 1/3": PALETA_ARANDU["salvia_fill"],
+        "Simpson 3/8": PALETA_ARANDU["oro_fill"],
+    }
+    color_por_regla = {
+        "Trapecio": PALETA_ARANDU["terracota"],
+        "Simpson 1/3": PALETA_ARANDU["salvia"],
+        "Simpson 3/8": PALETA_ARANDU["oro"],
     }
     for idx, b in enumerate(bloques[:k_vis], start=1):
         fig.add_trace(
@@ -292,9 +298,9 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
                 y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
                 mode="lines",
                 fill="tozeroy",
-                fillcolor=fill_por_regla.get(b["regla"], "rgba(122, 154, 101, 0.25)"),
+                fillcolor=fill_por_regla.get(b["regla"], PALETA_ARANDU["salvia_fill"]),
                 name=f"B{idx}: {b['regla']} (A={b['area']:.3f})",
-                line=dict(color=b["color"], width=2.4),
+                line=dict(color=color_por_regla.get(b["regla"], PALETA_ARANDU["salvia"]), width=2.4),
             )
         )
     fig.add_trace(
@@ -303,7 +309,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
             y=ys,
             mode="markers",
             name="Nodos tabla",
-            marker=dict(size=9, color="#FFFDF9", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=9, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key=f"plot_{clave_state}")
@@ -345,32 +351,32 @@ def vista_integracion() -> None:
                 "numero": "1",
                 "clave_svg": "diferenciacion",
                 "titulo": "Diferenciación (Gregory)",
-                "subtitulo": "GREGORY · DERIVADAS",
-                "resumen": "Estima f'(x*) y f''(x*) tanto en puntos tabulares como con paso libre u.",
+                "subtitulo": "Gregory · Derivadas numéricas",
+                "resumen": "Estima derivadas primera y segunda sobre tablas equiespaciadas tanto en nodos como puntos libres.",
                 "pista": "Diferencias · 1ra y 2da derivada",
             },
             {
                 "numero": "2",
                 "clave_svg": "trapecios",
                 "titulo": "Regla de Trapecios",
-                "subtitulo": "POLIGONAL · ORDEN O(h²)",
-                "resumen": "Aproxima el área uniendo pares consecutivos con segmentos rectos.",
+                "subtitulo": "Poligonal · Orden O(h²)",
+                "resumen": "Aproxima el área bajo la curva uniendo pares de nodos mediante segmentos rectos sucesivos.",
                 "pista": "Poligonal recta · Cualquier n",
             },
             {
                 "numero": "3",
                 "clave_svg": "simpson_13",
                 "titulo": "Regla de Simpson 1/3",
-                "subtitulo": "PARÁBOLAS · ORDEN O(h⁴)",
-                "resumen": "Ajusta arcos parabólicos cada dos subintervalos para máxima precisión.",
+                "subtitulo": "Parábolas · Orden O(h⁴)",
+                "resumen": "Ajusta arcos parabólicos cada dos subintervalos para integrar curvas suaves con alta precisión.",
                 "pista": "Parábolas · Requiere n par",
             },
             {
                 "numero": "4",
                 "clave_svg": "simpson_38",
                 "titulo": "Simpson 3/8 y Combinado",
-                "subtitulo": "CÚBICAS · PARIDAD MIXTA",
-                "resumen": "Aplica arcos cúbicos o combina esquemas automáticamente si n es impar.",
+                "subtitulo": "Cúbicas · Paridad mixta",
+                "resumen": "Aplica arcos cúbicos de cuatro nodos o combina esquemas automáticamente si n es impar.",
                 "pista": "Cúbicas 3/8 · Paridad adaptable",
             },
         ),

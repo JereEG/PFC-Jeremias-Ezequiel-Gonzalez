@@ -15,6 +15,7 @@ from core.fundamentos_errores import (
     sumar_pares,
 )
 from core.version import APP_VERSION
+from views.theme import PALETA_ARANDU
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -74,15 +75,15 @@ def _frag_lab1_fibonacci() -> None:
     if razones:
         muestra_r = muestrear_para_grafico(razones[:120], max_puntos=120)
         fig = crear_figura_base_plotly("Convergencia de F_k / F_{k-1} hacia φ", "Índice k", "Cociente", altura=340)
-        fig.add_hline(y=res_f["phi_exacto"], line_dash="dash", line_color="#D4A359", annotation_text="φ")
+        fig.add_hline(y=res_f["phi_exacto"], line_dash="dash", line_color=PALETA_ARANDU["oro"], annotation_text="φ")
         fig.add_trace(
             go.Scatter(
                 x=[r["orden"] for r in muestra_r],
                 y=[r["cociente"] for r in muestra_r],
                 mode="lines+markers",
                 name="F_k / F_{k-1}",
-                line=dict(color="#7A9A65", width=2.4),
-                marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.4)),
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.4),
+                marker=dict(size=7, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.4)),
             )
         )
         render_plotly_arandu(fig, key="plot_lab1_fib")

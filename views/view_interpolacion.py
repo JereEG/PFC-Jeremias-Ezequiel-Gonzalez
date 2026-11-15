@@ -25,6 +25,7 @@ from core.interpolacion import (
     interpolar_newton_gregory_descendente,
     regenerar_tabla_interpolacion,
 )
+from views.theme import PALETA_ARANDU
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -115,18 +116,18 @@ def _frag_lineal(defaults: dict) -> None:
             y=ys,
             mode="lines+markers",
             name="Tabla de puntos",
-            line=dict(color="#9E9585", dash="dot"),
-            marker=dict(size=8, color="#D4A359"),
+            line=dict(color=PALETA_ARANDU["texto_atenuado"], dash="dot"),
+            marker=dict(size=8, color=PALETA_ARANDU["oro"]),
         )
     )
-    fig.add_trace(go.Scatter(x=[res["x0"], res["x1"]], y=[res["y0"], res["y1"]], mode="lines+markers", name="Segmento secante", line=dict(color="#7A9A65", width=3)))
+    fig.add_trace(go.Scatter(x=[res["x0"], res["x1"]], y=[res["y0"], res["y1"]], mode="lines+markers", name="Segmento secante", line=dict(color=PALETA_ARANDU["salvia"], width=3)))
     fig.add_trace(
         go.Scatter(
             x=[px],
             y=[py],
             mode="markers",
             name="Punto interpolado",
-            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_int_lin")
@@ -185,16 +186,16 @@ def _frag_cuadratica_inversa(defaults: dict) -> None:
         y_parab = limpiar_valores_plotly(np.polyval(coefs, x_grid), limite_abs=1e9)
 
     fig = crear_figura_base_plotly("Interpolación Cuadrática Inversa", "x", "y")
-    fig.add_hline(y=y_busc, line_dash="dash", line_color="#C86D44", annotation_text=f"y* = {y_busc}")
-    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_parab, mode="lines", name="Parábola P₂(x)", line=dict(color="#7A9A65", width=2.5)))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#D4A359")))
+    fig.add_hline(y=y_busc, line_dash="dash", line_color=PALETA_ARANDU["terracota"], annotation_text=f"y* = {y_busc}")
+    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_parab, mode="lines", name="Parábola P₂(x)", line=dict(color=PALETA_ARANDU["salvia"], width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color=PALETA_ARANDU["oro"])))
     fig.add_trace(
         go.Scatter(
             x=[res["x_resultado"]],
             y=[y_busc],
             mode="markers",
             name="Raíz seleccionada",
-            marker=dict(size=14, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=14, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_int_cuad")
@@ -274,16 +275,16 @@ def _frag_lagrange(defaults: dict) -> None:
     y_parcial = limpiar_valores_plotly(y_parcial_arr, limite_abs=1e9)
 
     fig = crear_figura_base_plotly(f"Polinomio de Lagrange — Suma parcial i = 0..{k_vis}", "x", "P(x)")
-    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_full, mode="lines", name="P(x) completo", line=dict(color="#9E9585", dash="dash")))
-    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_parcial, mode="lines", name=f"Suma hasta i={k_vis}", line=dict(color="#7A9A65", width=2.8)))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos", marker=dict(size=9, color="#D4A359")))
+    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_full, mode="lines", name="P(x) completo", line=dict(color=PALETA_ARANDU["texto_atenuado"], dash="dash")))
+    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_parcial, mode="lines", name=f"Suma hasta i={k_vis}", line=dict(color=PALETA_ARANDU["salvia"], width=2.8)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos", marker=dict(size=9, color=PALETA_ARANDU["oro"])))
     fig.add_trace(
         go.Scatter(
             x=[x_eval],
             y=[res["y_interpolado"]],
             mode="markers",
             name="P(x*)",
-            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_int_lag")
@@ -341,15 +342,15 @@ def _frag_newton_gregory(defaults: dict) -> None:
         x_grid = np.linspace(min(xs) - 0.1, max(xs) + 0.1, 220)
         y_lag_grid = limpiar_valores_plotly(evaluar_curva_lagrange(xs, ys, x_grid), limite_abs=1e9)
         fig = crear_figura_base_plotly("Nodos No Equidistantes → Respaldo Polinomio de Lagrange", "x", "y")
-        fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_lag_grid, mode="lines", name="Lagrange P(x)", line=dict(color="#D4A359", width=2.5)))
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos editados", marker=dict(size=9, color="#C86D44")))
+        fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_lag_grid, mode="lines", name="Lagrange P(x)", line=dict(color=PALETA_ARANDU["oro"], width=2.5)))
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos editados", marker=dict(size=9, color=PALETA_ARANDU["terracota"])))
         fig.add_trace(
             go.Scatter(
                 x=[x_eval],
                 y=[res_lag["y_interpolado"]],
                 mode="markers",
                 name="P(x*)",
-                marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+                marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
             )
         )
         render_plotly_arandu(fig, key="plot_int_ng_fallback")
@@ -383,16 +384,16 @@ def _frag_newton_gregory(defaults: dict) -> None:
     y_k = limpiar_valores_plotly(evaluar_curva_gregory_parcial(xs, ys, x_grid, grado=k_vis, modo=modo_str), limite_abs=1e9)
 
     fig = crear_figura_base_plotly(f"Newton-Gregory ({modo_str.title()}) — Grado k = {k_vis}", "x", "y")
-    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_full, mode="lines", name=f"Grado completo ({grado_max})", line=dict(color="#9E9585", dash="dash")))
-    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_k, mode="lines", name=f"Grado k = {k_vis}", line=dict(color="#7A9A65", width=2.8)))
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#D4A359")))
+    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_full, mode="lines", name=f"Grado completo ({grado_max})", line=dict(color=PALETA_ARANDU["texto_atenuado"], dash="dash")))
+    fig.add_trace(go.Scatter(x=x_grid.tolist(), y=y_k, mode="lines", name=f"Grado k = {k_vis}", line=dict(color=PALETA_ARANDU["salvia"], width=2.8)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color=PALETA_ARANDU["oro"])))
     fig.add_trace(
         go.Scatter(
             x=[x_eval],
             y=[res["y_interpolado"]],
             mode="markers",
             name="P(x*)",
-            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_int_ng")
@@ -432,33 +433,33 @@ def vista_interpolacion() -> None:
                 "numero": "1",
                 "clave_svg": "interp_lineal",
                 "titulo": "Lineal (Directa / Inversa)",
-                "subtitulo": "GRADO 1 · DIRECTA E INVERSA",
-                "resumen": "Une dos puntos consecutivos con una recta para evaluar o despejar x*.",
+                "subtitulo": "Grado 1 · Directa e inversa",
+                "resumen": "Une dos puntos consecutivos mediante una recta para evaluar ordenadas o despejar valores x*.",
                 "pista": "2 nodos · Directa / Inversa",
             },
             {
                 "numero": "2",
                 "clave_svg": "cuadratica_inversa",
                 "titulo": "Cuadrática Inversa",
-                "subtitulo": "PARÁBOLA · INVERSIÓN",
-                "resumen": "Ajusta una parábola en tres nodos para despejar raíces reales x* dado y*.",
+                "subtitulo": "Parábola · Inversión x(y)",
+                "resumen": "Ajusta una parábola sobre tres nodos cercanos para despejar la abscisa x* dado un y*.",
                 "pista": "3 nodos · Inversión x = P(y)",
             },
             {
                 "numero": "3",
                 "clave_svg": "lagrange",
                 "titulo": "Lagrange (Nodos Libres)",
-                "subtitulo": "BASES L_i · NODOS LIBRES",
-                "resumen": "Combina bases polinomiales sobre nodos con paso irregular Δh variable.",
+                "subtitulo": "Bases L_i · Nodos libres",
+                "resumen": "Combina polinomios base de Lagrange sobre tablas cuyos nodos tienen paso irregular variable.",
                 "pista": "Paso libre Δh · Cualquier malla",
             },
             {
                 "numero": "4",
                 "clave_svg": "newton_gregory",
                 "titulo": "Newton-Gregory (Asc / Desc)",
-                "subtitulo": "DIFERENCIAS · Δh CONSTANTE",
-                "resumen": "Acelera con tabla de diferencias finitas Δy cuando Δh es constante.",
-                "pista": "Δh constante · Asc / Desc",
+                "subtitulo": "Diferencias · Paso Δh constante",
+                "resumen": "Acelera el cálculo usando una tabla de diferencias finitas cuando el paso Δh es uniforme.",
+                "pista": "Paso Δh constante · Ascendente / Descendente",
             },
         ),
     )

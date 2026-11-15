@@ -20,6 +20,7 @@ from core.sistemas_autovalores import (
     metodo_potencias_min,
     verificar_dominancia_diagonal,
 )
+from views.theme import PALETA_ARANDU
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -101,8 +102,8 @@ def _frag_gauss(defaults: dict) -> None:
             x=[f"x_{i+1}" for i in range(len(res["solucion"]))],
             y=res["solucion"],
             name="Solución x",
-            marker_color="#D4A359",
-            marker_line_color="#B5673F",
+            marker_color=PALETA_ARANDU["oro"],
+            marker_line_color=PALETA_ARANDU["terracota_oscuro"],
             marker_line_width=1.2,
         )
     )
@@ -308,8 +309,8 @@ def _frag_gauss_seidel(defaults: dict) -> None:
                 y=limpiar_valores_plotly([r["error_max"] for r in sub_hist]),
                 mode="lines+markers",
                 name="max |Δx|",
-                line=dict(color="#D4A359", width=2.5),
-                marker=dict(size=8, color="#FFFDF9", line=dict(color="#B5673F", width=1.6)),
+                line=dict(color=PALETA_ARANDU["oro"], width=2.5),
+                marker=dict(size=8, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.6)),
             )
         )
         fig.update_yaxes(type="log")
@@ -397,8 +398,8 @@ def _frag_potencias(defaults: dict) -> None:
                 y=limpiar_valores_plotly([r[col_lam] for r in sub_h]),
                 mode="lines+markers",
                 name="λ_k",
-                line=dict(color="#7A9A65", width=2.5),
-                marker=dict(size=8, color="#FFFDF9", line=dict(color="#B5673F", width=1.6)),
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.5),
+                marker=dict(size=8, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.6)),
             )
         )
         render_plotly_arandu(fig, key="plot_sis_pot")
@@ -459,14 +460,14 @@ def _frag_faddeev(defaults: dict) -> None:
     st.markdown(r"### Bloque 4 — Raíces del Polinomio Característico $P(\lambda) = 0$")
     curva = res["curva_polinomio"]
     fig = crear_figura_base_plotly("Polinomio Característico P(λ)", "λ", "P(λ)")
-    fig.add_hline(y=0, line_dash="dash", line_color="#B5673F")
+    fig.add_hline(y=0, line_dash="dash", line_color=PALETA_ARANDU["terracota_oscuro"])
     fig.add_trace(
         go.Scatter(
             x=curva["lambda"],
             y=limpiar_valores_plotly(curva["p_lambda"], limite_abs=1e9),
             mode="lines",
             name="P(λ)",
-            line=dict(color="#D4A359", width=2.5),
+            line=dict(color=PALETA_ARANDU["oro"], width=2.5),
         )
     )
     reales = res["autovalores_reales"]
@@ -478,7 +479,7 @@ def _frag_faddeev(defaults: dict) -> None:
                 y=[0.0] * k_vis,
                 mode="markers",
                 name="Autovalores reales",
-                marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+                marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
             )
         )
     render_plotly_arandu(fig, key="plot_sis_fad")
@@ -514,49 +515,49 @@ def vista_sistemas() -> None:
                 "numero": "1",
                 "clave_svg": "gauss",
                 "titulo": "Eliminación de Gauss",
-                "subtitulo": "TRIANGULACIÓN · O(n³)",
-                "resumen": "Triangula la matriz con pivoteo parcial y despeja por sustitución inversa.",
-                "pista": "Triangular superior · Pivoteo",
+                "subtitulo": "Triangulación · Costo O(n³)",
+                "resumen": "Triangula la matriz aumentada con pivoteo parcial y despeja incógnitas mediante sustitución regresiva.",
+                "pista": "Triangular superior · Pivoteo parcial",
             },
             {
                 "numero": "2",
                 "clave_svg": "gauss_jordan",
                 "titulo": "Gauss-Jordan",
-                "subtitulo": "DIAGONAL · INVERSA",
-                "resumen": "Reduce la matriz directamente a la identidad I y calcula su inversa A⁻¹.",
-                "pista": "Identidad I · Matriz Inversa",
+                "subtitulo": "Matriz diagonal · Inversa",
+                "resumen": "Reduce la matriz directamente a la forma identidad I para obtener soluciones y matriz inversa.",
+                "pista": "Identidad I · Matriz inversa",
             },
             {
                 "numero": "3",
                 "clave_svg": "lu",
                 "titulo": "Factorización LU",
-                "subtitulo": "DESCOMPOSICIÓN · A = L·U",
-                "resumen": "Descompone A = L·U para resolver múltiples vectores independientes b.",
-                "pista": "Reutilizable · A = L·U",
+                "subtitulo": "Descomposición · A = L·U",
+                "resumen": "Descompone la matriz en factores triangulares L y U para resolver múltiples vectores independientes.",
+                "pista": "Factores reutilizables · A = L·U",
             },
             {
                 "numero": "4",
                 "clave_svg": "gauss_seidel",
                 "titulo": "Gauss-Seidel",
-                "subtitulo": "ITERATIVO · DIAGONAL",
-                "resumen": "Actualiza cada incógnita al vuelo garantizando convergencia si domina diagonal.",
+                "subtitulo": "Iterativo · Dominancia diagonal",
+                "resumen": "Actualiza cada incógnita al instante asegurando convergencia cuando la matriz es diagonalmente dominante.",
                 "pista": "Iterativo · Dominancia diagonal",
             },
             {
                 "numero": "5",
                 "clave_svg": "potencias",
                 "titulo": "Método de Potencias",
-                "subtitulo": "AUTOVALORES · RAYLEIGH",
-                "resumen": "Extrae el autovalor dominante |λ_max| o el menor |λ_min| por iteración.",
+                "subtitulo": "Autovalores · Cociente de Rayleigh",
+                "resumen": "Extrae el autovalor dominante |λ_max| o el menor |λ_min| mediante multiplicación iterativa de vectores.",
                 "pista": "Cociente de Rayleigh · Espectro",
             },
             {
                 "numero": "6",
                 "clave_svg": "faddeev",
                 "titulo": "Faddeev-Leverrier",
-                "subtitulo": "ESPECTRO · POLINOMIO",
-                "resumen": "Construye el polinomio característico completo usando trazas sucesivas.",
-                "pista": "Espectro completo · Trazas",
+                "subtitulo": "Espectro · Polinomio característico",
+                "resumen": "Construye los coeficientes del polinomio característico completo usando potencias y trazas matriciales sucesivas.",
+                "pista": "Espectro completo · Trazas matriciales",
             },
         ),
     )

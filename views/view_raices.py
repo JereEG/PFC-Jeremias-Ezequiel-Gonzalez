@@ -24,6 +24,7 @@ from core.raices import (
     metodo_punto_fijo_aitken,
     verificar_condiciones_fourier,
 )
+from views.theme import PALETA_ARANDU, hex_a_rgba
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -121,12 +122,12 @@ def _frag_biseccion(defaults: dict) -> None:
     fig.add_vrect(
         x0=fila_k["a"],
         x1=fila_k["b"],
-        fillcolor="rgba(122, 154, 101, 0.22)",
-        line_color="#687D5B",
+        fillcolor=hex_a_rgba(PALETA_ARANDU["salvia"], 0.22),
+        line_color=PALETA_ARANDU["salvia_borde"],
         line_width=1,
         annotation_text=f"Intervalo k={k_vis}",
     )
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color=PALETA_ARANDU["oro"], width=2.5)))
     sub_hist = muestrear_para_grafico(hist[:k_vis], max_puntos=150)
     fig.add_trace(
         go.Scatter(
@@ -134,7 +135,7 @@ def _frag_biseccion(defaults: dict) -> None:
             y=[r["f_xk"] for r in sub_hist],
             mode="markers",
             name="Puntos medios x_k",
-            marker=dict(size=8, color="#7A9A65"),
+            marker=dict(size=8, color=PALETA_ARANDU["salvia"]),
         )
     )
     fig.add_trace(
@@ -143,7 +144,7 @@ def _frag_biseccion(defaults: dict) -> None:
             y=[fila_k["f_xk"]],
             mode="markers",
             name=f"Actual x_{k_vis}",
-            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_raiz_bis")
@@ -221,7 +222,7 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
     pad = max(0.4, 0.35 * abs(b_val - a_val))
     xs, ys = _muestrear_curva(comp, "fn", "fn_np", min(a_val, b_val) - pad, max(a_val, b_val) + pad)
     fig = crear_figura_base_plotly(f"Interpolación Lineal — Paso {k_vis}", "x", "f(x)")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color=PALETA_ARANDU["oro"], width=2.5)))
 
     fila_k = hist[k_vis - 1]
     if variante.startswith("Cátedra"):
@@ -238,8 +239,8 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
             y=[f0, f1],
             mode="lines+markers",
             name=f"Cuerda k={k_vis}",
-            line=dict(color="#7A9A65", dash="dash", width=2.2),
-            marker=dict(size=8, color="#7A9A65"),
+            line=dict(color=PALETA_ARANDU["salvia"], dash="dash", width=2.2),
+            marker=dict(size=8, color=PALETA_ARANDU["salvia"]),
         )
     )
     fig.add_trace(
@@ -248,7 +249,7 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
             y=[0.0],
             mode="markers",
             name="Corte eje X",
-            marker=dict(size=13, color="#FFFDF9", symbol="diamond", line=dict(color="#B5673F", width=1.8)),
+            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="diamond", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
         )
     )
     render_plotly_arandu(fig, key="plot_raiz_rf")
@@ -331,7 +332,7 @@ def _frag_newton_raphson(defaults: dict) -> None:
     xs, ys = _muestrear_curva(comp, "fn", "fn_np", xmin, xmax)
 
     fig = crear_figura_base_plotly(f"Newton-Raphson — Tangentes hasta k = {k_vis}", "x", "f(x)")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color=PALETA_ARANDU["oro"], width=2.5)))
     for idx, row in enumerate(hist[:k_vis], start=1):
         if row["x_sig"] is not None:
             fig.add_trace(
@@ -340,8 +341,8 @@ def _frag_newton_raphson(defaults: dict) -> None:
                     y=[0.0, row["f_xk"], 0.0],
                     mode="lines+markers",
                     name=f"Tangente k={idx}",
-                    line=dict(color="#C86D44", width=2.0, dash="dash"),
-                    marker=dict(size=8, color="#FFFDF9", line=dict(color="#B5673F", width=1.6)),
+                    line=dict(color=PALETA_ARANDU["terracota"], width=2.0, dash="dash"),
+                    marker=dict(size=8, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.6)),
                     opacity=1.0 if idx == k_vis else 0.45,
                 )
             )
@@ -431,8 +432,8 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
         xs, ys = _muestrear_curva(comp_g, "gn", "gn_np", xmin, xmax)
 
         fig = crear_figura_base_plotly(f"Punto Fijo (y = g(x) vs y = x) hasta k = {k_vis}", "x", "y")
-        fig.add_trace(go.Scatter(x=[xmin, xmax], y=[xmin, xmax], mode="lines", name="y = x", line=dict(color="#9E9585", dash="dash")))
-        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="y = g(x)", line=dict(color="#D4A359", width=2.5)))
+        fig.add_trace(go.Scatter(x=[xmin, xmax], y=[xmin, xmax], mode="lines", name="y = x", line=dict(color=PALETA_ARANDU["texto_atenuado"], dash="dash")))
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="y = g(x)", line=dict(color=PALETA_ARANDU["oro"], width=2.5)))
 
         cob_x, cob_y = [sub[0]["x_ant"]], [sub[0]["x_ant"]]
         for r in sub:
@@ -444,8 +445,8 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
                 y=cob_y,
                 mode="lines+markers",
                 name="Trayectoria Telaraña",
-                line=dict(color="#C86D44", width=2.2),
-                marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.4)),
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.2),
+                marker=dict(size=7, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.4)),
             )
         )
         render_plotly_arandu(fig, key="plot_raiz_pf")
@@ -481,32 +482,32 @@ def vista_raices() -> None:
                 "numero": "1",
                 "clave_svg": "biseccion",
                 "titulo": "Bisección (y Descartes/Tanteo)",
-                "subtitulo": "BOLZANO · ENCIERRO",
-                "resumen": "Divide [a, b] por la mitad garantizando convergencia si f(a)·f(b) < 0.",
+                "subtitulo": "Bolzano · Encierro",
+                "resumen": "Divide [a, b] por la mitad asegurando la raíz siempre que f(a)·f(b) < 0.",
                 "pista": "Orden 1 · Encierro seguro",
             },
             {
                 "numero": "2",
                 "clave_svg": "regula_falsi",
                 "titulo": "Interpolación Lineal (Regula Falsi)",
-                "subtitulo": "SECANTE · BOLZANO",
-                "resumen": "Traza una secante ponderada dentro del intervalo manteniendo el encierro.",
+                "subtitulo": "Secante · Bolzano",
+                "resumen": "Traza una recta secante dentro del intervalo para acercarse a la raíz sin soltarla.",
                 "pista": "Cuerda ponderada · Bolzano",
             },
             {
                 "numero": "3",
                 "clave_svg": "newton_raphson",
                 "titulo": "Newton-Raphson (Fourier)",
-                "subtitulo": "TANGENTE · FOURIER",
-                "resumen": "Usa la recta tangente f'(x) verificando Fourier para converger rápido.",
-                "pista": "Orden 2 cuadrático · f'(x) != 0",
+                "subtitulo": "Tangente · Criterio de Fourier",
+                "resumen": "Proyecta la recta tangente f'(x) bajo el criterio de Fourier para converger más rápido.",
+                "pista": "Orden 2 cuadrático · f'(x) ≠ 0",
             },
             {
                 "numero": "4",
                 "clave_svg": "punto_fijo",
                 "titulo": "Punto Fijo & Aitken Δ²",
-                "subtitulo": "RECURRENCIA · AITKEN",
-                "resumen": "Itera x = g(x) bajo |g'(x)| < 1 y extrapola saltos con Aitken Δ².",
+                "subtitulo": "Recurrencia · Aceleración Aitken",
+                "resumen": "Itera x = g(x) cuando |g'(x)| < 1 y acelera la sucesión mediante Aitken Δ².",
                 "pista": "Telaraña g(x) · Aceleración Δ²",
             },
         ),

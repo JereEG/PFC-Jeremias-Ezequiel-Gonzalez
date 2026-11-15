@@ -19,6 +19,7 @@ from core.fundamentos_errores import (
     evaluar_polinomio_horner,
     operar_en_maquina,
 )
+from views.theme import PALETA_ARANDU
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
@@ -118,15 +119,15 @@ def _frag_series_taylor(defaults: dict) -> None:
             x_label="Índice del término (k)",
             y_label="Suma parcial",
         )
-        fig.add_hline(y=res["valor_exacto"], line_dash="dash", line_color="#D4A359", annotation_text="Exacto")
+        fig.add_hline(y=res["valor_exacto"], line_dash="dash", line_color=PALETA_ARANDU["oro"], annotation_text="Exacto")
         fig.add_trace(
             go.Scatter(
                 x=[r["k"] for r in sub_hist],
                 y=[r["suma_parcial"] for r in sub_hist],
                 mode="lines+markers",
                 name="Suma parcial eˣ",
-                line=dict(color="#7A9A65", width=2.5),
-                marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.5)),
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.5),
+                marker=dict(size=7, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.5)),
             )
         )
         render_plotly_arandu(fig, key="plot_fund_taylor")
@@ -148,14 +149,14 @@ def _frag_series_taylor(defaults: dict) -> None:
             "Aprox π",
             altura=340,
         )
-        fig_pi.add_hline(y=res_pi["pi_exacto"], line_dash="dash", line_color="#D4A359", annotation_text="π exacto")
+        fig_pi.add_hline(y=res_pi["pi_exacto"], line_dash="dash", line_color=PALETA_ARANDU["oro"], annotation_text="π exacto")
         fig_pi.add_trace(
             go.Scatter(
                 x=[r["k"] for r in muestra_pi],
                 y=[r["pi_aprox"] for r in muestra_pi],
                 mode="lines+markers",
                 name="π Leibniz",
-                line=dict(color="#7A9A65", width=2.2),
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.2),
             )
         )
         render_plotly_arandu(fig_pi, key="plot_fund_pi")
@@ -228,7 +229,10 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
             x=[r["agrupacion"] for r in sub_asoc],
             y=[r["error_redondeo_pct"] for r in sub_asoc],
             name="Redondeo",
-            marker_color=["#7A9A65" if r["error_redondeo_pct"] < 2 else "#C86D44" for r in sub_asoc],
+            marker_color=[
+                PALETA_ARANDU["salvia"] if r["error_redondeo_pct"] < 2 else PALETA_ARANDU["terracota"]
+                for r in sub_asoc
+            ],
             text=[f"{r['error_redondeo_pct']:.2f}%" for r in sub_asoc],
             textposition="auto",
         )
@@ -238,7 +242,7 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
             x=[r["agrupacion"] for r in sub_asoc],
             y=[r["error_trunc_pct"] for r in sub_asoc],
             name="Truncamiento",
-            marker_color="#D4A359",
+            marker_color=PALETA_ARANDU["oro"],
             text=[f"{r['error_trunc_pct']:.2f}%" for r in sub_asoc],
             textposition="auto",
         )
@@ -314,7 +318,10 @@ def _frag_cancelacion_cuadratica(defaults: dict) -> None:
         go.Bar(
             x=[r["metodo"] for r in sub_comp],
             y=[r["error_relativo_pct"] for r in sub_comp],
-            marker_color=["#C86D44" if r["sufre_cancelacion"] else "#7A9A65" for r in sub_comp],
+            marker_color=[
+                PALETA_ARANDU["terracota"] if r["sufre_cancelacion"] else PALETA_ARANDU["salvia"]
+                for r in sub_comp
+            ],
         )
     )
     render_plotly_arandu(fig, key="plot_fund_canc")
@@ -388,7 +395,10 @@ def _frag_horner(defaults: dict) -> None:
         go.Bar(
             x=[r["metodo"] for r in sub_h],
             y=[r["error_relativo_pct"] for r in sub_h],
-            marker_color=["#C86D44" if "Estándar" in r["metodo"] else "#7A9A65" for r in sub_h],
+            marker_color=[
+                PALETA_ARANDU["terracota"] if "Estándar" in r["metodo"] else PALETA_ARANDU["salvia"]
+                for r in sub_h
+            ],
         )
     )
     render_plotly_arandu(fig, key="plot_fund_horner")
@@ -427,33 +437,33 @@ def vista_fundamentos() -> None:
                 "numero": "1",
                 "clave_svg": "taylor",
                 "titulo": "Series de Taylor (e^x y π)",
-                "subtitulo": "MACLAURIN · TRUNCAMIENTO",
-                "resumen": "Aproxima e^x, ln(1+x) y π sumando términos en CPU hasta cumplir tolerancia.",
+                "subtitulo": "Maclaurin · Truncamiento",
+                "resumen": "Aproxima funciones como e^x, ln(1+x) y π sumando términos hasta alcanzar la tolerancia.",
                 "pista": "Bucle for CPU · Error de resto",
             },
             {
                 "numero": "2",
                 "clave_svg": "aritmetica_maquina",
                 "titulo": "Aritmética de Máquina & Asociatividad",
-                "subtitulo": "FLOTANTE · MANTISA k",
-                "resumen": "Comprueba cuándo (u+v)+w != u+(v+w) al restringir k dígitos flotantes.",
-                "pista": "Redondeo vs. Truncamiento",
+                "subtitulo": "Punto flotante · Mantisa k",
+                "resumen": "Comprueba cuándo falla la propiedad asociativa (u+v)+w ≠ u+(v+w) al limitar la mantisa.",
+                "pista": "Redondeo frente a truncamiento",
             },
             {
                 "numero": "3",
                 "clave_svg": "cancelacion",
                 "titulo": "Cancelación Cuadrática",
-                "subtitulo": "RACIONALIZACIÓN · ESTABILIDAD",
-                "resumen": "Evita restas entre números casi iguales mediante racionalización algebraica.",
+                "subtitulo": "Racionalización · Estabilidad",
+                "resumen": "Evita la pérdida de dígitos al restar números casi iguales mediante racionalización algebraica.",
                 "pista": "Pérdida de dígitos · Condición",
             },
             {
                 "numero": "4",
                 "clave_svg": "horner",
                 "titulo": "Forma Anidada de Horner",
-                "subtitulo": "ANIDAMIENTO · COSTO O(N)",
-                "resumen": "Evalúa polinomios anidando productos con menos multiplicaciones y redondeos.",
-                "pista": "Polinomio anidado · O(N)",
+                "subtitulo": "Anidamiento · Costo O(n)",
+                "resumen": "Evalúa polinomios anidando productos sucesivos para reducir las multiplicaciones y los redondeos acumulados.",
+                "pista": "Polinomio anidado · Costo O(n)",
             },
         ),
     )
