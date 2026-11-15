@@ -34,6 +34,8 @@ from core.interpolacion import (
     diagnosticar_espaciamiento_nodos,
     evaluar_curva_gregory_parcial,
     evaluar_curva_lagrange,
+    interpolar_gauss_progresiva,
+    interpolar_gauss_regresiva,
     interpolar_lagrange,
     interpolar_newton_gregory_ascendente,
     interpolar_newton_gregory_descendente,
@@ -334,7 +336,10 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
     df_ed = render_data_editor_arandu(df_def, use_container_width=True, hide_index=True, num_rows="dynamic", key="vs_int_tbl")
     df_c = df_ed.dropna()
     xs, ys = df_c["x"].astype(float).tolist(), df_c["y"].astype(float).tolist()
-    x_eval = st.number_input("Punto $x^*$ a evaluar:", value=0.35, format="%.4f", key="vs_int_xe")
+    c_xe, c_gr = st.columns([1.2, 1])
+    x_eval = c_xe.number_input("Punto $x^*$ a evaluar:", value=0.90 if ("gauss_prog" in (m_a, m_b) or "gauss_reg" in (m_a, m_b)) else 0.35, format="%.4f", key="vs_int_xe")
+    max_g = max(len(xs) - 1, 1)
+    grado_vs = c_gr.slider("Grado de truncamiento $k$ (solo diferencias finitas):", 0, max_g, max_g, key="vs_int_k")
 
     diag = diagnosticar_espaciamiento_nodos(xs)
     if not diag["es_equiespaciado"]:
@@ -343,12 +348,18 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
     def _correr(clave: str):
         if clave == "lagrange":
             r = interpolar_lagrange(xs, ys, x_eval)
-            return r["y_interpolado"], r["duracion"], "Válido siempre", None
+            return r["y_interpolado"], r["duracion"], f"Grado completo {max_g} (siempre válido)", None
         if clave == "gregory_asc":
-            r = interpolar_newton_gregory_ascendente(xs, ys, x_eval)
-            return r["y_interpolado"], r["duracion"], f"u = {r['u']:.4f}", "ascendente"
-        r = interpolar_newton_gregory_descendente(xs, ys, x_eval)
-        return r["y_interpolado"], r["duracion"], f"v = {r['v']:.4f}", "descendente"
+            r = interpolar_newton_gregory_ascendente(xs, ys, x_eval, grado_max=grado_vs)
+            return r["y_interpolado"], r["duracion"], f"u = {r['u']:.4f} (k={grado_vs})", "ascendente"
+        if clave == "gregory_desc":
+            r = interpolar_newton_gregory_descendente(xs, ys, x_eval, grado_max=grado_vs)
+            return r["y_interpolado"], r["duracion"], f"v = {r['v']:.4f} (k={grado_vs})", "descendente"
+        if clave == "gauss_prog":
+            r = interpolar_gauss_progresiva(xs, ys, x_eval, grado_max=grado_vs)
+            return r["y_interpolado"], r["duracion"], f"u_c = {r['u']:.4f} (ancla x={r['x0_central']:g}, k={grado_vs})", "gauss_progresiva"
+        r = interpolar_gauss_regresiva(xs, ys, x_eval, grado_max=grado_vs)
+        return r["y_interpolado"], r["duracion"], f"u_c = {r['u']:.4f} (ancla x={r['x0_central']:g}, k={grado_vs})", "gauss_regresiva"
 
     ca, cb = st.columns(2)
     x_grid = np.linspace(min(xs), max(xs), 220)
@@ -371,7 +382,7 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
             val, _dur, nota, modo_g = _correr(clave)
             col.metric(nombre, f"{val:.6f}", nota)
             if modo_g:
-                yg_raw = evaluar_curva_gregory_parcial(xs, ys, x_grid, grado=len(xs) - 1, modo=modo_g)
+                yg_raw = evaluar_curva_gregory_parcial(xs, ys, x_grid, grado=grado_vs, modo=modo_g)
             else:
                 yg_raw = evaluar_curva_lagrange(xs, ys, x_grid)
             fig.add_trace(

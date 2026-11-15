@@ -1245,6 +1245,60 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
             "solucion_referencia": "$v = \\frac{1.37 - 1.4}{0.3} = -0.1$; diagonal inferior $[10.704,\\, 3.982,\\, 2.162,\\, 2.709,\\, 3.346] \\implies P(1.37) = 10.06216678$.",
         },
     },
+    "formula_gauss": {
+        "nombre": "Fórmula de Gauss (Diferencias Centrales en Zig-Zag)",
+        "familia": "interpolacion",
+        "icono": "",
+        "resumen_corto": (
+            "Ancla el desarrollo en el nodo central de la tabla equidistante y avanza en zig-zag "
+            "para mantener mínimo el parámetro adimensional $|u| \\le 0.5$ cuando $x^*$ está en el centro."
+        ),
+        "guru": {
+            "que_resuelve": (
+                "Interpola con máxima precisión en el tercio central de una tabla equiespaciada cuando se trunca antes del grado máximo."
+            ),
+            "intuicion_geometrica": (
+                "En lugar de anclarse en un borde ($x_0$ o $x_n$), parte del corazón de la tabla y alterna nodos arriba y abajo en zig-zag para rodear simétricamente a $x^*$."
+            ),
+            "algoritmo_pasos": [
+                "Elegí como ancla central $x_0^{\\mathrm{c}}$ el nodo más próximo a $x^*$ en el centro de la tabla y definí $u = (x - x_0^{\\mathrm{c}})/h$.",
+                "Gauss Progresiva ($0 \\le u \\le 0.5$): da el primer paso hacia abajo en la tabla escalonada ($\\Delta f(x_0)$) y luego zigzaguea arriba/abajo con factores $u, (u-1)u, (u-1)u(u+1), \\dots$.",
+                "Gauss Regresiva ($-0.5 \\le u < 0$): da el primer paso hacia arriba ($\\Delta f(x_0 - h)$) y alterna simétricamente con factores $u, u(u+1), (u-1)u(u+1), \\dots$.",
+            ],
+            "profundizacion": [
+                r"Con grado completo ($k = n - 1$), Gauss Progresiva, Gauss Regresiva y ambas variantes de Newton-Gregory generan exactamente el mismo polinomio por Unicidad; su ventaja decisiva aparece al truncar ($k < n - 1$), porque cada nueva diferencia incorpora el nodo vecino más cercano al centro.",
+            ],
+            "cuando_usar": [
+                "Cuando la malla tiene paso constante $h$ y el punto $x^*$ está próximo al centro de la tabla ($-0.5 \\le u \\le 0.5$).",
+            ],
+            "cuando_falla": [
+                "Se invalida si los nodos $x_i$ pierden equidistancia, y pierde su ventaja por sobre Newton-Gregory si $x^*$ está pegado a $x_0$ o a $x_n$.",
+            ],
+        },
+        "formulas_latex": [
+            r"u = \frac{x - x_0}{h}, \quad P_n(x) = f(x_0) + \Delta f(x_0)\, u + \frac{\Delta^2 f(x_0 - h)}{2!}(u - 1)u + \frac{\Delta^3 f(x_0 - h)}{3!}(u - 1)u(u + 1) + \frac{\Delta^4 f(x_0 - 2h)}{4!}(u - 2)(u - 1)u(u + 1) + \dots",
+            r"P_n^{\mathrm{reg}}(x) = f(x_0) + \Delta f(x_0 - h)\, u + \frac{\Delta^2 f(x_0 - h)}{2!}u(u + 1) + \frac{\Delta^3 f(x_0 - 2h)}{3!}(u - 1)u(u + 1) + \frac{\Delta^4 f(x_0 - 2h)}{4!}(u + 2)(u - 1)u(u + 1) + \dots",
+        ],
+        "ejemplo_teorico": {
+            "titulo": "Trayectoria central en zig-zag sobre tabla de 5 nodos",
+            "enunciado": "Centrar $x_0^{\\mathrm{c}} = x_2$ y alternar diferencias de la zona media de la tabla.",
+            "pasos": [
+                "Gauss Progresiva toma filas $2, 2, 1, 1, 0$ (baja primero en orden impar, sube en orden par).",
+                "Gauss Regresiva toma filas $2, 1, 1, 0, 0$ (sube primero en orden impar, baja en orden par).",
+            ],
+            "resultado_final": "Al incluir el grado completo coincide exactamente con Lagrange y Newton-Gregory; al truncar en el centro logra el menor residuo.",
+        },
+        "practica_profesora": {
+            "titulo": "TP5 Central: Fórmula de Gauss Progresiva en $x = 0.90$",
+            "enunciado": "Sobre la tabla de TP5 Ej. 1 ($x = [0.2, 0.5, 0.8, 1.1, 1.4]$, $y = [0.258, 2.535, 4.902, 6.722, 10.704]$), estimar $f(0.90)$ anclando en el nodo central $x_2 = 0.8$.",
+            "datos_iniciales": {
+                "x": [0.2, 0.5, 0.8, 1.1, 1.4],
+                "y": [0.258, 2.535, 4.902, 6.722, 10.704],
+                "x_eval": 0.90,
+            },
+            "solucion_referencia": "$u = \\frac{0.90 - 0.8}{0.3} = 0.333333$; zig-zag $[4.902,\\, 1.820,\\, -0.547,\\, 2.709,\\, 3.346] \\implies P_4(0.90) = 5.50451440$.",
+        },
+    },
 
     # ==========================================================================
     # 5. INTEGRACIÓN Y DERIVACIÓN NUMÉRICA
@@ -1831,7 +1885,7 @@ FICHAS_VERSUS: dict[str, dict[str, Any]] = {
     },
     "interpolacion": {
         "titulo": "📈 Interpolación Polinomial",
-        "descripcion": "Compara diferencias finitas para tablas con paso constante (**Newton-Gregory**) frente a interpolación sobre cualquier espaciamiento (**Lagrange**).",
+        "descripcion": "Compara diferencias finitas en los bordes (**Newton-Gregory**), centrales (**Gauss**) y nodos arbitrarios (**Lagrange**).",
         "metodos": {
             "lagrange": {
                 "nombre": "Polinomio de Lagrange",
@@ -1860,6 +1914,24 @@ FICHAS_VERSUS: dict[str, dict[str, Any]] = {
                 "pros": ["Mayor precisión cerca de los últimos datos registrados ($x_n$)"],
                 "contras": ["NO es válido si los $x_i$ tienen paso irregular"],
             },
+            "gauss_prog": {
+                "nombre": "Fórmula de Gauss Progresiva",
+                "orden": "Exacto de grado $\\le n-1$",
+                "costo": "Tabla $\\mathcal{O}(n^2)$ + zig-zag central $\\mathcal{O}(n)$",
+                "estabilidad": "Óptima en el centro con $0 \\le u \\le 0.5$",
+                "requisitos": "Nodos estrictamente EQUIDISTANTES ($h$ constante)",
+                "pros": ["Minimiza $|u|$ en el núcleo central alternando diferencias hacia abajo primero"],
+                "contras": ["Exige paso constante $h$ y pierde ventaja en los bordes de la tabla"],
+            },
+            "gauss_reg": {
+                "nombre": "Fórmula de Gauss Regresiva",
+                "orden": "Exacto de grado $\\le n-1$",
+                "costo": "Tabla $\\mathcal{O}(n^2)$ + zig-zag central $\\mathcal{O}(n)$",
+                "estabilidad": "Óptima en el centro con $-0.5 \\le u < 0$",
+                "requisitos": "Nodos estrictamente EQUIDISTANTES ($h$ constante)",
+                "pros": ["Rodea simétricamente a $x^*$ a la izquierda del nodo central subiendo primero en zig-zag"],
+                "contras": ["Exige paso constante $h$ y pierde ventaja cerca de los extremos $x_0, x_n$"],
+            },
         },
         "expectativas": {
             ("gregory_asc", "lagrange"): {
@@ -1873,6 +1945,34 @@ FICHAS_VERSUS: dict[str, dict[str, Any]] = {
             ("gregory_asc", "gregory_desc"): {
                 "que_esperamos": "Al usar todos los nodos disponibles producen exactamente el mismo polinomio algebraico.",
                 "excepciones": "Si truncás el polinomio a grados más bajos ($k < n-1$), **Ascendente** es mucho más fiel cerca de $x_0$ y **Descendente** brilla cerca de $x_n$.",
+            },
+            ("gauss_prog", "gauss_reg"): {
+                "que_esperamos": "En grado completo $k = n-1$ construyen exactamente el mismo polinomio único sobre los mismos nodos centrales.",
+                "excepciones": "Al truncar ($k < n-1$) en el intervalo central, **Gauss Progresiva** favorece $u \\ge 0$ (primer paso abajo) y **Gauss Regresiva** favorece $u < 0$ (primer paso arriba).",
+            },
+            ("gauss_prog", "gregory_asc"): {
+                "que_esperamos": "Coinciden idénticamente en $P_{n-1}(x)$ cuando se usan todas las columnas de la tabla equidistante.",
+                "excepciones": "Con truncamiento parcial ($k < n-1$), **Gauss Progresiva** supera ampliamente a Ascendente cuando $x^*$ está en el centro ($0 \\le u \\le 0.5$), mientras Ascendente gana cerca de $x_0$.",
+            },
+            ("gauss_prog", "gregory_desc"): {
+                "que_esperamos": "Idéntico polinomio completo de grado $n-1$ con distinta parametrización.",
+                "excepciones": "Al truncar, **Gauss Progresiva** domina el centro de la tabla y **Descendente** el extremo final $x_n$.",
+            },
+            ("gauss_prog", "lagrange"): {
+                "que_esperamos": "Sobre una tabla equidistante reproducen exactamente la misma curva interpolante.",
+                "excepciones": "Si alterás cualquier $x_i$ rompiendo el paso uniforme $h$, Gauss se invalida y solo Lagrange continúa siendo exacto.",
+            },
+            ("gauss_reg", "gregory_asc"): {
+                "que_esperamos": "Producen idéntico polinomio completo $P_{n-1}(x)$ sobre mallas equiespaciadas.",
+                "excepciones": "Al truncar a grados bajos, **Gauss Regresiva** es más precisa inmediatamente a la izquierda del nodo central ($-0.5 \\le u < 0$).",
+            },
+            ("gauss_reg", "gregory_desc"): {
+                "que_esperamos": "Idéntico polinomio completo cuando se utiliza toda la tabla equidistante.",
+                "excepciones": "Al truncar, **Gauss Regresiva** prioriza el entorno del nodo central mientras **Descendente** prioriza el borde final $x_n$.",
+            },
+            ("gauss_reg", "lagrange"): {
+                "que_esperamos": "Idéntico valor interpolado bajo paso $h$ constante en grado completo.",
+                "excepciones": "Ante nodos con espaciamiento variable, solo **Lagrange** sigue siendo aplicable.",
             },
         },
     },

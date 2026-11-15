@@ -430,8 +430,12 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         "--arandu-sage-18": hex_a_rgba(paleta["salvia_borde"], 0.18),
         "--arandu-sage-22": hex_a_rgba(paleta["salvia_borde"], 0.22),
         "--arandu-sage-55": hex_a_rgba(paleta["salvia"], 0.55),
+        "--arandu-terracotta-12": hex_a_rgba(paleta["terracota"], 0.12),
         "--arandu-terracotta-18": hex_a_rgba(paleta["terracota_oscuro"], 0.18),
         "--arandu-terracotta-26": hex_a_rgba(paleta["terracota_oscuro"], 0.26),
+        "--arandu-terracotta-45": hex_a_rgba(paleta["terracota"], 0.45),
+        "--arandu-text-10": hex_a_rgba(paleta["texto_principal"], 0.10),
+        "--arandu-text-45": hex_a_rgba(paleta["texto_principal"], 0.45),
         "--arandu-surface-92": hex_a_rgba(paleta["bg_secundario"], 0.92),
         "--arandu-bg-55": hex_a_rgba(paleta["bg_principal"], 0.55),
         "--arandu-shadow-30": hex_a_rgba(paleta["negro_sombra"], 0.14 if modo == "claro" else 0.30),
@@ -1620,6 +1624,153 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         .arandu-ng-step-total-desc {{
             background-color: var(--arandu-gold);
         }}
+        .arandu-ng-banner-gprog {{
+            background-color: var(--arandu-terracotta-12);
+            border-left: 4px solid var(--arandu-terracotta);
+        }}
+        .arandu-ng-banner-gprog::before {{
+            color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-banner-greg {{
+            background-color: var(--arandu-text-10);
+            border-left: 4px solid var(--arandu-text);
+        }}
+        .arandu-ng-banner-greg::before {{
+            color: var(--arandu-text);
+        }}
+        .arandu-ng-cell-gprog {{
+            background-color: var(--arandu-terracotta-18);
+            border: 2px solid var(--arandu-terracotta);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-greg {{
+            background-color: var(--arandu-text-10);
+            border: 2px double var(--arandu-text);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-anchor {{
+            box-shadow: inset 0 0 0 2px var(--arandu-gold-65);
+        }}
+        .arandu-ng-badge-gprog,
+        .arandu-ng-badge-greg {{
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin-bottom: 0.12rem;
+        }}
+        .arandu-ng-badge-gprog {{
+            color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-badge-greg {{
+            color: var(--arandu-text);
+        }}
+        .arandu-ng-formula-card-gprog {{
+            border-color: var(--arandu-terracotta-45);
+        }}
+        .arandu-ng-formula-card-greg {{
+            border-color: var(--arandu-text-45);
+        }}
+        .arandu-ng-formula-icon-gprog,
+        .arandu-ng-formula-icon-greg {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--arandu-canvas);
+            flex-shrink: 0;
+        }}
+        .arandu-ng-formula-icon-gprog {{
+            background-color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-formula-icon-greg {{
+            background-color: var(--arandu-text);
+        }}
+        .arandu-ng-step-val-gprog {{
+            color: var(--arandu-terracotta);
+            font-weight: 700;
+        }}
+        .arandu-ng-step-val-greg {{
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-step-total-gprog,
+        .arandu-ng-step-total-greg {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.55rem 0.75rem;
+            border-radius: 9px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            color: var(--arandu-canvas);
+        }}
+        .arandu-ng-step-total-gprog {{
+            background-color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-step-total-greg {{
+            background-color: var(--arandu-text);
+        }}
+        .arandu-gauss-path-strip {{
+            padding: 0.6rem 0.9rem;
+            border-radius: 0 4px 4px 0;
+            border: none;
+            border-left: 4px solid var(--arandu-gold);
+            background-color: var(--arandu-surface);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--arandu-text);
+            margin-bottom: 0.85rem;
+        }}
+        .arandu-gauss-comp-wrap {{
+            overflow-x: auto;
+            border: 1px solid var(--arandu-border);
+            border-radius: 10px;
+            background-color: var(--arandu-surface);
+            margin: 0.4rem 0 0.85rem 0;
+        }}
+        .arandu-gauss-comp-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.86rem;
+            text-align: left;
+        }}
+        .arandu-gauss-comp-table th {{
+            padding: 0.5rem 0.65rem;
+            background-color: var(--arandu-canvas);
+            color: var(--arandu-gold);
+            border-bottom: 1px solid var(--arandu-border);
+            font-weight: 600;
+        }}
+        .arandu-gauss-comp-table td {{
+            padding: 0.45rem 0.65rem;
+            border-bottom: 1px solid var(--arandu-grid);
+            color: var(--arandu-text);
+        }}
+        .arandu-gauss-comp-row-active {{
+            background-color: var(--arandu-gold-10);
+            font-weight: 700;
+        }}
+        .arandu-gauss-comp-best {{
+            display: inline-block;
+            padding: 0.1rem 0.45rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background-color: var(--arandu-sage-22);
+            color: var(--arandu-text);
+            border: 1px solid var(--arandu-sage-55);
+            margin-left: 0.35rem;
+        }}
         a.arandu-skip-link {{
             position: fixed;
             top: -120px;
@@ -2158,6 +2309,19 @@ _BORRADOR_METODO_SVGS: dict[str, tuple[str, str]] = {
         '<polyline points="44,128 74,128 74,110 106,110 106,86 138,86 138,56" fill="none" stroke="{salvia}" stroke-width="1.6" stroke-dasharray="3 2"/>'
         '<circle cx="44" cy="128" r="4" fill="{texto}"/><circle cx="74" cy="110" r="4" fill="{texto}"/>'
         '<circle cx="106" cy="86" r="4" fill="{texto}"/><circle cx="138" cy="56" r="4.5" fill="{terracota}"/>',
+    ),
+    "formula_gauss": (
+        "Esquema Fórmula de Gauss Central en Zig-Zag",
+        '<line x1="34" y1="142" x2="146" y2="142" stroke="{borde}" stroke-width="1.2"/>'
+        '<line x1="90" y1="54" x2="90" y2="142" stroke="{oro}" stroke-width="1.3" stroke-dasharray="3 2"/>'
+        '<path d="M42,126 C64,112 76,102 90,94 C106,84 120,76 138,60" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+        '<polyline points="90,94 106,104 122,86 138,96" fill="none" stroke="{terracota}" stroke-width="1.8"/>'
+        '<polyline points="90,94 74,82 58,100 42,88" fill="none" stroke="{salvia}" stroke-width="1.5" stroke-dasharray="3 2"/>'
+        '<circle cx="42" cy="126" r="3.4" fill="{texto}"/>'
+        '<circle cx="66" cy="110" r="3.6" fill="{salvia}"/>'
+        '<circle cx="90" cy="94" r="5.2" fill="{oro}" stroke="{lienzo}" stroke-width="1.5"/>'
+        '<circle cx="114" cy="78" r="3.6" fill="{terracota}"/>'
+        '<circle cx="138" cy="60" r="3.4" fill="{texto}"/>',
     ),
     "diferenciacion": (
         "Esquema Diferenciación Gregory",

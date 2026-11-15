@@ -12,6 +12,8 @@ Incluye:
 - Polinomio de Lagrange (polinomios base L_i(x) y expresión simbólica SymPy).
 - Newton-Gregory Ascendente (Δ^k y0) y Descendente (∇^k yn), con evaluaciones parciales
   paso a paso para slider interactivo de orden k.
+- Fórmula de Gauss (Central Progresiva y Central Regresiva), con trazado zig-zag en
+  diferencias finitas, recomendación según posición de x* y evaluación parcial k.
 
 Diseño: Funciones 100% puras, sin `input()` ni `print()`.
 """
@@ -514,6 +516,239 @@ def interpolar_newton_gregory_descendente(
     }
 
 
+_MODOS_EQUIDISTANTES = (
+    "ascendente",
+    "descendente",
+    "gauss_progresiva",
+    "gauss_regresiva",
+)
+
+
+def _indice_ancla_modo(n: int, modo: str) -> int:
+    """Retorna el índice del nodo ancla x_ancla para cada fórmula sobre diferencias finitas."""
+    if modo == "ascendente":
+        return 0
+    if modo == "descendente":
+        return n - 1
+    if modo == "gauss_progresiva":
+        return (n - 1) // 2
+    if modo == "gauss_regresiva":
+        return n // 2
+    raise ValueError(f"Modo equidistante desconocido: {modo!r}")
+
+
+def _fila_diferencia_modo(n: int, k: int, modo: str) -> int:
+    """Retorna la fila i de la tabla ascendente Δ^k y_i usada en el orden k según el método."""
+    if modo == "ascendente":
+        return 0
+    if modo == "descendente":
+        return n - 1 - k
+    if modo == "gauss_progresiva":
+        return ((n - 1) // 2) - (k // 2)
+    if modo == "gauss_regresiva":
+        return (n // 2) - ((k + 1) // 2)
+    raise ValueError(f"Modo equidistante desconocido: {modo!r}")
+
+
+def _desplazamiento_factor_u(j: int, modo: str) -> int:
+    """Retorna el desplazamiento entero d_j tal que el factor j-ésimo (j >= 0) es (u + d_j)/(j + 1)."""
+    if modo == "ascendente":
+        return -j
+    if modo == "descendente":
+        return j
+    if modo in ("gauss_progresiva", "gauss_regresiva"):
+        if j == 0:
+            return 0
+        magnitud = ((j + 1) // 2) if j % 2 == 1 else (j // 2)
+        if modo == "gauss_progresiva":
+            return -magnitud if j % 2 == 1 else magnitud
+        return magnitud if j % 2 == 1 else -magnitud
+    raise ValueError(f"Modo equidistante desconocido: {modo!r}")
+
+
+def nodos_usados_equidistante(n: int, grado: int, modo: str) -> list[int]:
+    """Retorna los índices de los nodos {x_i} que intervienen en P_k(x) al truncar en `grado`."""
+    if n < 2:
+        return list(range(n))
+    k = min(max(int(grado), 0), n - 1)
+    fila = _fila_diferencia_modo(n, k, modo)
+    return list(range(fila, fila + k + 1))
+
+
+def recomendar_metodo_equidistante(
+    x_puntos: list[float] | np.ndarray,
+    x_eval: float,
+) -> dict[str, Any]:
+    """Sugiere el método óptimo (N-G Asc/Desc o Gauss Prog/Reg) según la posición relativa de x*."""
+    x = np.asarray(x_puntos, dtype=float)
+    n = len(x)
+    if n < 2:
+        raise ValueError("Se requieren al menos 2 nodos para recomendar un método.")
+    span = float(x[-1] - x[0])
+    if abs(span) < 1e-15:
+        raise ValueError("El rango de abscisas no puede ser nulo.")
+
+    idx_c = (n - 1) // 2
+    h = float(x[1] - x[0])
+    u_central = float((x_eval - x[idx_c]) / h) if abs(h) > 1e-15 else 0.0
+    t_norm = float((x_eval - x[0]) / span)
+
+    if t_norm < 0.25:
+        return {
+            "modo": "ascendente",
+            "zona": "extremo_inicial",
+            "anchor_idx": 0,
+            "x_anchor": float(x[0]),
+            "u_central": u_central,
+            "t_norm": t_norm,
+            "motivo": (
+                f"x* = {x_eval:.4g} está cerca del inicio de la tabla (t = {t_norm:.2f}). "
+                "Newton-Gregory Ascendente anclado en x₀ minimiza el error de truncamiento."
+            ),
+        }
+    if t_norm > 0.75:
+        return {
+            "modo": "descendente",
+            "zona": "extremo_final",
+            "anchor_idx": n - 1,
+            "x_anchor": float(x[-1]),
+            "u_central": u_central,
+            "t_norm": t_norm,
+            "motivo": (
+                f"x* = {x_eval:.4g} está cerca del final de la tabla (t = {t_norm:.2f}). "
+                "Newton-Gregory Descendente anclado en xₙ minimiza el error de truncamiento."
+            ),
+        }
+    if u_central >= 0.0:
+        return {
+            "modo": "gauss_progresiva",
+            "zona": "centro_derecha",
+            "anchor_idx": idx_c,
+            "x_anchor": float(x[idx_c]),
+            "u_central": u_central,
+            "t_norm": t_norm,
+            "motivo": (
+                f"x* = {x_eval:.4g} cae en la zona central derecha respecto a x{idx_c} = {x[idx_c]:.4g} "
+                f"(u = {u_central:+.3f} ≥ 0). Gauss Progresiva da el primer paso hacia abajo en zig-zag."
+            ),
+        }
+    idx_reg = n // 2
+    u_reg = float((x_eval - x[idx_reg]) / h) if abs(h) > 1e-15 else u_central
+    return {
+        "modo": "gauss_regresiva",
+        "zona": "centro_izquierda",
+        "anchor_idx": idx_reg,
+        "x_anchor": float(x[idx_reg]),
+        "u_central": u_reg,
+        "t_norm": t_norm,
+        "motivo": (
+            f"x* = {x_eval:.4g} cae en la zona central izquierda respecto a x{idx_reg} = {x[idx_reg]:.4g} "
+            f"(u = {u_reg:+.3f} < 0). Gauss Regresiva da el primer paso hacia arriba en zig-zag."
+        ),
+    }
+
+
+def _interpolar_gauss_central(
+    x_puntos: list[float] | np.ndarray,
+    y_puntos: list[float] | np.ndarray,
+    x_eval: float,
+    modo: str,
+    grado_max: int | None = None,
+) -> dict[str, Any]:
+    """Evalúa Fórmula de Gauss Central (Progresiva o Regresiva) paso a paso sobre malla equidistante."""
+    t_ini = time.perf_counter()
+    x = np.array(x_puntos, dtype=float)
+    y = np.array(y_puntos, dtype=float)
+    n = len(x)
+    if n != len(y) or n < 2:
+        raise ValueError("Se requieren al menos 2 puntos válidos.")
+
+    diag = diagnosticar_espaciamiento_nodos(x)
+    if not diag["es_equiespaciado"]:
+        nombre_m = "Gauss Progresiva" if modo == "gauss_progresiva" else "Gauss Regresiva"
+        raise ValueError(f"{nombre_m} inválida: {diag['mensaje']}")
+
+    h = float(diag["h_nominal"])
+    anchor_idx = _indice_ancla_modo(n, modo)
+    u = float((x_eval - x[anchor_idx]) / h)
+    tabla_diff = calcular_diferencias_ascendentes(y)
+
+    orden_tope = (n - 1) if grado_max is None else min(max(int(grado_max), 0), n - 1)
+    y0_c = float(tabla_diff[anchor_idx, 0])
+    resultado = y0_c
+    terminos: list[dict[str, Any]] = [
+        {
+            "k": 0,
+            "delta_factor": None,
+            "coef_binomial": 1.0,
+            "diferencia": y0_c,
+            "fila_tabla": anchor_idx,
+            "termino": y0_c,
+            "acumulado": resultado,
+        }
+    ]
+    ruta_celdas: list[dict[str, Any]] = [
+        {"k": 0, "fila": anchor_idx, "col": 0, "valor": y0_c}
+    ]
+
+    coef_u = 1.0
+    for k in range(1, orden_tope + 1):
+        delta = _desplazamiento_factor_u(k - 1, modo)
+        coef_u *= (u + delta) / k
+        fila = _fila_diferencia_modo(n, k, modo)
+        diff_k = float(tabla_diff[fila, k])
+        term = float(coef_u * diff_k)
+        resultado += term
+        terminos.append(
+            {
+                "k": k,
+                "delta_factor": int(delta),
+                "coef_binomial": float(coef_u),
+                "diferencia": diff_k,
+                "fila_tabla": int(fila),
+                "termino": term,
+                "acumulado": float(resultado),
+            }
+        )
+        ruta_celdas.append({"k": k, "fila": int(fila), "col": k, "valor": diff_k})
+
+    return {
+        "x_eval": float(x_eval),
+        "y_interpolado": float(resultado),
+        "u": u,
+        "h": h,
+        "modo": modo,
+        "anchor_idx": int(anchor_idx),
+        "x0_central": float(x[anchor_idx]),
+        "y0_central": y0_c,
+        "ruta_celdas": ruta_celdas,
+        "nodos_usados_idx": nodos_usados_equidistante(n, orden_tope, modo),
+        "tabla_diferencias": tabla_diff.tolist(),
+        "terminos": terminos,
+        "duracion": time.perf_counter() - t_ini,
+    }
+
+
+def interpolar_gauss_progresiva(
+    x_puntos: list[float] | np.ndarray,
+    y_puntos: list[float] | np.ndarray,
+    x_eval: float,
+    grado_max: int | None = None,
+) -> dict[str, Any]:
+    """Interpolación mediante Fórmula de Gauss Progresiva (primer paso hacia abajo en zig-zag)."""
+    return _interpolar_gauss_central(x_puntos, y_puntos, x_eval, "gauss_progresiva", grado_max=grado_max)
+
+
+def interpolar_gauss_regresiva(
+    x_puntos: list[float] | np.ndarray,
+    y_puntos: list[float] | np.ndarray,
+    x_eval: float,
+    grado_max: int | None = None,
+) -> dict[str, Any]:
+    """Interpolación mediante Fórmula de Gauss Regresiva (primer paso hacia arriba en zig-zag)."""
+    return _interpolar_gauss_central(x_puntos, y_puntos, x_eval, "gauss_regresiva", grado_max=grado_max)
+
+
 def evaluar_curva_gregory_parcial(
     x_puntos: list[float] | np.ndarray,
     y_puntos: list[float] | np.ndarray,
@@ -521,32 +756,28 @@ def evaluar_curva_gregory_parcial(
     grado: int,
     modo: str = "ascendente",
 ) -> np.ndarray:
-    """Evalúa vectorizadamente el polinomio de Newton-Gregory truncado hasta `grado`."""
+    """Evalúa vectorizadamente Newton-Gregory o Gauss (Central) truncado hasta `grado`."""
+    if modo not in _MODOS_EQUIDISTANTES:
+        raise ValueError(f"Modo equidistante inválido: {modo!r}")
     x = np.asarray(x_puntos, dtype=float)
     y = np.asarray(y_puntos, dtype=float)
     xg = np.asarray(x_grid, dtype=float)
     diag = diagnosticar_espaciamiento_nodos(x)
     if not diag["es_equiespaciado"]:
-        raise ValueError(f"Newton-Gregory inválido: {diag['mensaje']}")
+        raise ValueError(f"Interpolación equidistante inválida: {diag['mensaje']}")
     h = float(diag["h_nominal"])
     n = len(x)
     max_k = min(max(int(grado), 0), n - 1)
     tabla = calcular_diferencias_ascendentes(y)
+    anchor_idx = _indice_ancla_modo(n, modo)
 
     with np.errstate(all="ignore"):
-        if modo == "ascendente":
-            u = (xg - x[0]) / h
-            y_acc = np.full_like(xg, float(tabla[0, 0]), dtype=float)
-            coef = np.ones_like(xg, dtype=float)
-            for k in range(1, max_k + 1):
-                coef = coef * (u - (k - 1)) / k
-                y_acc = y_acc + coef * float(tabla[0, k])
-            return y_acc
-
-        v = (xg - x[-1]) / h
-        y_acc = np.full_like(xg, float(tabla[n - 1, 0]), dtype=float)
+        param = (xg - x[anchor_idx]) / h
+        y_acc = np.full_like(xg, float(tabla[anchor_idx, 0]), dtype=float)
         coef = np.ones_like(xg, dtype=float)
         for k in range(1, max_k + 1):
-            coef = coef * (v + (k - 1)) / k
-            y_acc = y_acc + coef * float(tabla[n - 1 - k, k])
+            delta = _desplazamiento_factor_u(k - 1, modo)
+            coef = coef * (param + delta) / k
+            fila = _fila_diferencia_modo(n, k, modo)
+            y_acc = y_acc + coef * float(tabla[fila, k])
         return y_acc
