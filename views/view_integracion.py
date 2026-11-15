@@ -25,9 +25,9 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
+    render_selector_fichas_metodos,
     render_slider_paso_k,
     rerun_fragmento_seguro,
 )
@@ -38,7 +38,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="int_deriv",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Edita la tabla $(x_i, y_i)$, alterna el sentido de diferencias o cambia $x^*$ (incluso fuera de nodos tabulados).",
+        mensaje_edicion=r"Edita la tabla $(x_i, y_i)$, alterna el sentido de diferencias o cambia $x^*$ (incluso fuera de nodos tabulados).",
     )
     solo_lectura = modo == "catedra"
 
@@ -66,7 +66,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
     if not solo_lectura:
         st.session_state["int_deriv_x_eval"] = x_eval
 
-    st.markdown("### ⚙️ Bloque 3 — Cálculo de Derivada en Vivo")
+    st.markdown("### Bloque 3 — Cálculo de Derivada en Vivo")
     try:
         if esquema.startswith("Progresivas"):
             idx_base = max(0, min(len(xs) - 2, int(np.searchsorted(xs, x_eval) - 1)))
@@ -89,7 +89,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
 
     render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_deriv")
 
-    st.markdown("### 📐 Bloque 4 — Pendiente Tangente en $x^*$")
+    st.markdown("### Bloque 4 — Pendiente Tangente en $x^*$")
     y_en_x = float(np.interp(x_eval, xs, ys))
     fig = crear_figura_base_plotly(f"Derivada Numérica en x* = {x_eval:g}", "x", "y")
     fig.add_trace(
@@ -148,7 +148,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
     modo = render_controles_edicion_practica(
         clave_state=clave_state,
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica los puntos tabulados o ajusta el paso $\Delta h$ y la cantidad de subintervalos $n$.",
+        mensaje_edicion=r"Modifica los puntos tabulados o ajusta el paso $\Delta h$ y la cantidad de subintervalos $n$.",
     )
     solo_lectura = modo == "catedra"
 
@@ -183,7 +183,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         h_actual = float(xs_act[1] - xs_act[0]) if len(xs_act) >= 2 else 1.0
         n_actual = max(1, len(xs_act) - 1)
 
-        st.markdown(r"**🎛️ Ajuste de Paso $\Delta h$ y Subintervalos $n$ en Vivo:**")
+        st.markdown(r"**Ajuste de Paso $\Delta h$ y Subintervalos $n$ en Vivo:**")
         nuevo_h = st.number_input(
             r"Paso $\Delta h$ deseado (prueba cambiarlo para observar adaptación de paridad):",
             value=float(round(h_actual, 4)),
@@ -226,7 +226,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
     xs = st.session_state[f"{clave_state}_x"]
     ys = st.session_state[f"{clave_state}_y"]
 
-    st.markdown("### ⚙️ Bloque 3 — Integración Adaptativa y Diagnóstico en Vivo")
+    st.markdown("### Bloque 3 — Integración Adaptativa y Diagnóstico en Vivo")
     try:
         res = integrar_adaptativo_en_vivo(
             xs,
@@ -241,9 +241,9 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
 
     for aviso in res["avisos_pedagogicos"]:
         if res["hubo_adaptacion"] or res["multitramo"]:
-            st.warning(f"🔀 {aviso}")
+            st.warning(aviso)
         else:
-            st.success(f"✅ {aviso}")
+            st.success(aviso)
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Área Total Estimada", f"{res['area_total']:.6f}")
@@ -267,7 +267,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
     ]
     render_dataframe_acotado(filas_bloques, max_filas=300, key_prefix=f"tbl_{clave_state}_blq")
 
-    st.markdown("### 📐 Bloque 4 — Áreas Sombreadas por Sub-bloque Paso a Paso")
+    st.markdown("### Bloque 4 — Áreas Sombreadas por Sub-bloque Paso a Paso")
     bloques = res["bloques"]
     k_vis = render_slider_paso_k(
         "Ver hasta el bloque elemental $k$:",
@@ -333,43 +333,43 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
 
 def vista_integracion() -> None:
     inject_arandu_css()
-    st.title("📊 Integración y Derivación Numérica")
+    st.title("Integración y Derivación Numérica")
     st.markdown(
         r"Diferenciación numérica mediante Gregory y cuadratura compuesta ($O(h^2)$ a $O(h^4)$) "
         r"con adaptación automática ante cambios de $\Delta h$ o paridad $n$."
     )
-    activo = render_mazo_tarot_metodos(
+    activo = render_selector_fichas_metodos(
         "integracion",
         (
             {
-                "romano": "I",
-                "clave_svg": "tarot_diferenciacion",
+                "numero": "1",
+                "clave_svg": "diferenciacion",
                 "titulo": "Diferenciación (Gregory)",
-                "subtitulo_arcano": "ARCANO I · DERIVADAS",
+                "subtitulo": "GREGORY · DERIVADAS",
                 "resumen": "Estima f'(x*) y f''(x*) tanto en puntos tabulares como con paso libre u.",
                 "pista": "Diferencias · 1ra y 2da derivada",
             },
             {
-                "romano": "II",
-                "clave_svg": "tarot_trapecios",
+                "numero": "2",
+                "clave_svg": "trapecios",
                 "titulo": "Regla de Trapecios",
-                "subtitulo_arcano": "ARCANO II · ORDEN O(h²)",
+                "subtitulo": "POLIGONAL · ORDEN O(h²)",
                 "resumen": "Aproxima el área uniendo pares consecutivos con segmentos rectos.",
                 "pista": "Poligonal recta · Cualquier n",
             },
             {
-                "romano": "III",
-                "clave_svg": "tarot_simpson_13",
+                "numero": "3",
+                "clave_svg": "simpson_13",
                 "titulo": "Regla de Simpson 1/3",
-                "subtitulo_arcano": "ARCANO III · ORDEN O(h⁴)",
+                "subtitulo": "PARÁBOLAS · ORDEN O(h⁴)",
                 "resumen": "Ajusta arcos parabólicos cada dos subintervalos para máxima precisión.",
                 "pista": "Parábolas · Requiere n par",
             },
             {
-                "romano": "IV",
-                "clave_svg": "tarot_simpson_38",
+                "numero": "4",
+                "clave_svg": "simpson_38",
                 "titulo": "Simpson 3/8 y Combinado",
-                "subtitulo_arcano": "ARCANO IV · CÚBICO MIXTO",
+                "subtitulo": "CÚBICAS · PARIDAD MIXTA",
                 "resumen": "Aplica arcos cúbicos o combina esquemas automáticamente si n es impar.",
                 "pista": "Cúbicas 3/8 · Paridad adaptable",
             },

@@ -7,6 +7,9 @@ y simulación en vivo aislada con @st.fragment.
 
 from __future__ import annotations
 
+import html
+import re
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -62,22 +65,42 @@ from views.ui_shared import (
 )
 
 
-def _render_ficha_tecnica(titulo_slot: str, ficha: dict, etiqueta_color: str) -> None:
+_RE_EMOJIS = re.compile(r"[\U0001F000-\U0001FAFF\u2300-\u23FF\u2600-\u27BF\u20E3\uFE0F\u200D]")
+
+
+def _sin_emojis(texto: str) -> str:
+    """Elimina emojis y selectores de variación preservando texto, acentos y notación matemática."""
+    return re.sub(r"\s{2,}", " ", _RE_EMOJIS.sub("", str(texto))).strip()
+
+
+def _render_ficha_tecnica(titulo_slot: str, ficha: dict, color_acento: str) -> None:
+    titulo_html = html.escape(f"{titulo_slot}: {ficha['nombre']}")
     with st.container(border=True):
-        st.markdown(f"#### {etiqueta_color} {titulo_slot}: {ficha['nombre']}")
+        st.markdown(
+            f'<div style="border-left: 3px solid {color_acento}; padding-left: 0.65rem; '
+            f'margin-bottom: 0.6rem; font-size: 1.05rem; font-weight: 700; color: #EDE4D3;">'
+            f"{titulo_html}</div>",
+            unsafe_allow_html=True,
+        )
         st.markdown(f"**Orden de convergencia / error:** {ficha['orden']}")
         st.markdown(f"**Costo computacional:** {ficha['costo']}")
         st.markdown(f"**Estabilidad:** {ficha['estabilidad']}")
         st.markdown(f"**Requisitos:** {ficha['requisitos']}")
-        for p in ficha.get("pros", []):
-            st.markdown(f"- ✅ {p}")
-        for c in ficha.get("contras", []):
-            st.markdown(f"- ⚠️ {c}")
+        pros = ficha.get("pros", [])
+        if pros:
+            st.markdown('<div class="arandu-verdict-head arandu-verdict-head-pro">Ventajas</div>', unsafe_allow_html=True)
+            for p in pros:
+                st.markdown(f"- {p}")
+        contras = ficha.get("contras", [])
+        if contras:
+            st.markdown('<div class="arandu-verdict-head arandu-verdict-head-warn">Limitaciones</div>', unsafe_allow_html=True)
+            for c in contras:
+                st.markdown(f"- {c}")
 
 
 @st.fragment
 def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
-    st.markdown(r"#### 📉 Arena en Vivo — Raíces sobre una misma Ecuación $f(x) = 0$")
+    st.markdown(r"#### Arena en Vivo — Raíces sobre una misma Ecuación $f(x) = 0$")
     c1, c2 = st.columns(2)
     f_str = c1.text_input("Ecuación $f(x) = 0$:", value="x**3 - 2*x - 5", key="vs_raiz_f")
     g_str = c2.text_input("Despeje $x = g(x)$ (si participa Aitken):", value="(2*x + 5)**(1/3)", key="vs_raiz_g")
@@ -116,8 +139,8 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         return
 
     ca, cb = st.columns(2)
-    ca.metric(f"🟡 {nombre_a}", f"{ra:.7f}", f"{ita} pasos {'🏆' if ita < itb else ''} | Err {ea:.2e}")
-    cb.metric(f"🟠 {nombre_b}", f"{rb:.7f}", f"{itb} pasos {'🏆' if itb < ita else ''} | Err {eb:.2e}")
+    ca.metric(f"A: {nombre_a}", f"{ra:.7f}", f"{ita} pasos{' (menor)' if ita < itb else ''} | Err {ea:.2e}")
+    cb.metric(f"B: {nombre_b}", f"{rb:.7f}", f"{itb} pasos{' (menor)' if itb < ita else ''} | Err {eb:.2e}")
 
     fig = crear_figura_base_plotly("Velocidad de Convergencia (Error Logarítmico por Paso)", "Iteración / Ciclo", "Error |Δx| (escala log)")
     if err_a:
@@ -150,12 +173,12 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 
 @st.fragment
 def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
-    st.markdown(r"#### 📐 Arena en Vivo — Sistemas Lineales $Ax = b$")
+    st.markdown(r"#### Arena en Vivo — Sistemas Lineales $Ax = b$")
     default_mat = pd.DataFrame(
         [[18.72, 8.20, 8.76, 121.280], [6.40, 15.90, 7.18, 126.321], [5.22, 6.40, 14.31, 118.522]],
         columns=["a_1", "a_2", "a_3", "b"],
     )
-    st.caption(r"✏️ Modifica la matriz $A$ o el vector $b$ para ensayar matrices con y sin dominancia diagonal:")
+    st.caption(r"Modifica la matriz $A$ o el vector $b$ para ensayar matrices con y sin dominancia diagonal:")
     df_ed = st.data_editor(default_mat, use_container_width=True, hide_index=True, key="vs_sis_mat")
     A = df_ed[["a_1", "a_2", "a_3"]].astype(float).values.tolist()
     b = df_ed["b"].astype(float).tolist()
@@ -163,7 +186,7 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 
     dom = verificar_dominancia_diagonal(A)
     if not dom["es_dominante"] and ("gauss_seidel" in (m_a, m_b)):
-        st.warning(f"⚠️ {dom['diagnostico']}")
+        st.warning(dom["diagnostico"])
 
     def _correr(clave: str):
         if clave == "gauss":
@@ -186,8 +209,8 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         return
 
     ca, cb = st.columns(2)
-    ca.metric(f"🟡 {nombre_a}", d_a, f"‖Ax-b‖ = {na:.2e} {'🏆' if na <= nb else ''}")
-    cb.metric(f"🟠 {nombre_b}", d_b, f"‖Ax-b‖ = {nb:.2e} {'🏆' if nb < na else ''}")
+    ca.metric(f"A: {nombre_a}", d_a, f"‖Ax-b‖ = {na:.2e}{' (menor)' if na < nb else ''}")
+    cb.metric(f"B: {nombre_b}", d_b, f"‖Ax-b‖ = {nb:.2e}{' (menor)' if nb < na else ''}")
 
     fig = crear_figura_base_plotly("Comparación de Soluciones xᵢ", "Incógnita", "Valor xᵢ", altura=340)
     etiquetas = [f"x_{i+1}" for i in range(len(sa))]
@@ -199,7 +222,7 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 
 @st.fragment
 def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
-    st.markdown("#### 🎯 Arena en Vivo — Autovalores de una Matriz Cuadrada")
+    st.markdown("#### Arena en Vivo — Autovalores de una Matriz Cuadrada")
     default_a = pd.DataFrame(
         [[3.556, -1.778, 0.0], [-1.778, 3.556, -1.778], [0.0, -1.778, 3.556]],
         columns=["c_1", "c_2", "c_3"],
@@ -227,8 +250,8 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         return
 
     ca, cb = st.columns(2)
-    ca.metric(f"🟡 {nombre_a}", va, f"{ita} pasos")
-    cb.metric(f"🟠 {nombre_b}", vb, f"{itb} pasos")
+    ca.metric(f"A: {nombre_a}", va, f"{ita} pasos")
+    cb.metric(f"B: {nombre_b}", vb, f"{itb} pasos")
 
     if "faddeev" in (m_a, m_b):
         fad = metodo_faddeev_leverrier(A)
@@ -264,9 +287,9 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
 
 @st.fragment
 def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
-    st.markdown("#### 📈 Arena en Vivo — Interpolación sobre Tabla Discreta")
+    st.markdown("#### Arena en Vivo — Interpolación sobre Tabla Discreta")
     df_def = pd.DataFrame({"x": [0.2, 0.5, 0.8, 1.1, 1.4], "y": [0.258, 2.535, 4.902, 6.722, 10.704]})
-    st.caption(r"✏️ Modifica cualquier nodo $x_i$ para comprobar qué ocurre con Newton-Gregory cuando se rompe la equidistancia:")
+    st.caption(r"Modifica cualquier nodo $x_i$ para comprobar qué ocurre con Newton-Gregory cuando se rompe la equidistancia:")
     df_ed = st.data_editor(df_def, use_container_width=True, hide_index=True, num_rows="dynamic", key="vs_int_tbl")
     df_c = df_ed.dropna()
     xs, ys = df_c["x"].astype(float).tolist(), df_c["y"].astype(float).tolist()
@@ -274,7 +297,7 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
 
     diag = diagnosticar_espaciamiento_nodos(xs)
     if not diag["es_equiespaciado"]:
-        st.warning(f"⚠️ {diag['mensaje']}")
+        st.warning(diag["mensaje"])
 
     def _correr(clave: str):
         if clave == "lagrange":
@@ -324,7 +347,7 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
 
 @st.fragment
 def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
-    st.markdown(r"#### 📊 Arena en Vivo — Cuadratura Numérica con Paso $\Delta h$ Variable")
+    st.markdown(r"#### Arena en Vivo — Cuadratura Numérica con Paso $\Delta h$ Variable")
     x_base = [0.5, 5.5, 10.5, 15.5, 20.5, 25.5]
     y_base = [0.05, 6.05, 22.05, 48.05, 84.05, 130.05]
     c1, c2 = st.columns(2)
@@ -340,11 +363,11 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
     ca, cb = st.columns(2)
     err_a = res_a["exacta"]["error_absoluto"] if res_a["exacta"] else float("inf")
     err_b = res_b["exacta"]["error_absoluto"] if res_b["exacta"] else float("inf")
-    ca.metric(f"🟡 {nombre_a}", f"{res_a['area_total']:.6f}", f"{res_a['reglas_aplicadas']} | Err {err_a:.2e} {'🏆' if err_a <= err_b else ''}")
-    cb.metric(f"🟠 {nombre_b}", f"{res_b['area_total']:.6f}", f"{res_b['reglas_aplicadas']} | Err {err_b:.2e} {'🏆' if err_b < err_a else ''}")
+    ca.metric(f"A: {nombre_a}", f"{res_a['area_total']:.6f}", f"{res_a['reglas_aplicadas']} | Err {err_a:.2e}{' (menor)' if err_a < err_b else ''}")
+    cb.metric(f"B: {nombre_b}", f"{res_b['area_total']:.6f}", f"{res_b['reglas_aplicadas']} | Err {err_b:.2e}{' (menor)' if err_b < err_a else ''}")
 
     if res_a["hubo_adaptacion"] or res_b["hubo_adaptacion"]:
-        st.info("ℹ️ " + " | ".join(res_a["avisos_pedagogicos"] + res_b["avisos_pedagogicos"]))
+        st.info(" | ".join(res_a["avisos_pedagogicos"] + res_b["avisos_pedagogicos"]))
 
     fig = crear_figura_base_plotly(f"Comparación de Reglas de Integración (n = {n_sub})", "x", "f(x)")
     for b in res_a["bloques"]:
@@ -381,7 +404,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
 
 @st.fragment
 def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
-    st.markdown(r"#### ⏱️ Arena en Vivo — Trayectorias de EDO ($y' = f(x, y)$)")
+    st.markdown(r"#### Arena en Vivo — Trayectorias de EDO ($y' = f(x, y)$)")
     c1, c2 = st.columns(2)
     f_str = c1.text_input("EDO $y' = f(x, y)$:", value="6*x**2 / y", key="vs_edo_f")
     y_ex_str = c2.text_input("Exacta $y(x)$:", value="2*x*sqrt(x)", key="vs_edo_yex")
@@ -413,8 +436,8 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     ea = ra["tabla"][-1].get("error_abs") or 0.0
     eb = rb["tabla"][-1].get("error_abs") or 0.0
     ca, cb = st.columns(2)
-    ca.metric(f"🟡 {nombre_a}", f"{ra['y_final']:.6f}", f"Err final {ea:.2e} {'🏆' if ea <= eb else ''}")
-    cb.metric(f"🟠 {nombre_b}", f"{rb['y_final']:.6f}", f"Err final {eb:.2e} {'🏆' if eb < ea else ''}")
+    ca.metric(f"A: {nombre_a}", f"{ra['y_final']:.6f}", f"Err final {ea:.2e}{' (menor)' if ea < eb else ''}")
+    cb.metric(f"B: {nombre_b}", f"{rb['y_final']:.6f}", f"Err final {eb:.2e}{' (menor)' if eb < ea else ''}")
 
     fig = crear_figura_base_plotly("Superposición de Trayectorias PVI", "x", "y(x)")
     if comp_ex is not None:
@@ -439,7 +462,7 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 
 def vista_arena_versus() -> None:
     inject_arandu_css()
-    st.title("⚔️ Arena Versus — Comparador Directo de Métodos")
+    st.title("Arena Versus — Comparador Directo de Métodos")
     st.markdown(
         "Compara dos algoritmos únicamente dentro de su **misma familia matemática**, "
         "contrastando comportamiento esperado, casos límite y resultados en vivo."
@@ -447,9 +470,9 @@ def vista_arena_versus() -> None:
 
     familias = list(FICHAS_VERSUS.keys())
     fam_sel = st.selectbox(
-        "1️⃣ Selecciona la Familia Matemática (comparación estricta):",
+        "1. Seleccioná la Familia Matemática (comparación estricta):",
         options=familias,
-        format_func=lambda k: FICHAS_VERSUS[k]["titulo"],
+        format_func=lambda k: _sin_emojis(FICHAS_VERSUS[k]["titulo"]),
         key="vs_fam",
     )
     ficha_fam = FICHAS_VERSUS[fam_sel]
@@ -459,10 +482,10 @@ def vista_arena_versus() -> None:
     col_a, col_vs, col_b = st.columns([2, 0.4, 2])
     with col_a:
         m_a = st.selectbox(
-            "🟡 Método A:",
+            "Método A:",
             options=metodos_fam,
             index=0,
-            format_func=lambda k: ficha_fam["metodos"][k]["nombre"],
+            format_func=lambda k: _sin_emojis(ficha_fam["metodos"][k]["nombre"]),
             key=f"vs_ma_{fam_sel}",
         )
     with col_vs:
@@ -470,10 +493,10 @@ def vista_arena_versus() -> None:
     with col_b:
         default_b = 1 if len(metodos_fam) > 1 else 0
         m_b = st.selectbox(
-            "🟠 Método B:",
+            "Método B:",
             options=metodos_fam,
             index=default_b,
-            format_func=lambda k: ficha_fam["metodos"][k]["nombre"],
+            format_func=lambda k: _sin_emojis(ficha_fam["metodos"][k]["nombre"]),
             key=f"vs_mb_{fam_sel}",
         )
 
@@ -482,16 +505,16 @@ def vista_arena_versus() -> None:
 
     cf_a, cf_b = st.columns(2)
     with cf_a:
-        _render_ficha_tecnica("Contendiente A", ficha_a, "🟡")
+        _render_ficha_tecnica("Contendiente A", ficha_a, "#D4A359")
     with cf_b:
-        _render_ficha_tecnica("Contendiente B", ficha_b, "🟠")
+        _render_ficha_tecnica("Contendiente B", ficha_b, "#C86D44")
 
     exp = obtener_expectativa_versus(fam_sel, m_a, m_b)
     ce1, ce2 = st.columns(2)
     with ce1:
-        st.success(f"**🧠 ¿Qué esperamos ver en ejecución?**\n\n{exp['que_esperamos']}")
+        st.success(f"**¿Qué esperamos ver en ejecución?**\n\n{exp['que_esperamos']}")
     with ce2:
-        st.warning(f"**⚠️ Nota sobre Excepciones y Casos Límite**\n\n{exp['excepciones']}")
+        st.warning(f"**Nota sobre Excepciones y Casos Límite**\n\n{exp['excepciones']}")
 
     st.divider()
     if m_a == m_b:

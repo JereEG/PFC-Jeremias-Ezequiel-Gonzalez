@@ -40,13 +40,13 @@ def vista_inicio() -> None:
                     </p>
                     <div class="arandu-pillars">
                         <div class="arandu-pillar-item">
-                            <strong>🌱 Raíces:</strong> Intuición computacional, teoría en 3 niveles y análisis del error de máquina.
+                            <strong>Fundamentos:</strong> Intuición computacional, teoría en 3 niveles y análisis del error de máquina.
                         </div>
                         <div class="arandu-pillar-item">
-                            <strong>🪵 Tronco:</strong> Simulación en vivo con fragmentos aislados y ejercicios editables de cátedra.
+                            <strong>Simulación:</strong> Ejercicios editables en vivo con fragmentos aislados y datos de cátedra.
                         </div>
                         <div class="arandu-pillar-item">
-                            <strong>✨ Copa y Astros:</strong> Geometría interactiva y duelos de convergencia en Arena Versus.
+                            <strong>Comparativa:</strong> Geometría interactiva y duelos de convergencia en Arena Versus.
                         </div>
                     </div>
                 </div>
@@ -56,7 +56,7 @@ def vista_inicio() -> None:
         unsafe_allow_html=True,
     )
 
-    st.markdown("### 🧭 Catálogo de Métodos y Herramientas")
+    st.markdown("### Catálogo de Métodos y Herramientas")
     st.caption(
         "Seleccioná un módulo para recorrer su explicación progresiva (Resumen → Intuición → Criterios) y simular paso a paso."
     )
@@ -179,7 +179,7 @@ def vista_inicio() -> None:
                 unsafe_allow_html=True,
             )
             st.link_button(
-                "📝 Enviar Feedback",
+                "Enviar Feedback",
                 FEEDBACK_FORMS_URL,
                 use_container_width=True,
             )

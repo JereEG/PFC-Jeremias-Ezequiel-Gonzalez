@@ -33,70 +33,74 @@ st.set_page_config(
 )
 
 if _SIDEBAR_LOGO is not None:
-    st.logo(_SIDEBAR_LOGO, size="large", icon_image=_PAGE_ICON if _PAGE_ICON != "🌳" else _SIDEBAR_LOGO)
+    st.logo(
+    _SIDEBAR_LOGO,
+    size="large",
+    icon_image=_SIDEBAR_LOGO if (isinstance(_PAGE_ICON, str) and _PAGE_ICON.startswith(":material/")) else _PAGE_ICON,
+)
 
 aplicar_estilo_arandu()
 
 pg_inicio = st.Page(
     "views/inicio.py",
     title="Inicio",
-    icon="🏠",
+    icon=":material/home:",
     default=True,
     url_path="inicio",
 )
 pg_versus = st.Page(
     "views/arena_versus.py",
     title="Arena Versus",
-    icon="⚔️",
+    icon=":material/compare_arrows:",
     url_path="arena_versus",
 )
 pg_fundamentos = st.Page(
     "views/view_fundamentos.py",
     title="Fundamentos y Errores",
-    icon="🧮",
+    icon=":material/functions:",
     url_path="fundamentos",
 )
 pg_raices = st.Page(
     "views/view_raices.py",
     title="Raíces de Ecuaciones",
-    icon="📉",
+    icon=":material/show_chart:",
     url_path="raices",
 )
 pg_sistemas = st.Page(
     "views/view_sistemas.py",
     title="Sistemas y Autovalores",
-    icon="📐",
+    icon=":material/grid_on:",
     url_path="sistemas",
 )
 pg_interpolacion = st.Page(
     "views/view_interpolacion.py",
     title="Interpolación Polinomial",
-    icon="📈",
+    icon=":material/timeline:",
     url_path="interpolacion",
 )
 pg_integracion = st.Page(
     "views/view_integracion.py",
     title="Integración y Derivación",
-    icon="📊",
+    icon=":material/area_chart:",
     url_path="integracion",
 )
 pg_edo = st.Page(
     "views/view_edo.py",
     title="Ecuaciones Diferenciales",
-    icon="⏱️",
+    icon=":material/ssid_chart:",
     url_path="edo",
 )
 pg_labs = st.Page(
     "views/view_laboratorios.py",
     title="Histórico de Cursada",
-    icon="📚",
+    icon=":material/science:",
     url_path="laboratorios",
 )
 
 nav = st.navigation(
     {
         "Principal": [pg_inicio, pg_versus],
-        "Métodos Numéricos (Estilo Guru)": [
+        "Métodos Numéricos": [
             pg_fundamentos,
             pg_raices,
             pg_sistemas,
@@ -134,10 +138,10 @@ with st.sidebar:
         )
     st.markdown("---")
     with st.container(border=True):
-        st.markdown("#### 💬 Feedback")
+        st.markdown("#### Feedback")
         st.caption("¿Probaste la plataforma? Contanos qué te pareció o reportá mejoras:")
         st.link_button(
-            "📝 Dar Feedback",
+            "Dar Feedback",
             FEEDBACK_FORMS_URL,
             use_container_width=True,
         )
@@ -145,17 +149,17 @@ with st.sidebar:
         st.markdown(
             """
             <div style="padding: 0.65rem 0.85rem; border-radius: 10px; background-color: rgba(104, 125, 91, 0.22); border: 1px solid #687D5B; border-left: 4px solid #7A9A65; color: #EDE4D3; font-size: 0.86rem; font-weight: 600; margin-top: 0.5rem;">
-                ⚡ Motor Local Activo (100% Sin Internet)
+                Motor Local Activo (100% Sin Internet)
             </div>
             """,
             unsafe_allow_html=True,
         )
     else:
         with st.container(border=True):
-            st.markdown("#### 📲 Modo Offline (PWA)")
+            st.markdown("#### Modo Offline (PWA)")
             st.caption("Ideal para instalar en notebook y estudiar sin Wi-Fi")
             st.link_button(
-                "📲 Versión 100% Sin Conexión (PWA)",
+                "Versión 100% Sin Conexión (PWA)",
                 OFFLINE_PWA_URL,
                 use_container_width=True,
             )

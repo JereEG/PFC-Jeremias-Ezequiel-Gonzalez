@@ -32,9 +32,9 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
+    render_selector_fichas_metodos,
     render_slider_paso_k,
     rerun_fragmento_seguro,
 )
@@ -72,7 +72,7 @@ def _frag_lineal(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="int_lin",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica los pares $(x_i, y_i)$ de la tabla o alterna entre interpolación directa e inversa.",
+        mensaje_edicion=r"Modifica los pares $(x_i, y_i)$ de la tabla o alterna entre interpolación directa e inversa.",
     )
     solo_lectura = modo == "catedra"
     xs, ys = _editor_tabla_xy("int_lin", solo_lectura)
@@ -93,7 +93,7 @@ def _frag_lineal(defaults: dict) -> None:
         if not solo_lectura:
             st.session_state["int_lin_x_eval"] = x_eval
 
-    st.markdown("### ⚙️ Bloque 3 — Resultado Lineal en Vivo")
+    st.markdown("### Bloque 3 — Resultado Lineal en Vivo")
     try:
         if sentido.startswith("Inversa"):
             res = interpolar_lineal_inversa(xs, ys, y_busc)
@@ -107,7 +107,7 @@ def _frag_lineal(defaults: dict) -> None:
         st.error(str(exc))
         return
 
-    st.markdown("### 📐 Bloque 4 — Recta Secante Local Paso a Paso")
+    st.markdown("### Bloque 4 — Recta Secante Local Paso a Paso")
     fig = crear_figura_base_plotly("Interpolación Lineal sobre Segmento Activo", "x", "y")
     fig.add_trace(
         go.Scatter(
@@ -156,7 +156,7 @@ def _frag_cuadratica_inversa(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="int_cuad",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica los puntos de la tabla o la ordenada objetivo $y^*$.",
+        mensaje_edicion=r"Modifica los puntos de la tabla o la ordenada objetivo $y^*$.",
     )
     solo_lectura = modo == "catedra"
     xs, ys = _editor_tabla_xy("int_cuad", solo_lectura)
@@ -165,7 +165,7 @@ def _frag_cuadratica_inversa(defaults: dict) -> None:
     if not solo_lectura:
         st.session_state["int_cuad_y_buscado"] = y_busc
 
-    st.markdown("### ⚙️ Bloque 3 — Inversión de Parábola en Vivo")
+    st.markdown("### Bloque 3 — Inversión de Parábola en Vivo")
     try:
         res = interpolar_cuadratica_inversa(xs, ys, y_busc)
     except Exception as exc:
@@ -176,7 +176,7 @@ def _frag_cuadratica_inversa(defaults: dict) -> None:
     m1.metric("x estimado (cuadrática inversa)", f"{res['x_resultado']:.6f}")
     m2.metric("Nodos usados", f"({res['x0']}, {res['x1']}, {res['x2']})")
 
-    st.markdown("### 📐 Bloque 4 — Parábola Local vs Recta Horizontal $y = y^*$")
+    st.markdown("### Bloque 4 — Parábola Local vs Recta Horizontal $y = y^*$")
     x_tri = [res["x0"], res["x1"], res["x2"]]
     y_tri = [res["y0"], res["y1"], res["y2"]]
     coefs = np.polyfit(x_tri, y_tri, 2)
@@ -223,7 +223,7 @@ def _frag_lagrange(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="int_lag",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica nodos libres $(x_i, y_i)$ o prueba remuestrear a $N$ nodos para observar el fenómeno de Runge.",
+        mensaje_edicion=r"Modifica nodos libres $(x_i, y_i)$ o prueba remuestrear a $N$ nodos para observar el fenómeno de Runge.",
     )
     solo_lectura = modo == "catedra"
     xs, ys = _editor_tabla_xy("int_lag", solo_lectura, col_x_label="x (o T)", col_y_label="y (o P)")
@@ -245,11 +245,11 @@ def _frag_lagrange(defaults: dict) -> None:
                 rerun_fragmento_seguro()
 
     st.caption(
-        "⚠️ **Alerta sobre grado alto (Fenómeno de Runge):** Existe un único polinomio de grado $n-1$ que pasa por todos los nodos; "
+        "**Alerta sobre grado alto (Fenómeno de Runge):** Existe un único polinomio de grado $n-1$ que pasa por todos los nodos; "
         "sin embargo, aumentar demasiado $N$ sobre nodos equidistantes introduce oscilaciones pronunciadas cerca de los extremos."
     )
 
-    st.markdown("### ⚙️ Bloque 3 — Bases $L_i(x)$ y Polinomio Combinado")
+    st.markdown("### Bloque 3 — Bases $L_i(x)$ y Polinomio Combinado")
     try:
         res = interpolar_lagrange(xs, ys, x_eval)
         simb = construir_polinomio_simbolico_lagrange(xs, ys)
@@ -263,7 +263,7 @@ def _frag_lagrange(defaults: dict) -> None:
     st.latex(rf"P_{{{res['grado']}}}(x) = {simb['latex_expandido']}")
     render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_lag")
 
-    st.markdown("### 📐 Bloque 4 — Construcción Geométrica por Suma Parcial de Bases")
+    st.markdown("### Bloque 4 — Construcción Geométrica por Suma Parcial de Bases")
     k_vis = render_slider_paso_k("Sumar hasta término $i = k$:", len(xs) - 1, key="vis_lag_k", min_val=0)
     x_grid = np.linspace(min(min(xs), x_eval) - 2, max(max(xs), x_eval) + 2, 220)
     y_full = limpiar_valores_plotly(evaluar_curva_lagrange(xs, ys, x_grid), limite_abs=1e9)
@@ -310,7 +310,7 @@ def _frag_newton_gregory(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="int_ng",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Edita nodos o regenera la malla con otro paso $\Delta h$; si rompes la equidistancia se activa Lagrange como respaldo.",
+        mensaje_edicion=r"Edita nodos o regenera la malla con otro paso $\Delta h$; si rompes la equidistancia se activa Lagrange como respaldo.",
     )
     solo_lectura = modo == "catedra"
     xs, ys = _editor_tabla_xy("int_ng", solo_lectura)
@@ -332,10 +332,10 @@ def _frag_newton_gregory(defaults: dict) -> None:
                     del st.session_state["int_ng__editor_df"]
                 rerun_fragmento_seguro()
 
-    st.markdown("### ⚙️ Bloque 3 — Diagnóstico de Equidistancia y Tabla de Diferencias")
+    st.markdown("### Bloque 3 — Diagnóstico de Equidistancia y Tabla de Diferencias")
     diag = diagnosticar_espaciamiento_nodos(xs)
     if not diag["es_equiespaciado"]:
-        st.warning(f"⚠️ **{diag['mensaje']}** Se calcula automáticamente con **Lagrange** como respaldo válido para espaciado irregular.")
+        st.warning(f"**{diag['mensaje']}** Se calcula automáticamente con **Lagrange** como respaldo válido para espaciado irregular.")
         res_lag = interpolar_lagrange(xs, ys, x_eval)
         st.metric("P(x*) por Lagrange (Respaldo válido)", f"{res_lag['y_interpolado']:.6f}")
         x_grid = np.linspace(min(xs) - 0.1, max(xs) + 0.1, 220)
@@ -355,7 +355,7 @@ def _frag_newton_gregory(defaults: dict) -> None:
         render_plotly_arandu(fig, key="plot_int_ng_fallback")
         return
 
-    st.success(f"✅ {diag['mensaje']}")
+    st.success(diag["mensaje"])
     es_asc = variante.startswith("Ascendente")
     if es_asc:
         res = interpolar_newton_gregory_ascendente(xs, ys, x_eval)
@@ -371,11 +371,11 @@ def _frag_newton_gregory(defaults: dict) -> None:
     m2.metric(f"Parámetro {param_label}", f"{param_val:.6f}")
     m3.metric("Paso h", f"{res['h']:.6g}")
 
-    with st.expander("📊 Ver Tabla Completa de Diferencias Finitas"):
+    with st.expander("Ver Tabla Completa de Diferencias Finitas"):
         render_dataframe_acotado(res["tabla_diferencias"], max_filas=300, key_prefix="tbl_int_ng_diff", hide_index=False)
     render_dataframe_acotado(res["terminos"], max_filas=300, key_prefix="tbl_int_ng_term")
 
-    st.markdown("### 📐 Bloque 4 — Curva Polinómica por Grado $k$ (Paso a Paso)")
+    st.markdown("### Bloque 4 — Curva Polinómica por Grado $k$ (Paso a Paso)")
     grado_max = len(xs) - 1
     k_vis = render_slider_paso_k("Grado polinómico $k$ de Newton-Gregory:", grado_max, key="vis_ng_k")
     x_grid = np.linspace(min(min(xs), x_eval) - 0.15, max(max(xs), x_eval) + 0.15, 220)
@@ -420,43 +420,43 @@ def _tab_newton_gregory() -> None:
 
 def vista_interpolacion() -> None:
     inject_arandu_css()
-    st.title("📈 Interpolación Polinomial")
+    st.title("Interpolación Polinomial")
     st.markdown(
         r"Construcción de polinomios sobre tablas discretas $(x_i, y_i)$ con detección automática "
         r"de pérdida de equidistancia ($\Delta h$) y alerta del fenómeno de Runge."
     )
-    activo = render_mazo_tarot_metodos(
+    activo = render_selector_fichas_metodos(
         "interpolacion",
         (
             {
-                "romano": "I",
-                "clave_svg": "tarot_interp_lineal",
+                "numero": "1",
+                "clave_svg": "interp_lineal",
                 "titulo": "Lineal (Directa / Inversa)",
-                "subtitulo_arcano": "ARCANO I · GRADO 1",
+                "subtitulo": "GRADO 1 · DIRECTA E INVERSA",
                 "resumen": "Une dos puntos consecutivos con una recta para evaluar o despejar x*.",
                 "pista": "2 nodos · Directa / Inversa",
             },
             {
-                "romano": "II",
-                "clave_svg": "tarot_cuad_inversa",
+                "numero": "2",
+                "clave_svg": "cuadratica_inversa",
                 "titulo": "Cuadrática Inversa",
-                "subtitulo_arcano": "ARCANO II · PARÁBOLA",
+                "subtitulo": "PARÁBOLA · INVERSIÓN",
                 "resumen": "Ajusta una parábola en tres nodos para despejar raíces reales x* dado y*.",
                 "pista": "3 nodos · Inversión x = P(y)",
             },
             {
-                "romano": "III",
-                "clave_svg": "tarot_lagrange",
+                "numero": "3",
+                "clave_svg": "lagrange",
                 "titulo": "Lagrange (Nodos Libres)",
-                "subtitulo_arcano": "ARCANO III · BASES L_i",
+                "subtitulo": "BASES L_i · NODOS LIBRES",
                 "resumen": "Combina bases polinomiales sobre nodos con paso irregular Δh variable.",
                 "pista": "Paso libre Δh · Cualquier malla",
             },
             {
-                "romano": "IV",
-                "clave_svg": "tarot_newton_gregory",
+                "numero": "4",
+                "clave_svg": "newton_gregory",
                 "titulo": "Newton-Gregory (Asc / Desc)",
-                "subtitulo_arcano": "ARCANO IV · DIFERENCIAS",
+                "subtitulo": "DIFERENCIAS · Δh CONSTANTE",
                 "resumen": "Acelera con tabla de diferencias finitas Δy cuando Δh es constante.",
                 "pista": "Δh constante · Asc / Desc",
             },

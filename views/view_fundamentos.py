@@ -26,9 +26,9 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
+    render_selector_fichas_metodos,
     render_slider_paso_k,
 )
 
@@ -36,7 +36,7 @@ from views.ui_shared import (
 @st.fragment
 def _frag_series_taylor(defaults: dict) -> None:
     st.markdown(
-        "💡 **Por qué existen en computación:** Una CPU solo sabe ejecutar operaciones aritméticas básicas "
+        "**Por qué existen en computación:** Una CPU solo sabe ejecutar operaciones aritméticas básicas "
         "(`+`, `-`, `*`, `/`). Series infinitas como $e^x$, $\\ln(1+x)$ o $\\pi$ traducen funciones trascendentes "
         "a un bucle `for` que acumula potencias y factoriales hasta satisfacer la tolerancia pedida."
     )
@@ -54,7 +54,7 @@ def _frag_series_taylor(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="fund_taylor",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Ajusta $x$, la cantidad de términos $N$ o las cifras significativas en vivo.",
+        mensaje_edicion=r"Ajusta $x$, la cantidad de términos $N$ o las cifras significativas en vivo.",
     )
     solo_lectura = modo == "catedra"
 
@@ -95,7 +95,7 @@ def _frag_series_taylor(defaults: dict) -> None:
 
         res = calcular_serie_euler(n_max=n_max, x_val=x_val, cifras_scarborough=cifras_s)
 
-        st.markdown("### ⚙️ Bloque 3 — Resultados en Vivo (Bucle Maclaurin vs Cota de Corte)")
+        st.markdown("### Bloque 3 — Resultados en Vivo (Bucle Maclaurin vs Cota de Corte)")
         st.caption(
             r"Criterio de parada ($E_{rp} < E_s = 0.5 \times 10^{2-n}\%$, Scarborough): detiene el bucle cuando "
             r"agregar un término ya no cambia las $n$ cifras significativas buscadas."
@@ -109,7 +109,7 @@ def _frag_series_taylor(defaults: dict) -> None:
         hist = res["historial"]
         render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_fund_taylor")
 
-        st.markdown("### 📐 Bloque 4 — Convergencia Paso a Paso")
+        st.markdown("### Bloque 4 — Convergencia Paso a Paso")
         k_vis = render_slider_paso_k("Ver hasta la iteración / término $k$:", len(hist), key="vis_taylor_k")
         sub_hist = hist[:k_vis]
 
@@ -186,7 +186,7 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="fund_asoc",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica $u$, $v$, $w$ o la mantisa de $k$ dígitos en vivo.",
+        mensaje_edicion=r"Modifica $u$, $v$, $w$ o la mantisa de $k$ dígitos en vivo.",
     )
     solo_lectura = modo == "catedra"
 
@@ -214,12 +214,12 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
         st.session_state["fund_asoc_w_val"] = w_val
 
     res_asoc = comparar_asociatividad_personalizada(u=u_val, v=v_val, w=w_val, k=k_dig)
-    st.markdown("### ⚙️ Bloque 3 — Impacto de la Pérdida de Asociatividad")
+    st.markdown("### Bloque 3 — Impacto de la Pérdida de Asociatividad")
     st.metric("Valor Exacto (u - v) - w", f"{res_asoc['exacto']:.8g}")
     tabla_asoc = res_asoc["tabla"]
     render_dataframe_acotado(tabla_asoc, max_filas=300, key_prefix="tbl_fund_asoc")
 
-    st.markdown("### 📐 Bloque 4 — Comparación Visual del Error Relativo (%)")
+    st.markdown("### Bloque 4 — Comparación Visual del Error Relativo (%)")
     k_vis = render_slider_paso_k("Ver hasta el caso $k$:", len(tabla_asoc), key="vis_asoc_k")
     sub_asoc = tabla_asoc[:k_vis]
     fig = crear_figura_base_plotly("Error Relativo (%) según Orden de Asociación", "Esquema", "Error Relativo (%)", altura=360)
@@ -246,7 +246,7 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
     fig.update_layout(barmode="group")
     render_plotly_arandu(fig, key="plot_fund_asoc")
 
-    with st.expander(r"🧮 Calculadora Elemental fl(x op y) a k dígitos"):
+    with st.expander(r"Calculadora Elemental fl(x op y) a k dígitos"):
         cx, cop, cy = st.columns([2, 1, 2])
         ox = cx.number_input("$x$:", value=1.0 / 3.0, format="%.6f", key="op_x")
         oper = cop.selectbox("Operación:", ["+", "-", "*", "/"], key="op_sym")
@@ -280,7 +280,7 @@ def _frag_cancelacion_cuadratica(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="fund_canc",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica $a$, $b$, $c$ o los dígitos $k$ para provocar o evitar cancelación catastrófica.",
+        mensaje_edicion=r"Modifica $a$, $b$, $c$ o los dígitos $k$ para provocar o evitar cancelación catastrófica.",
     )
     solo_lectura = modo == "catedra"
 
@@ -302,11 +302,11 @@ def _frag_cancelacion_cuadratica(defaults: dict) -> None:
         st.error(str(exc))
         return
 
-    st.markdown("### ⚙️ Bloque 3 — Resolvente Clásica vs Racionalizada")
+    st.markdown("### Bloque 3 — Resolvente Clásica vs Racionalizada")
     tabla_comp = res["tabla_comparativa"]
     render_dataframe_acotado(tabla_comp, max_filas=300, key_prefix="tbl_fund_canc")
 
-    st.markdown("### 📐 Bloque 4 — Comparación de Pérdida de Precisión")
+    st.markdown("### Bloque 4 — Comparación de Pérdida de Precisión")
     paso_k = render_slider_paso_k("Comparar hasta $k$ variantes:", len(tabla_comp), key="vis_canc_k")
     sub_comp = tabla_comp[:paso_k]
     fig = crear_figura_base_plotly(f"Error Relativo (%) en Raíces (k = {k_dig})", "Variante", "Error Relativo (%)", altura=350)
@@ -342,7 +342,7 @@ def _frag_horner(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="fund_horner",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Haz doble clic en la tabla de coeficientes $[a_n \dots a_0]$ para editar el polinomio.",
+        mensaje_edicion=r"Haz doble clic en la tabla de coeficientes $[a_n \dots a_0]$ para editar el polinomio.",
     )
     solo_lectura = modo == "catedra"
 
@@ -373,14 +373,14 @@ def _frag_horner(defaults: dict) -> None:
 
     res = evaluar_polinomio_horner(x_val=x_val, k=k_dig, coefs=coefs_curr)
     tabla_err = res["tabla_errores"]
-    st.markdown("### ⚙️ Bloque 3 — Evaluación Directa vs Anidada de Horner")
+    st.markdown("### Bloque 3 — Evaluación Directa vs Anidada de Horner")
     m1, m2, m3 = st.columns(3)
     m1.metric("Valor Exacto", f"{res['f_exacto']:.6f}")
     m2.metric("Estándar (Redondeo)", f"{tabla_err[1]['aproximacion']:.6g}", f"Er {tabla_err[1]['error_relativo_pct']:.2f}%")
     m3.metric("Horner (Redondeo)", f"{tabla_err[3]['aproximacion']:.6g}", f"Er {tabla_err[3]['error_relativo_pct']:.2f}%")
     render_dataframe_acotado(tabla_err, max_filas=300, key_prefix="tbl_fund_horner")
 
-    st.markdown("### 📐 Bloque 4 — Comparación Paso a Paso de Errores por Esquema")
+    st.markdown("### Bloque 4 — Comparación Paso a Paso de Errores por Esquema")
     k_vis = render_slider_paso_k("Ver hasta el esquema $k$:", len(tabla_err), key="vis_horner_k")
     sub_h = tabla_err[:k_vis]
     fig = crear_figura_base_plotly("Error Relativo (%): Estándar vs Horner", "Esquema", "Error Rel (%)", altura=350)
@@ -415,43 +415,43 @@ def _tab_horner() -> None:
 
 def vista_fundamentos() -> None:
     inject_arandu_css()
-    st.title("🧮 Fundamentos, Series y Teoría de Errores")
+    st.title("Fundamentos, Series y Teoría de Errores")
     st.markdown(
         r"Cómo traduce la CPU funciones ($e^x$, $\pi$) a bucles, por qué se pierde precisión en punto flotante ($k$ dígitos) "
         r"y cómo reordenar expresiones para preservar exactitud."
     )
-    activo = render_mazo_tarot_metodos(
+    activo = render_selector_fichas_metodos(
         "fundamentos",
         (
             {
-                "romano": "I",
-                "clave_svg": "tarot_taylor",
+                "numero": "1",
+                "clave_svg": "taylor",
                 "titulo": "Series de Taylor (e^x y π)",
-                "subtitulo_arcano": "ARCANO I · TRUNCAMIENTO",
+                "subtitulo": "MACLAURIN · TRUNCAMIENTO",
                 "resumen": "Aproxima e^x, ln(1+x) y π sumando términos en CPU hasta cumplir tolerancia.",
                 "pista": "Bucle for CPU · Error de resto",
             },
             {
-                "romano": "II",
-                "clave_svg": "tarot_aritmetica",
+                "numero": "2",
+                "clave_svg": "aritmetica_maquina",
                 "titulo": "Aritmética de Máquina & Asociatividad",
-                "subtitulo_arcano": "ARCANO II · MANTISA k",
+                "subtitulo": "FLOTANTE · MANTISA k",
                 "resumen": "Comprueba cuándo (u+v)+w != u+(v+w) al restringir k dígitos flotantes.",
                 "pista": "Redondeo vs. Truncamiento",
             },
             {
-                "romano": "III",
-                "clave_svg": "tarot_cancelacion",
+                "numero": "3",
+                "clave_svg": "cancelacion",
                 "titulo": "Cancelación Cuadrática",
-                "subtitulo_arcano": "ARCANO III · ESTABILIDAD",
+                "subtitulo": "RACIONALIZACIÓN · ESTABILIDAD",
                 "resumen": "Evita restas entre números casi iguales mediante racionalización algebraica.",
                 "pista": "Pérdida de dígitos · Condición",
             },
             {
-                "romano": "IV",
-                "clave_svg": "tarot_horner",
+                "numero": "4",
+                "clave_svg": "horner",
                 "titulo": "Forma Anidada de Horner",
-                "subtitulo_arcano": "ARCANO IV · COSTO O(N)",
+                "subtitulo": "ANIDAMIENTO · COSTO O(N)",
                 "resumen": "Evalúa polinomios anidando productos con menos multiplicaciones y redondeos.",
                 "pista": "Polinomio anidado · O(N)",
             },

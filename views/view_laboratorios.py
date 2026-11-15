@@ -90,13 +90,13 @@ def _frag_lab1_fibonacci() -> None:
 
 def vista_laboratorios() -> None:
     inject_arandu_css()
-    st.title("📚 Histórico de Cursada — Laboratorios 1 al 7")
+    st.title("Histórico de Cursada — Laboratorios 1 al 7")
     st.caption(
         "Anexo curricular de Métodos Computacionales (FaCENA - UNNE). "
         "Incluye los experimentos iterativos del Lab 1 y accesos directos a todos los TPs."
     )
 
-    with st.expander(f"🧭 Mapa Curricular: Laboratorios → Módulos Arandú v{APP_VERSION}", expanded=True):
+    with st.expander(f"Mapa Curricular: Laboratorios → Módulos Arandú v{APP_VERSION}", expanded=True):
         mapa = [
             ("Lab 1 y 2", r"Algoritmos iterativos, Fibonacci, series ($e^x$, $\pi$), error de máquina ($k$ dígitos), cancelación y Horner", "views/view_fundamentos.py"),
             ("Lab 3", r"Descartes, Tanteos, Bisección, Regula Falsi, Newton-Raphson y Punto Fijo + $\Delta^2$ de Aitken", "views/view_raices.py"),
@@ -113,7 +113,7 @@ def vista_laboratorios() -> None:
                 st.switch_page(ruta)
 
     st.divider()
-    st.subheader("🧪 Experimentos Clásicos del Laboratorio 1")
+    st.subheader("Experimentos Clásicos del Laboratorio 1")
 
     t_sum, t_fib = st.tabs(["Sumatorias (N y Pares)", "Sucesión de Fibonacci y Razón Áurea φ"])
     with t_sum:

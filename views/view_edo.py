@@ -27,9 +27,9 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
+    render_selector_fichas_metodos,
     render_slider_paso_k,
 )
 
@@ -176,7 +176,7 @@ def _frag_euler_heun(defaults: dict) -> None:
     for av in res_he["avisos"]:
         st.info(av)
 
-    st.markdown("### ⚙️ Bloque 3 — Resultados Euler vs Heun en Vivo")
+    st.markdown("### Bloque 3 — Resultados Euler vs Heun en Vivo")
     m1, m2, m3 = st.columns(3)
     m1.metric("Euler y(x_f)", f"{res_eu['y_final']:.6f}")
     m2.metric("Heun y(x_f)", f"{res_he['y_final']:.6f}")
@@ -188,7 +188,7 @@ def _frag_euler_heun(defaults: dict) -> None:
     with t2:
         render_dataframe_acotado(res_he["tabla"], max_filas=300, key_prefix="tbl_edo_heun")
 
-    st.markdown("### 📐 Bloque 4 — Trayectoria Numérica Paso a Paso")
+    st.markdown("### Bloque 4 — Trayectoria Numérica Paso a Paso")
     k_vis = render_slider_paso_k("Ver evolución hasta el paso $k$:", res_he["n_pasos"], "vis_eh_k")
     _plot_edo_paso_a_paso(
         f"Euler vs Heun hasta paso k = {k_vis}",
@@ -235,7 +235,7 @@ def _frag_runge_kutta(defaults: dict) -> None:
     for av in res_rk4["avisos"]:
         st.info(av)
 
-    st.markdown("### ⚙️ Bloque 3 — Pendientes $k_i$ de RK2 y RK4 en Vivo")
+    st.markdown("### Bloque 3 — Pendientes $k_i$ de RK2 y RK4 en Vivo")
     m1, m2, m3 = st.columns(3)
     m1.metric("RK2 y(x_f)", f"{res_rk2['y_final']:.6f}")
     m2.metric("RK4 y(x_f)", f"{res_rk4['y_final']:.6f}")
@@ -247,7 +247,7 @@ def _frag_runge_kutta(defaults: dict) -> None:
     with t2:
         render_dataframe_acotado(res_rk2["tabla"], max_filas=300, key_prefix="tbl_edo_rk2")
 
-    st.markdown("### 📐 Bloque 4 — Curvas RK2 y RK4 Paso a Paso")
+    st.markdown("### Bloque 4 — Curvas RK2 y RK4 Paso a Paso")
     k_vis = render_slider_paso_k("Ver evolución hasta el paso $k$:", res_rk4["n_pasos"], "vis_rk_k")
     _plot_edo_paso_a_paso(
         f"RK2 vs RK4 hasta paso k = {k_vis}",
@@ -283,7 +283,7 @@ def _frag_milne(defaults: dict) -> None:
     solo_lectura = modo == "catedra"
     f_str, x0, y0, xf, h, y_ex_str = _inputs_pvi("edo_mil", solo_lectura)
 
-    st.markdown(r"### ⚙️ Bloque 3 — Arranque RK4 ($k \le 3$) + Predictor-Corrector de Milne")
+    st.markdown(r"### Bloque 3 — Arranque RK4 ($k \le 3$) + Predictor-Corrector de Milne")
     try:
         comp_f, y_ex_fn, y_ex_fn_np = _compilar_pvi(f_str, y_ex_str)
         res = metodo_milne(comp_f["fn"], x0, y0, h, xf=xf, n_correcciones=2, y_exacta_fn=y_ex_fn)
@@ -302,7 +302,7 @@ def _frag_milne(defaults: dict) -> None:
 
     render_dataframe_acotado(res["tabla"], max_filas=300, key_prefix="tbl_edo_milne")
 
-    st.markdown("### 📐 Bloque 4 — Evolución Arranque RK4 vs Pasos Multipaso de Milne")
+    st.markdown("### Bloque 4 — Evolución Arranque RK4 vs Pasos Multipaso de Milne")
     k_vis = render_slider_paso_k("Ver evolución hasta el paso $k$:", res["n_pasos"], "vis_mil_k")
     _plot_edo_paso_a_paso(
         f"Milne (Arranque RK4 k≤3, P-C k≥4) hasta paso k = {k_vis}",
@@ -334,34 +334,34 @@ def _tab_milne() -> None:
 
 def vista_edo() -> None:
     inject_arandu_css()
-    st.title("⏱️ Ecuaciones Diferenciales Ordinarias (PVI)")
+    st.title("Ecuaciones Diferenciales Ordinarias (PVI)")
     st.markdown(
         r"Resolución numérica paso a paso sobre malla $\Delta h$ dinámica y contraste directo contra solución analítica."
     )
-    activo = render_mazo_tarot_metodos(
+    activo = render_selector_fichas_metodos(
         "edo",
         (
             {
-                "romano": "I",
-                "clave_svg": "tarot_euler_heun",
+                "numero": "1",
+                "clave_svg": "euler_heun",
                 "titulo": "Euler y Heun",
-                "subtitulo_arcano": "ARCANO I · PASO SIMPLE",
+                "subtitulo": "PASO SIMPLE · CORRECTOR HEUN",
                 "resumen": "Euler proyecta una pendiente O(h); Heun promedia entrada y salida O(h²).",
                 "pista": "Tangente vs. Corrector Heun",
             },
             {
-                "romano": "II",
-                "clave_svg": "tarot_runge_kutta",
+                "numero": "2",
+                "clave_svg": "runge_kutta",
                 "titulo": "Runge-Kutta (RK2 / RK4)",
-                "subtitulo_arcano": "ARCANO II · MULTI-PENDIENTE",
+                "subtitulo": "AUTOINICIABLE · MULTI-PENDIENTE",
                 "resumen": "Esquema autoiniciable de referencia con 2 o 4 pendientes ponderadas.",
                 "pista": "Autoiniciable · Orden O(h⁴)",
             },
             {
-                "romano": "III",
-                "clave_svg": "tarot_milne",
+                "numero": "3",
+                "clave_svg": "milne",
                 "titulo": "Predictor-Corrector de Milne",
-                "subtitulo_arcano": "ARCANO III · MULTI-PASO",
+                "subtitulo": "MULTIPASO · MEMORIA 4 PUNTOS",
                 "resumen": "Arranca con 4 pasos de RK4 y corrige iterativamente cada y_{n+1}.",
                 "pista": "Memoria 4 pasos · Orden O(h⁴)",
             },

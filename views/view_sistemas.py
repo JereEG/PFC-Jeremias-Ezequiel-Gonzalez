@@ -28,9 +28,9 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
+    render_selector_fichas_metodos,
     render_slider_paso_k,
 )
 
@@ -70,12 +70,12 @@ def _frag_gauss(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="sis_gauss",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Edita la matriz de coeficientes $A$ y el vector independiente $b$ directamente en la tabla.",
+        mensaje_edicion=r"Edita la matriz de coeficientes $A$ y el vector independiente $b$ directamente en la tabla.",
     )
     solo_lectura = modo == "catedra"
     A, b, _ = _editor_sistema("sis_gauss", solo_lectura)
 
-    st.markdown("### ⚙️ Bloque 3 — Escalonamiento y Sustitución Regresiva")
+    st.markdown("### Bloque 3 — Escalonamiento y Sustitución Regresiva")
     try:
         res = eliminacion_gauss(A, b)
     except Exception as exc:
@@ -89,7 +89,7 @@ def _frag_gauss(defaults: dict) -> None:
 
     pasos = res["pasos_escalonamiento"]
     if pasos:
-        st.markdown("### 📐 Bloque 4 — Matriz Aumentada Paso a Paso")
+        st.markdown("### Bloque 4 — Matriz Aumentada Paso a Paso")
         k_vis = render_slider_paso_k("Ver paso de escalonamiento $k$:", len(pasos), key="vis_gauss_k")
         paso = pasos[k_vis - 1]
         st.info(paso["descripcion"])
@@ -133,7 +133,7 @@ def _frag_gauss_jordan(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="sis_gj",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Edita $A$ y $b$, o conmuta entre resolver $Ax = b$ e invertir $A$.",
+        mensaje_edicion=r"Edita $A$ y $b$, o conmuta entre resolver $Ax = b$ e invertir $A$.",
     )
     solo_lectura = modo == "catedra"
     A, b, _ = _editor_sistema("sis_gj", solo_lectura)
@@ -144,7 +144,7 @@ def _frag_gauss_jordan(defaults: dict) -> None:
         key="ui_gj_modo",
     )
 
-    st.markdown("### ⚙️ Bloque 3 — Diagonalización Completa en Vivo")
+    st.markdown("### Bloque 3 — Diagonalización Completa en Vivo")
     try:
         res = gauss_jordan(A, b if modo_gj.startswith("Resolver") else None)
     except Exception as exc:
@@ -162,7 +162,7 @@ def _frag_gauss_jordan(defaults: dict) -> None:
 
     pasos = res["pasos"]
     if pasos:
-        st.markdown("### 📐 Bloque 4 — Transformación a Identidad Paso a Paso")
+        st.markdown("### Bloque 4 — Transformación a Identidad Paso a Paso")
         k_vis = render_slider_paso_k("Ver paso de pivoteo $k$:", len(pasos), key="vis_gj_k")
         paso = pasos[k_vis - 1]
         st.info(paso["descripcion"])
@@ -193,12 +193,12 @@ def _frag_lu(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="sis_lu",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica $A$ y $b$ para inspeccionar los factores triangulares $L$ y $U$.",
+        mensaje_edicion=r"Modifica $A$ y $b$ para inspeccionar los factores triangulares $L$ y $U$.",
     )
     solo_lectura = modo == "catedra"
     A, b, _ = _editor_sistema("sis_lu", solo_lectura)
 
-    st.markdown("### ⚙️ Bloque 3 — Factores $L$, $U$ y Solución ($Ly=b$, $Ux=y$)")
+    st.markdown("### Bloque 3 — Factores $L$, $U$ y Solución ($Ly=b$, $Ux=y$)")
     try:
         res = factorizacion_lu(A, b)
     except Exception as exc:
@@ -220,7 +220,7 @@ def _frag_lu(defaults: dict) -> None:
 
     pasos = res["pasos_eliminacion"]
     if pasos:
-        st.markdown("### 📐 Bloque 4 — Construcción Paso a Paso de $L$ y $U$")
+        st.markdown("### Bloque 4 — Construcción Paso a Paso de $L$ y $U$")
         k_vis = render_slider_paso_k("Ver columna eliminada $k$:", len(pasos), key="vis_lu_k")
         paso = pasos[k_vis - 1]
         c_l, c_u = st.columns(2)
@@ -253,7 +253,7 @@ def _frag_gauss_seidel(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="sis_gs",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Ajusta la matriz $A$, el vector $b$, la semilla $x^{(0)}$ o los criterios del bucle.",
+        mensaje_edicion=r"Ajusta la matriz $A$, el vector $b$, la semilla $x^{(0)}$ o los criterios del bucle.",
     )
     solo_lectura = modo == "catedra"
     A, b, x0 = _editor_sistema("sis_gs", solo_lectura, incluir_x0=True)
@@ -268,16 +268,16 @@ def _frag_gauss_seidel(defaults: dict) -> None:
     dom = verificar_dominancia_diagonal(A)
     if dom["es_dominante"]:
         st.success(
-            f"✅ **{dom['diagnostico']}** Cada fila tiene peso dominante en la diagonal "
+            f"**{dom['diagnostico']}** Cada fila tiene peso dominante en la diagonal "
             r"($|a_{ii}| > \sum_{j\neq i}|a_{ij}|$): garantiza que el bucle reduzca el error en cada ciclo sin divergir."
         )
     else:
         st.warning(
-            f"⚠️ **{dom['diagnostico']}** Sin dominancia diagonal estricta, el lazo de actualización "
+            f"**{dom['diagnostico']}** Sin dominancia diagonal estricta, el lazo de actualización "
             "podría amplificar el error en lugar de amortiguarlo."
         )
 
-    st.markdown("### ⚙️ Bloque 3 — Iteraciones de Gauss-Seidel en Vivo")
+    st.markdown("### Bloque 3 — Iteraciones de Gauss-Seidel en Vivo")
     try:
         res = gauss_seidel(A, b, x0=x0, tol=tol_val, max_iter=max_it)
     except Exception as exc:
@@ -298,7 +298,7 @@ def _frag_gauss_seidel(defaults: dict) -> None:
     render_dataframe_acotado(filas_hist, max_filas=300, key_prefix="tbl_sis_gs")
 
     if filas_hist:
-        st.markdown("### 📐 Bloque 4 — Decaimiento Logarítmico del Error Paso a Paso")
+        st.markdown("### Bloque 4 — Decaimiento Logarítmico del Error Paso a Paso")
         k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", len(filas_hist), key="vis_gs_k")
         sub_hist = muestrear_para_grafico(filas_hist[:k_vis], max_puntos=220)
         fig = crear_figura_base_plotly(f"Convergencia de Gauss-Seidel hasta k = {k_vis}", "Iteración", "Error máximo (escala log)")
@@ -343,7 +343,7 @@ def _frag_potencias(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="sis_pot",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica la matriz $A$, el vector semilla $x^{(0)}$ o selecciona el autovalor objetivo.",
+        mensaje_edicion=r"Modifica la matriz $A$, el vector semilla $x^{(0)}$ o selecciona el autovalor objetivo.",
     )
     solo_lectura = modo == "catedra"
 
@@ -365,7 +365,7 @@ def _frag_potencias(defaults: dict) -> None:
     if not solo_lectura:
         st.session_state["sis_pot_tol_pct"] = tol_pct
 
-    st.markdown("### ⚙️ Bloque 3 — Iteración de Autovalores en Vivo")
+    st.markdown("### Bloque 3 — Iteración de Autovalores en Vivo")
     try:
         if tipo.startswith("Mayor"):
             res = metodo_potencias_max(A, x0=x0, tol=tol_pct, max_iter=int(st.session_state["sis_pot_max_iter"]))
@@ -386,7 +386,7 @@ def _frag_potencias(defaults: dict) -> None:
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_sis_pot")
 
     if hist:
-        st.markdown("### 📐 Bloque 4 — Estabilización de $\\lambda_k$ Paso a Paso")
+        st.markdown("### Bloque 4 — Estabilización de $\\lambda_k$ Paso a Paso")
         k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", len(hist), key="vis_pot_k")
         sub_h = muestrear_para_grafico(hist[:k_vis], max_puntos=220)
         col_lam = "lambda" if "lambda" in sub_h[0] else "lambda_min"
@@ -428,7 +428,7 @@ def _frag_faddeev(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="sis_fad",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica los elementos de $A$ para recalcular el polinomio característico, autovalores e inversa.",
+        mensaje_edicion=r"Modifica los elementos de $A$ para recalcular el polinomio característico, autovalores e inversa.",
     )
     solo_lectura = modo == "catedra"
 
@@ -439,7 +439,7 @@ def _frag_faddeev(defaults: dict) -> None:
         A = df_edit[cols_A].astype(float).values.tolist()
         st.session_state["sis_fad_A"] = A
 
-    st.markdown("### ⚙️ Bloque 3 — Polinomio Característico, Autovalores e Inversa")
+    st.markdown("### Bloque 3 — Polinomio Característico, Autovalores e Inversa")
     try:
         res = metodo_faddeev_leverrier(A)
     except Exception as exc:
@@ -453,10 +453,10 @@ def _frag_faddeev(defaults: dict) -> None:
     m3.metric("Error A⁻¹", f"{res['error_inversa']:.2e}" if res["error_inversa"] is not None else "Singular")
 
     if res["inversa"] is not None:
-        with st.expander(r"🔁 Ver Matriz Inversa $A^{-1}$ obtenida por Faddeev"):
+        with st.expander(r"Ver Matriz Inversa $A^{-1}$ obtenida por Faddeev"):
             render_dataframe_acotado(res["inversa"], max_filas=300, key_prefix="tbl_sis_fad_inv", hide_index=False)
 
-    st.markdown(r"### 📐 Bloque 4 — Raíces del Polinomio Característico $P(\lambda) = 0$")
+    st.markdown(r"### Bloque 4 — Raíces del Polinomio Característico $P(\lambda) = 0$")
     curva = res["curva_polinomio"]
     fig = crear_figura_base_plotly("Polinomio Característico P(λ)", "λ", "P(λ)")
     fig.add_hline(y=0, line_dash="dash", line_color="#B5673F")
@@ -502,59 +502,59 @@ def _tab_faddeev() -> None:
 
 def vista_sistemas() -> None:
     inject_arandu_css()
-    st.title("📐 Sistemas Lineales y Autovalores")
+    st.title("Sistemas Lineales y Autovalores")
     st.markdown(
         r"Métodos directos ($O(n^3)$ por triangulación), esquemas iterativos condicionados por dominancia diagonal "
         r"y extracción del espectro característico."
     )
-    activo = render_mazo_tarot_metodos(
+    activo = render_selector_fichas_metodos(
         "sistemas",
         (
             {
-                "romano": "I",
-                "clave_svg": "tarot_gauss",
+                "numero": "1",
+                "clave_svg": "gauss",
                 "titulo": "Eliminación de Gauss",
-                "subtitulo_arcano": "ARCANO I · DIRECTO O(n³)",
+                "subtitulo": "TRIANGULACIÓN · O(n³)",
                 "resumen": "Triangula la matriz con pivoteo parcial y despeja por sustitución inversa.",
                 "pista": "Triangular superior · Pivoteo",
             },
             {
-                "romano": "II",
-                "clave_svg": "tarot_gauss_jordan",
+                "numero": "2",
+                "clave_svg": "gauss_jordan",
                 "titulo": "Gauss-Jordan",
-                "subtitulo_arcano": "ARCANO II · DIAGONAL",
+                "subtitulo": "DIAGONAL · INVERSA",
                 "resumen": "Reduce la matriz directamente a la identidad I y calcula su inversa A⁻¹.",
                 "pista": "Identidad I · Matriz Inversa",
             },
             {
-                "romano": "III",
-                "clave_svg": "tarot_lu",
+                "numero": "3",
+                "clave_svg": "lu",
                 "titulo": "Factorización LU",
-                "subtitulo_arcano": "ARCANO III · DESCOMPOSICIÓN",
+                "subtitulo": "DESCOMPOSICIÓN · A = L·U",
                 "resumen": "Descompone A = L·U para resolver múltiples vectores independientes b.",
                 "pista": "Reutilizable · A = L·U",
             },
             {
-                "romano": "IV",
-                "clave_svg": "tarot_gauss_seidel",
+                "numero": "4",
+                "clave_svg": "gauss_seidel",
                 "titulo": "Gauss-Seidel",
-                "subtitulo_arcano": "ARCANO IV · ITERATIVO",
+                "subtitulo": "ITERATIVO · DIAGONAL",
                 "resumen": "Actualiza cada incógnita al vuelo garantizando convergencia si domina diagonal.",
                 "pista": "Iterativo · Dominancia diagonal",
             },
             {
-                "romano": "V",
-                "clave_svg": "tarot_potencias",
+                "numero": "5",
+                "clave_svg": "potencias",
                 "titulo": "Método de Potencias",
-                "subtitulo_arcano": "ARCANO V · EIGENVALOR",
+                "subtitulo": "AUTOVALORES · RAYLEIGH",
                 "resumen": "Extrae el autovalor dominante |λ_max| o el menor |λ_min| por iteración.",
                 "pista": "Cociente de Rayleigh · Espectro",
             },
             {
-                "romano": "VI",
-                "clave_svg": "tarot_faddeev",
+                "numero": "6",
+                "clave_svg": "faddeev",
                 "titulo": "Faddeev-Leverrier",
-                "subtitulo_arcano": "ARCANO VI · POLINOMIO",
+                "subtitulo": "ESPECTRO · POLINOMIO",
                 "resumen": "Construye el polinomio característico completo usando trazas sucesivas.",
                 "pista": "Espectro completo · Trazas",
             },

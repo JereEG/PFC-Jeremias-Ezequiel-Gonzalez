@@ -31,9 +31,9 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
+    render_selector_fichas_metodos,
     render_slider_paso_k,
 )
 
@@ -53,7 +53,7 @@ def _frag_biseccion(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="raiz_bis",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica la expresión $f(x)$, extremos $[a, b]$ o tolerancia en vivo.",
+        mensaje_edicion=r"Modifica la expresión $f(x)$, extremos $[a, b]$ o tolerancia en vivo.",
     )
     solo_lectura = modo == "catedra"
 
@@ -77,7 +77,7 @@ def _frag_biseccion(defaults: dict) -> None:
         st.error(str(exc))
         return
 
-    with st.expander("🔍 Análisis Previo: Conteo de Signos (Regla de Descartes) & Barrido por Tanteos"):
+    with st.expander("Análisis Previo: Conteo de Signos (Regla de Descartes) & Barrido por Tanteos"):
         desc = comp.get("descartes") or analizar_descartes(f_str)
         if desc["es_polinomio"]:
             st.markdown(
@@ -90,7 +90,7 @@ def _frag_biseccion(defaults: dict) -> None:
         bt = barrido_tanteo(comp["fn"], x_ini=min(a_val, b_val) - 2.0, dx=0.5, max_pasos=16)
         st.markdown(rf"Intervalos con cambio de signo detectados en barrido $\Delta x = 0.5$: **{bt['intervalos']}**")
 
-    st.markdown("### ⚙️ Bloque 3 — Ejecución en Vivo (Bisección)")
+    st.markdown("### Bloque 3 — Ejecución en Vivo (Bisección)")
     try:
         res = metodo_biseccion(comp["fn"], a_val, b_val, tol=tol_val, max_iter=int(max_it))
     except Exception as exc:
@@ -111,7 +111,7 @@ def _frag_biseccion(defaults: dict) -> None:
         key_prefix="tbl_raiz_bis",
     )
 
-    st.markdown("### 📐 Bloque 4 — Geometría Paso a Paso (Encierro de Intervalos)")
+    st.markdown("### Bloque 4 — Geometría Paso a Paso (Encierro de Intervalos)")
     k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", len(hist), key="vis_bis_k")
     fila_k = hist[k_vis - 1]
     pad = max(0.5, 0.35 * abs(b_val - a_val))
@@ -170,7 +170,7 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="raiz_rf",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica $f(x)$, los extremos iniciales o la variante de actualización del intervalo.",
+        mensaje_edicion=r"Modifica $f(x)$, los extremos iniciales o la variante de actualización del intervalo.",
     )
     solo_lectura = modo == "catedra"
 
@@ -199,7 +199,7 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
 
     try:
         comp = compilar_funcion_raices(f_str)
-        st.markdown("### ⚙️ Bloque 3 — Cuerdas en Vivo")
+        st.markdown("### Bloque 3 — Cuerdas en Vivo")
         if variante.startswith("Cátedra"):
             res = metodo_interpolacion_lineal_catedra(comp["fn"], x0_fijo=a_val, x1_ini=b_val, tol=tol_val)
         else:
@@ -216,7 +216,7 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
     hist = res["historial"]
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_rf")
 
-    st.markdown("### 📐 Bloque 4 — Secantes / Cuerdas Paso a Paso")
+    st.markdown("### Bloque 4 — Secantes / Cuerdas Paso a Paso")
     k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", len(hist), key="vis_rf_k")
     pad = max(0.4, 0.35 * abs(b_val - a_val))
     xs, ys = _muestrear_curva(comp, "fn", "fn_np", min(a_val, b_val) - pad, max(a_val, b_val) + pad)
@@ -279,7 +279,7 @@ def _frag_newton_raphson(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="raiz_nr",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica $f(x)$, los extremos de verificación de arranque $[a, b]$ o la semilla $x_0$.",
+        mensaje_edicion=r"Modifica $f(x)$, los extremos de verificación de arranque $[a, b]$ o la semilla $x_0$.",
     )
     solo_lectura = modo == "catedra"
 
@@ -307,11 +307,11 @@ def _frag_newton_raphson(defaults: dict) -> None:
     fourier = verificar_condiciones_fourier(comp["fn"], comp["d1"], comp["d2"], min(a_val, b_val), max(a_val, b_val))
     st.info(
         rf"**Validación de arranque seguro en $[{min(a_val, b_val):g}, {max(a_val, b_val):g}]$ (Condiciones de Fourier):** "
-        f"{'✅ Sugerido $x_0 = ' + str(fourier['x0_sugerido']) + '$' if fourier['fourier_cumple'] else '⚠️ Sin garantía estricta en extremos (el salto inicial podría alejarse de la raíz)'} "
+        f"{'Sugerido $x_0 = ' + str(fourier['x0_sugerido']) + '$' if fourier['fourier_cumple'] else 'Sin garantía estricta en extremos (el salto inicial podría alejarse de la raíz)'} "
         f"— {fourier['detalle_fourier']}"
     )
 
-    st.markdown("### ⚙️ Bloque 3 — Iteraciones de Newton-Raphson en Vivo")
+    st.markdown("### Bloque 3 — Iteraciones de Newton-Raphson en Vivo")
     res = metodo_newton_raphson(comp["fn"], comp["d1"], x0_val, tol=tol_val, max_iter=int(st.session_state["raiz_nr_max_iter"]))
     if not res["convergente"] and res.get("mensaje"):
         st.warning(res["mensaje"])
@@ -324,7 +324,7 @@ def _frag_newton_raphson(defaults: dict) -> None:
     hist = res["historial"]
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_nr")
 
-    st.markdown("### 📐 Bloque 4 — Rectas Tangentes Paso a Paso")
+    st.markdown("### Bloque 4 — Rectas Tangentes Paso a Paso")
     k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", max(1, len(hist)), key="vis_nr_k")
     puntos_x = [row["x_k"] for row in hist[:k_vis]] + [row["x_sig"] for row in hist[:k_vis] if row["x_sig"] is not None]
     xmin, xmax = min(puntos_x) - 0.5, max(puntos_x) + 0.5
@@ -369,7 +369,7 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
         clave_state="raiz_pf",
         defaults_dict=defaults,
-        mensaje_edicion=r"✏️ Modifica $f(x)$, el despeje $x = g(x)$ o la semilla $x_0$ para evaluar estabilidad.",
+        mensaje_edicion=r"Modifica $f(x)$, el despeje $x = g(x)$ o la semilla $x_0$ para evaluar estabilidad.",
     )
     solo_lectura = modo == "catedra"
 
@@ -396,15 +396,15 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
     st.latex(rf"g'(x) = {comp_g['dg_latex']}, \qquad |g'(x_0)| = {deriv_x0:.4f}")
     if deriv_x0 < 1.0:
         st.success(
-            r"✅ **$|g'(x_0)| < 1$:** La pendiente actúa como factor multiplicativo reductor en cada iteración "
+            r"**$|g'(x_0)| < 1$:** La pendiente actúa como factor multiplicativo reductor en cada iteración "
             r"del bucle (**esquema contractivo**), garantizando convergencia local hacia la raíz."
         )
     else:
         st.warning(
-            r"⚠️ **$|g'(x_0)| \ge 1$:** El factor amplifica el error en cada vuelta del bucle y la secuencia simple puede diverger."
+            r"**$|g'(x_0)| \ge 1$:** El factor amplifica el error en cada vuelta del bucle y la secuencia simple puede diverger."
         )
 
-    st.markdown(r"### ⚙️ Bloque 3 — Punto Fijo vs Aceleración $\Delta^2$ de Aitken")
+    st.markdown(r"### Bloque 3 — Punto Fijo vs Aceleración $\Delta^2$ de Aitken")
     res = metodo_punto_fijo_aitken(comp_g["gn"], x0_val, tol=tol_val, max_iter=int(st.session_state["raiz_pf_max_iter"]))
     pf, ait = res["punto_fijo"], res["aitken"]
     m1, m2 = st.columns(2)
@@ -418,7 +418,7 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
         render_dataframe_acotado(ait["historial"], max_filas=300, key_prefix="tbl_raiz_ait")
 
     if pf["historial"]:
-        st.markdown("### 📐 Bloque 4 — Diagrama Telaraña (Cobweb) Paso a Paso")
+        st.markdown("### Bloque 4 — Diagrama Telaraña (Cobweb) Paso a Paso")
         k_vis = render_slider_paso_k(
             "Ver hasta iteración de Punto Fijo $k$:",
             len(pf["historial"]),
@@ -469,43 +469,43 @@ def _tab_punto_fijo_aitken() -> None:
 
 def vista_raices() -> None:
     inject_arandu_css()
-    st.title("📉 Raíces de Ecuaciones No Lineales")
+    st.title("Raíces de Ecuaciones No Lineales")
     st.markdown(
         r"Localización inicial, encierro con cambio de signo garantizado (**Bolzano**) y algoritmos abiertos "
         r"desde convergencia lineal hasta orden cuadrático."
     )
-    activo = render_mazo_tarot_metodos(
+    activo = render_selector_fichas_metodos(
         "raices",
         (
             {
-                "romano": "I",
-                "clave_svg": "tarot_biseccion",
+                "numero": "1",
+                "clave_svg": "biseccion",
                 "titulo": "Bisección (y Descartes/Tanteo)",
-                "subtitulo_arcano": "ARCANO I · BOLZANO",
+                "subtitulo": "BOLZANO · ENCIERRO",
                 "resumen": "Divide [a, b] por la mitad garantizando convergencia si f(a)·f(b) < 0.",
                 "pista": "Orden 1 · Encierro seguro",
             },
             {
-                "romano": "II",
-                "clave_svg": "tarot_regula_falsi",
+                "numero": "2",
+                "clave_svg": "regula_falsi",
                 "titulo": "Interpolación Lineal (Regula Falsi)",
-                "subtitulo_arcano": "ARCANO II · SECANTE",
+                "subtitulo": "SECANTE · BOLZANO",
                 "resumen": "Traza una secante ponderada dentro del intervalo manteniendo el encierro.",
                 "pista": "Cuerda ponderada · Bolzano",
             },
             {
-                "romano": "III",
-                "clave_svg": "tarot_newton_raphson",
+                "numero": "3",
+                "clave_svg": "newton_raphson",
                 "titulo": "Newton-Raphson (Fourier)",
-                "subtitulo_arcano": "ARCANO III · TANGENTE",
+                "subtitulo": "TANGENTE · FOURIER",
                 "resumen": "Usa la recta tangente f'(x) verificando Fourier para converger rápido.",
                 "pista": "Orden 2 cuadrático · f'(x) != 0",
             },
             {
-                "romano": "IV",
-                "clave_svg": "tarot_punto_fijo",
+                "numero": "4",
+                "clave_svg": "punto_fijo",
                 "titulo": "Punto Fijo & Aitken Δ²",
-                "subtitulo_arcano": "ARCANO IV · RECURRENCIA",
+                "subtitulo": "RECURRENCIA · AITKEN",
                 "resumen": "Itera x = g(x) bajo |g'(x)| < 1 y extrapola saltos con Aitken Δ².",
                 "pista": "Telaraña g(x) · Aceleración Δ²",
             },
