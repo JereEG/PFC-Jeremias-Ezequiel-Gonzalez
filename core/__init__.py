@@ -13,6 +13,7 @@ __all__ = [
     "catalogo_ejercicios",
     "edo_pvi",
     "fundamentos_errores",
+    "integracion",
     "integracion_derivacion",
     "interpolacion",
     "raices",

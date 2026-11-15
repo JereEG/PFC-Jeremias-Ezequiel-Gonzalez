@@ -12,6 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from core.integracion import integrar_paso_variable
 from core.integracion_derivacion import (
     derivada_newton_gregory_ascendente,
     derivada_newton_gregory_descendente,
@@ -337,6 +338,159 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
     _frag_integracion(clave_state, metodo_solicitado, defaults)
 
 
+_LAB_SUBINDICES = ("₁", "₂", "₃", "₄", "₅", "₆")
+_LAB_NODOS = ("x₀", "x₁", "x₂", "x₃", "x₄", "x₅", "x₆")
+
+
+def _f_lab_paso_variable(x: float | np.ndarray) -> float | np.ndarray:
+    return np.sin(x) + 0.5 * x + 1.5
+
+
+def _exacta_lab_paso_variable(a: float, b: float) -> float:
+    def _primitiva(t: float) -> float:
+        return float(-np.cos(t) + 0.25 * (t**2) + 1.5 * t)
+
+    return _primitiva(b) - _primitiva(a)
+
+
+@st.fragment
+def _frag_laboratorio_paso_variable() -> None:
+    st.markdown("## Laboratorio de Paso Variable (Δh): ¿Cuándo usar Trapecios o Simpson?")
+    st.markdown(
+        r"Modifica independientemente las longitudes de los 6 subintervalos $\Delta h_1 \dots \Delta h_6$ "
+        r"sobre $f(x) = \sin(x) + 0.5x + 1.5$ desde $x_0 = 0$. "
+        r"El motor prioriza **Simpson** ($1/3$ o $3/8$) en bloques contiguos de paso uniforme y cae en **Trapecio** ante cada variación de $\Delta h$."
+    )
+
+    for idx in range(1, 7):
+        if f"lab_dh_{idx}" not in st.session_state:
+            st.session_state[f"lab_dh_{idx}"] = 0.5
+
+    if st.button("Igualar todos los pasos (Δh = 0.5)", key="btn_reset_lab_dh"):
+        for idx in range(1, 7):
+            st.session_state[f"lab_dh_{idx}"] = 0.5
+        rerun_fragmento_seguro()
+
+    fila_1 = st.columns(3)
+    for offset, col in enumerate(fila_1):
+        idx = offset + 1
+        col.slider(
+            f"Δh{_LAB_SUBINDICES[idx - 1]}",
+            min_value=0.2,
+            max_value=1.5,
+            step=0.1,
+            format="%.1f",
+            key=f"lab_dh_{idx}",
+        )
+
+    fila_2 = st.columns(3)
+    for offset, col in enumerate(fila_2):
+        idx = offset + 4
+        col.slider(
+            f"Δh{_LAB_SUBINDICES[idx - 1]}",
+            min_value=0.2,
+            max_value=1.5,
+            step=0.1,
+            format="%.1f",
+            key=f"lab_dh_{idx}",
+        )
+
+    pasos_h = [float(st.session_state[f"lab_dh_{idx}"]) for idx in range(1, 7)]
+    res_lab = integrar_paso_variable(
+        _f_lab_paso_variable,
+        x0=0.0,
+        pasos_h=pasos_h,
+        integral_exacta_fn=_exacta_lab_paso_variable,
+    )
+
+    fig_lab = crear_figura_base_plotly(
+        "Cuadratura Adaptativa por Tramos ante Variaciones de Δh",
+        "x",
+        "f(x)",
+    )
+
+    for tramo in res_lab["tramos"]:
+        es_simpson = tramo["metodo"].startswith("Simpson")
+        color_linea = PALETA_ARANDU["salvia"] if es_simpson else PALETA_ARANDU["terracota"]
+        color_relleno = PALETA_ARANDU["salvia_fill"] if es_simpson else PALETA_ARANDU["terracota_fill"]
+        fig_lab.add_trace(
+            go.Scatter(
+                x=tramo["x_curva"],
+                y=limpiar_valores_plotly(tramo["y_curva"], limite_abs=1e9),
+                mode="lines",
+                fill="tozeroy",
+                fillcolor=color_relleno,
+                name=f"Tramo {tramo['tramo_id']}: {tramo['metodo']} ({tramo['nodos']})",
+                line=dict(color=color_linea, width=2.4),
+            )
+        )
+
+    stem_x: list[float | None] = []
+    stem_y: list[float | None] = []
+    for nx, ny in zip(res_lab["nodos_x"], res_lab["nodos_y"]):
+        stem_x.extend([nx, nx, None])
+        stem_y.extend([0.0, ny, None])
+    fig_lab.add_trace(
+        go.Scatter(
+            x=stem_x,
+            y=stem_y,
+            mode="lines",
+            showlegend=False,
+            hoverinfo="skip",
+            line=dict(color=PALETA_ARANDU["texto_principal"], width=1.3, dash="dot"),
+        )
+    )
+
+    fig_lab.add_trace(
+        go.Scatter(
+            x=res_lab["nodos_x"],
+            y=res_lab["nodos_y"],
+            mode="markers",
+            name="Nodos xᵢ",
+            text=_LAB_NODOS,
+            hovertemplate="%{text}: x=%{x:.2f}, f(x)=%{y:.4f}<extra></extra>",
+            marker=dict(
+                size=9,
+                color=PALETA_ARANDU["texto_principal"],
+                line=dict(color=PALETA_ARANDU["bg_lienzo"], width=1.6),
+            ),
+        )
+    )
+
+    xs_exacta = np.linspace(res_lab["x0"], res_lab["xf"], 220)
+    ys_exacta = _f_lab_paso_variable(xs_exacta)
+    fig_lab.add_trace(
+        go.Scatter(
+            x=xs_exacta,
+            y=limpiar_valores_plotly(ys_exacta, limite_abs=1e9),
+            mode="lines",
+            name="Curva exacta f(x)",
+            line=dict(color=PALETA_ARANDU["oro"], width=2.8),
+        )
+    )
+
+    render_plotly_arandu(fig_lab, key="plot_int_lab_paso_variable")
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Integral Exacta", f"{res_lab['integral_exacta']:.6f}")
+    m2.metric("Aproximación Híbrida Actual", f"{res_lab['integral_aprox']:.6f}")
+    m3.metric("Error Relativo Porcentual", f"{res_lab['error_relativo_pct']:.4f} %")
+
+    filas_diag = [
+        {
+            "Tramo": tramo["tramo_id"],
+            "Nodos": tramo["nodos"],
+            "Intervalo": f"[{tramo['inicio']:.2f}, {tramo['fin']:.2f}]",
+            "Paso Δh": f"{tramo['paso_h']:.2f}",
+            "Regla Activada": tramo["metodo"],
+            "Área Parcial": round(tramo["area"], 6),
+            "Justificación Matemática": tramo["motivo"],
+        }
+        for tramo in res_lab["tramos"]
+    ]
+    render_dataframe_acotado(filas_diag, max_filas=300, key_prefix="df_lab_paso_variable")
+
+
 def vista_integracion() -> None:
     inject_arandu_css()
     st.title("Integración y Derivación Numérica")
@@ -389,6 +543,9 @@ def vista_integracion() -> None:
         _render_integracion_tab("simpson_1_3", "int_s13", "simpson_1_3")
     else:
         _render_integracion_tab("simpson_3_8_combinado", "int_s38", "simpson_3_8")
+
+    st.divider()
+    _frag_laboratorio_paso_variable()
 
 
 vista_integracion()
