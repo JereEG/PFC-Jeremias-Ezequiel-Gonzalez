@@ -25,6 +25,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_mini_catalogo_vista,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -336,6 +337,14 @@ def vista_integracion() -> None:
     st.markdown(
         r"Diferenciación numérica mediante Gregory y cuadratura compuesta ($O(h^2)$ a $O(h^4)$) "
         r"con adaptación automática ante cambios de $\Delta h$ o paridad $n$."
+    )
+    render_mini_catalogo_vista(
+        [
+            ("1. Diferenciación", "Estima f'(x*) y f''(x*) en puntos tabulares o libres u."),
+            ("2. Trapecios O(h²)", "Aproxima el área uniendo pares de puntos con segmentos rectos."),
+            ("3. Simpson 1/3 O(h⁴)", "Ajusta parábolas cada 2 subintervalos (requiere n par)."),
+            ("4. Simpson 3/8 y Mixto", "Aplica arcos cúbicos o combina esquemas ante paridad impar."),
+        ]
     )
 
     tabs = st.tabs(

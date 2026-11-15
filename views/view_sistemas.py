@@ -28,6 +28,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_mini_catalogo_vista,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -505,6 +506,16 @@ def vista_sistemas() -> None:
     st.markdown(
         r"Métodos directos ($O(n^3)$ por triangulación), esquemas iterativos condicionados por dominancia diagonal "
         r"y extracción del espectro característico."
+    )
+    render_mini_catalogo_vista(
+        [
+            ("1. Gauss", "Triangula la matriz con pivoteo y despeja hacia atrás."),
+            ("2. Gauss-Jordan", "Diagonaliza directo y calcula la matriz inversa A⁻¹."),
+            ("3. Factorización LU", "Descompone A = L·U para resolver múltiples vectores b."),
+            ("4. Gauss-Seidel", "Itera variable por variable si A es diagonal dominante."),
+            ("5. Potencias", "Extrae el autovalor |λ_max| o |λ_min| por iteración."),
+            ("6. Faddeev-Leverrier", "Obtiene el polinomio característico completo y su espectro."),
+        ]
     )
 
     tabs = st.tabs(

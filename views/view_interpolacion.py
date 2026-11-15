@@ -32,6 +32,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_mini_catalogo_vista,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -423,6 +424,14 @@ def vista_interpolacion() -> None:
     st.markdown(
         r"Construcción de polinomios sobre tablas discretas $(x_i, y_i)$ con detección automática "
         r"de pérdida de equidistancia ($\Delta h$) y alerta del fenómeno de Runge."
+    )
+    render_mini_catalogo_vista(
+        [
+            ("1. Lineal", "Une dos puntos consecutivos con una recta directa o inversa."),
+            ("2. Cuadrática Inversa", "Ajusta una parábola en 3 nodos para despejar x* dado y*."),
+            ("3. Lagrange", "Combina bases polinomiales sobre nodos con paso irregular."),
+            ("4. Newton-Gregory", "Acelera con diferencias finitas Δy cuando Δh es constante."),
+        ]
     )
 
     tabs = st.tabs(

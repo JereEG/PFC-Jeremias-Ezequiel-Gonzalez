@@ -27,6 +27,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_mini_catalogo_vista,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -336,6 +337,13 @@ def vista_edo() -> None:
     st.title("⏱️ Ecuaciones Diferenciales Ordinarias (PVI)")
     st.markdown(
         r"Resolución numérica paso a paso sobre malla $\Delta h$ dinámica y contraste directo contra solución analítica."
+    )
+    render_mini_catalogo_vista(
+        [
+            ("1. Euler y Heun", "Euler usa una pendiente O(h); Heun promedia entrada y salida O(h²)."),
+            ("2. Runge-Kutta (RK2/RK4)", "Autoiniciable con 2 o 4 pendientes ponderadas O(h²) / O(h⁴)."),
+            ("3. Milne Predictor-Corrector", "Usa 4 pasos previos de RK4 y corrige iterativamente O(h⁴)."),
+        ]
     )
 
     tabs = st.tabs(

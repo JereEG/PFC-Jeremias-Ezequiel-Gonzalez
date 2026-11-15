@@ -31,6 +31,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_mini_catalogo_vista,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -472,6 +473,14 @@ def vista_raices() -> None:
     st.markdown(
         r"Localización inicial, encierro con cambio de signo garantizado (**Bolzano**) y algoritmos abiertos "
         r"desde convergencia lineal hasta orden cuadrático."
+    )
+    render_mini_catalogo_vista(
+        [
+            ("1. Bisección", "Divide [a, b] por la mitad garantizando convergencia si f(a)·f(b) < 0."),
+            ("2. Regula Falsi", "Traza una secante ponderada dentro del intervalo manteniendo el encierro."),
+            ("3. Newton-Raphson", "Usa la recta tangente f'(x) para acelerar a convergencia cuadrática."),
+            ("4. Punto Fijo + Aitken", "Itera x = g(x) si |g'(x)| < 1 y extrapola saltos con Δ²."),
+        ]
     )
 
     tabs = st.tabs(

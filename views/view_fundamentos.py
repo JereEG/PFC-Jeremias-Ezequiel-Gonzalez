@@ -26,6 +26,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_mini_catalogo_vista,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -418,6 +419,14 @@ def vista_fundamentos() -> None:
     st.markdown(
         r"Cómo traduce la CPU funciones ($e^x$, $\pi$) a bucles, por qué se pierde precisión en punto flotante ($k$ dígitos) "
         r"y cómo reordenar expresiones para preservar exactitud."
+    )
+    render_mini_catalogo_vista(
+        [
+            ("1. Series en CPU", "Aproxima eˣ, ln(1+x) y π sumando términos hasta cumplir tolerancia."),
+            ("2. Punto Flotante", "Muestra cuándo (u+v)+w ≠ u+(v+w) al limitar k dígitos en mantisa."),
+            ("3. Cancelación", "Evita restas de números casi iguales racionalizando la fórmula."),
+            ("4. Horner O(N)", "Evalúa polinomios anidando productos con menos redondeos."),
+        ]
     )
 
     tabs = st.tabs(

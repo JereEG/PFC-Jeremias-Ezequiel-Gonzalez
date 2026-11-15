@@ -8,8 +8,8 @@ from __future__ import annotations
 import streamlit as st
 
 from core.version import APP_VERSION, es_entorno_offline_wasm
-from views.theme import obtener_logo_arandu_src
-from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css
+from views.theme import construir_html_tarjeta_catalogo, obtener_logo_arandu_src
+from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css, render_tarjeta_catalogo
 
 
 def vista_inicio() -> None:
@@ -56,103 +56,131 @@ def vista_inicio() -> None:
         unsafe_allow_html=True,
     )
 
-    with st.container(border=True):
-        c_txt, c_btn = st.columns([3.2, 1.3])
-        with c_txt:
-            st.markdown("### ⚔️ Arena Versus: Duelo Directo de Métodos")
-            st.write(
-                "Enfrenta dos algoritmos de la **misma familia matemática** sobre un mismo problema, "
-                "anticipa qué comportamiento veremos en ejecución (incluyendo casos límite) y compara "
-                "convergencia, costo de iteraciones y error en gráficos superpuestos."
-            )
-        with c_btn:
-            st.write("")
-            if st.button("⚔️ Entrar a Arena Versus", type="primary", use_container_width=True):
-                st.switch_page("views/arena_versus.py")
-
-    st.markdown("### 🧭 Catálogo de Métodos Matemáticos")
+    st.markdown("### 🧭 Catálogo de Métodos y Herramientas")
     st.caption(
-        "Lectura progresiva en cada módulo: Resumen Ejecutivo → Intuición y Fórmulas (con desarrollo opcional) → "
-        "Criterio de Elección → Laboratorio Interactivo paso a paso."
+        "Seleccioná un módulo para recorrer su explicación progresiva (Resumen → Intuición → Criterios) y simular paso a paso."
     )
 
     tarjetas = [
         (
-            "🧮 Fundamentos y Errores",
-            r"Series iterativas ($e^x$, $\ln(1+x)$, $\pi$) en la CPU, aritmética finita de $k$ dígitos, pérdida de asociatividad, cancelación catastrófica y algoritmo de Horner.",
+            "fundamentos",
+            "Fundamentos y Errores",
+            "Traduce funciones a bucles de CPU y mide el error al redondear dígitos.",
             "views/view_fundamentos.py",
-            "Abrir Fundamentos",
+            "Explorar Fundamentos",
+            "UNIDAD 01 • ERRORES",
+            False,
         ),
         (
-            "📉 Raíces de Ecuaciones",
-            r"Regla de Descartes, Barrido por Tanteos, Bisección, Regula Falsi (Cátedra y cambio de signo), Newton-Raphson y Punto Fijo acelerado con $\Delta^2$ de Aitken.",
+            "raices",
+            "Raíces de Ecuaciones",
+            "Halla dónde una curva cruza cero acotando intervalos o trazando tangentes.",
             "views/view_raices.py",
-            "Abrir Raíces",
+            "Explorar Raíces",
+            "UNIDAD 02 • NO LINEALES",
+            False,
         ),
         (
-            "📐 Sistemas Lineales y Autovalores",
-            "Eliminación de Gauss, Gauss-Jordan, Factorización $LU$ (Doolittle), Gauss-Seidel (dominancia diagonal), Método de Potencias y Faddeev-Leverrier.",
+            "sistemas",
+            "Álgebra Lineal y Autovalores",
+            "Resuelve sistemas Ax = b por triangulación o iteración y extrae eigenvalores.",
             "views/view_sistemas.py",
-            "Abrir Sistemas y Autovalores",
+            "Explorar Sistemas",
+            "UNIDAD 03–04 • MATRICES",
+            False,
         ),
         (
-            "📈 Interpolación Polinomial",
-            "Interpolación Lineal, Cuadrática Inversa, Polinomio de Lagrange y diferencias finitas de Newton-Gregory Ascendente y Descendente.",
+            "interpolacion",
+            "Interpolación Polinomial",
+            "Construye curvas continuas que pasan exactamente por puntos medidos.",
             "views/view_interpolacion.py",
-            "Abrir Interpolación",
+            "Explorar Interpolación",
+            "UNIDAD 05 • POLINOMIOS",
+            False,
         ),
         (
-            "📊 Integración y Derivación",
-            r"Derivación numérica con Gregory y reglas de Trapecio, Simpson $1/3$, Simpson $3/8$ y combinaciones adaptativas al ajustar $\Delta h$ o $n$ en vivo.",
+            "integracion",
+            "Integración y Derivación",
+            "Estima pendientes locales y áreas acumuladas adaptando subintervalos en vivo.",
             "views/view_integracion.py",
-            "Abrir Integración y Derivación",
+            "Explorar Integración",
+            "UNIDAD 06 • CUADRATURA",
+            False,
         ),
         (
-            "⏱️ Ecuaciones Diferenciales (EDO)",
-            r"Problemas de Valor Inicial (PVI): Euler, Heun (Euler Modificado), RK2, RK4 y Predictor-Corrector de Milne con paso $\Delta h$ ajustable y solución exacta.",
+            "edo",
+            "Ecuaciones Diferenciales (EDO)",
+            "Simula trayectorias paso a paso desde un punto inicial con error controlado.",
             "views/view_edo.py",
-            "Abrir EDO / PVI",
+            "Explorar EDO / PVI",
+            "UNIDAD 07 • PVI",
+            False,
+        ),
+        (
+            "arena_versus",
+            "Arena Versus (Duelo)",
+            "Enfrenta dos algoritmos de la misma familia y compara velocidad y error.",
+            "views/arena_versus.py",
+            "Entrar a Arena Versus",
+            "COMPARADOR DIRECTO",
+            True,
+        ),
+        (
+            "laboratorios",
+            "Histórico de Cursada",
+            "Repasa los TPs 1 al 7, la serie de Fibonacci N=200 y la razón áurea.",
+            "views/view_laboratorios.py",
+            "Ver Laboratorios",
+            "ANEXO CURRICULAR",
+            False,
         ),
     ]
 
-    for idx in range(0, len(tarjetas), 2):
-        col_izq, col_der = st.columns(2)
-        for col, item in zip((col_izq, col_der), tarjetas[idx : idx + 2]):
-            titulo, desc, ruta, texto_btn = item
+    for idx in range(0, 6, 3):
+        cols = st.columns(3)
+        for col, item in zip(cols, tarjetas[idx : idx + 3]):
+            clave_svg, titulo, desc, ruta, texto_btn, tag, primario = item
             with col:
-                with st.container(border=True):
-                    st.markdown(f"#### {titulo}")
-                    st.markdown(desc)
-                    if st.button(texto_btn, key=f"card_{ruta}", use_container_width=True):
-                        st.switch_page(ruta)
+                render_tarjeta_catalogo(
+                    clave_svg=clave_svg,
+                    titulo=titulo,
+                    descripcion=desc,
+                    ruta=ruta,
+                    texto_boton=texto_btn,
+                    key=f"card_{ruta}",
+                    subtitulo_tag=tag,
+                    primary=primario,
+                )
 
-    with st.container(border=True):
-        c1, c2 = st.columns([3.2, 1.3])
-        with c1:
-            st.markdown("#### 📚 Histórico de Cursada (Laboratorios 1 al 7)")
+    cols_extra = st.columns(3)
+    for col, item in zip(cols_extra[:2], tarjetas[6:8]):
+        clave_svg, titulo, desc, ruta, texto_btn, tag, primario = item
+        with col:
+            render_tarjeta_catalogo(
+                clave_svg=clave_svg,
+                titulo=titulo,
+                descripcion=desc,
+                ruta=ruta,
+                texto_boton=texto_btn,
+                key=f"card_{ruta}",
+                subtitulo_tag=tag,
+                primary=primario,
+            )
+
+    with cols_extra[2]:
+        with st.container():
             st.markdown(
-                r"Anexo curricular con los experimentos clásicos de los Trabajos Prácticos "
-                r"(Fibonacci con $N = 200$, razón áurea $\varphi$, sumatorias y mapa completo de la cursada)."
+                construir_html_tarjeta_catalogo(
+                    clave_svg="feedback",
+                    titulo="Feedback y Aportes",
+                    descripcion="Envía sugerencias de cátedra o reporta casos límite del simulador.",
+                    subtitulo_tag="COMUNIDAD • PFC",
+                ),
+                unsafe_allow_html=True,
             )
-        with c2:
-            if st.button("📚 Ver Laboratorios", use_container_width=True):
-                st.switch_page("views/view_laboratorios.py")
-
-    with st.container(border=True):
-        cf1, cf2 = st.columns([3.2, 1.3])
-        with cf1:
-            st.markdown("#### 💬 Tu opinión nos ayuda a mejorar Arandú")
-            st.write(
-                "Si sos docente o estudiante y querés sugerir mejoras en las explicaciones, "
-                "reportar algún caso particular o evaluar la experiencia de uso para el PFC, "
-                "completá nuestro breve formulario de feedback."
-            )
-        with cf2:
-            st.write("")
             st.link_button(
                 "📝 Enviar Feedback",
                 FEEDBACK_FORMS_URL,
-                type="primary",
                 use_container_width=True,
             )
 
