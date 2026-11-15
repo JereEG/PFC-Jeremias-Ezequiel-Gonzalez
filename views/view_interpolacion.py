@@ -32,7 +32,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mini_catalogo_vista,
+    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -425,31 +425,49 @@ def vista_interpolacion() -> None:
         r"Construcción de polinomios sobre tablas discretas $(x_i, y_i)$ con detección automática "
         r"de pérdida de equidistancia ($\Delta h$) y alerta del fenómeno de Runge."
     )
-    render_mini_catalogo_vista(
-        [
-            ("1. Lineal", "Une dos puntos consecutivos con una recta directa o inversa."),
-            ("2. Cuadrática Inversa", "Ajusta una parábola en 3 nodos para despejar x* dado y*."),
-            ("3. Lagrange", "Combina bases polinomiales sobre nodos con paso irregular."),
-            ("4. Newton-Gregory", "Acelera con diferencias finitas Δy cuando Δh es constante."),
-        ]
+    activo = render_mazo_tarot_metodos(
+        "interpolacion",
+        (
+            {
+                "romano": "I",
+                "clave_svg": "tarot_interp_lineal",
+                "titulo": "Lineal (Directa / Inversa)",
+                "subtitulo_arcano": "ARCANO I · GRADO 1",
+                "resumen": "Une dos puntos consecutivos con una recta para evaluar o despejar x*.",
+                "pista": "2 nodos · Directa / Inversa",
+            },
+            {
+                "romano": "II",
+                "clave_svg": "tarot_cuad_inversa",
+                "titulo": "Cuadrática Inversa",
+                "subtitulo_arcano": "ARCANO II · PARÁBOLA",
+                "resumen": "Ajusta una parábola en tres nodos para despejar raíces reales x* dado y*.",
+                "pista": "3 nodos · Inversión x = P(y)",
+            },
+            {
+                "romano": "III",
+                "clave_svg": "tarot_lagrange",
+                "titulo": "Lagrange (Nodos Libres)",
+                "subtitulo_arcano": "ARCANO III · BASES L_i",
+                "resumen": "Combina bases polinomiales sobre nodos con paso irregular Δh variable.",
+                "pista": "Paso libre Δh · Cualquier malla",
+            },
+            {
+                "romano": "IV",
+                "clave_svg": "tarot_newton_gregory",
+                "titulo": "Newton-Gregory (Asc / Desc)",
+                "subtitulo_arcano": "ARCANO IV · DIFERENCIAS",
+                "resumen": "Acelera con tabla de diferencias finitas Δy cuando Δh es constante.",
+                "pista": "Δh constante · Asc / Desc",
+            },
+        ),
     )
-
-    tabs = st.tabs(
-        [
-            "1️⃣ Lineal (Directa / Inversa)",
-            "2️⃣ Cuadrática Inversa",
-            "3️⃣ Lagrange (Nodos Libres)",
-            "4️⃣ Newton-Gregory (Asc / Desc)",
-        ]
-    )
-    with tabs[0]:
-        _tab_lineal()
-    with tabs[1]:
-        _tab_cuadratica_inversa()
-    with tabs[2]:
-        _tab_lagrange()
-    with tabs[3]:
-        _tab_newton_gregory()
+    (
+        _tab_lineal,
+        _tab_cuadratica_inversa,
+        _tab_lagrange,
+        _tab_newton_gregory,
+    )[activo]()
 
 
 vista_interpolacion()

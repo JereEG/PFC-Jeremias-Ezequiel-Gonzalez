@@ -27,7 +27,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mini_catalogo_vista,
+    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -338,27 +338,36 @@ def vista_edo() -> None:
     st.markdown(
         r"Resolución numérica paso a paso sobre malla $\Delta h$ dinámica y contraste directo contra solución analítica."
     )
-    render_mini_catalogo_vista(
-        [
-            ("1. Euler y Heun", "Euler usa una pendiente O(h); Heun promedia entrada y salida O(h²)."),
-            ("2. Runge-Kutta (RK2/RK4)", "Autoiniciable con 2 o 4 pendientes ponderadas O(h²) / O(h⁴)."),
-            ("3. Milne Predictor-Corrector", "Usa 4 pasos previos de RK4 y corrige iterativamente O(h⁴)."),
-        ]
+    activo = render_mazo_tarot_metodos(
+        "edo",
+        (
+            {
+                "romano": "I",
+                "clave_svg": "tarot_euler_heun",
+                "titulo": "Euler y Heun",
+                "subtitulo_arcano": "ARCANO I · PASO SIMPLE",
+                "resumen": "Euler proyecta una pendiente O(h); Heun promedia entrada y salida O(h²).",
+                "pista": "Tangente vs. Corrector Heun",
+            },
+            {
+                "romano": "II",
+                "clave_svg": "tarot_runge_kutta",
+                "titulo": "Runge-Kutta (RK2 / RK4)",
+                "subtitulo_arcano": "ARCANO II · MULTI-PENDIENTE",
+                "resumen": "Esquema autoiniciable de referencia con 2 o 4 pendientes ponderadas.",
+                "pista": "Autoiniciable · Orden O(h⁴)",
+            },
+            {
+                "romano": "III",
+                "clave_svg": "tarot_milne",
+                "titulo": "Predictor-Corrector de Milne",
+                "subtitulo_arcano": "ARCANO III · MULTI-PASO",
+                "resumen": "Arranca con 4 pasos de RK4 y corrige iterativamente cada y_{n+1}.",
+                "pista": "Memoria 4 pasos · Orden O(h⁴)",
+            },
+        ),
     )
-
-    tabs = st.tabs(
-        [
-            "1️⃣ Euler y Heun",
-            "2️⃣ Runge-Kutta (RK2 / RK4)",
-            "3️⃣ Predictor-Corrector de Milne",
-        ]
-    )
-    with tabs[0]:
-        _tab_euler_heun()
-    with tabs[1]:
-        _tab_runge_kutta()
-    with tabs[2]:
-        _tab_milne()
+    (_tab_euler_heun, _tab_runge_kutta, _tab_milne)[activo]()
 
 
 vista_edo()

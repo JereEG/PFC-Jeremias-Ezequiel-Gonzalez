@@ -25,7 +25,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mini_catalogo_vista,
+    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -338,30 +338,50 @@ def vista_integracion() -> None:
         r"Diferenciación numérica mediante Gregory y cuadratura compuesta ($O(h^2)$ a $O(h^4)$) "
         r"con adaptación automática ante cambios de $\Delta h$ o paridad $n$."
     )
-    render_mini_catalogo_vista(
-        [
-            ("1. Diferenciación", "Estima f'(x*) y f''(x*) en puntos tabulares o libres u."),
-            ("2. Trapecios O(h²)", "Aproxima el área uniendo pares de puntos con segmentos rectos."),
-            ("3. Simpson 1/3 O(h⁴)", "Ajusta parábolas cada 2 subintervalos (requiere n par)."),
-            ("4. Simpson 3/8 y Mixto", "Aplica arcos cúbicos o combina esquemas ante paridad impar."),
-        ]
+    activo = render_mazo_tarot_metodos(
+        "integracion",
+        (
+            {
+                "romano": "I",
+                "clave_svg": "tarot_diferenciacion",
+                "titulo": "Diferenciación (Gregory)",
+                "subtitulo_arcano": "ARCANO I · DERIVADAS",
+                "resumen": "Estima f'(x*) y f''(x*) tanto en puntos tabulares como con paso libre u.",
+                "pista": "Diferencias · 1ra y 2da derivada",
+            },
+            {
+                "romano": "II",
+                "clave_svg": "tarot_trapecios",
+                "titulo": "Regla de Trapecios",
+                "subtitulo_arcano": "ARCANO II · ORDEN O(h²)",
+                "resumen": "Aproxima el área uniendo pares consecutivos con segmentos rectos.",
+                "pista": "Poligonal recta · Cualquier n",
+            },
+            {
+                "romano": "III",
+                "clave_svg": "tarot_simpson_13",
+                "titulo": "Regla de Simpson 1/3",
+                "subtitulo_arcano": "ARCANO III · ORDEN O(h⁴)",
+                "resumen": "Ajusta arcos parabólicos cada dos subintervalos para máxima precisión.",
+                "pista": "Parábolas · Requiere n par",
+            },
+            {
+                "romano": "IV",
+                "clave_svg": "tarot_simpson_38",
+                "titulo": "Simpson 3/8 y Combinado",
+                "subtitulo_arcano": "ARCANO IV · CÚBICO MIXTO",
+                "resumen": "Aplica arcos cúbicos o combina esquemas automáticamente si n es impar.",
+                "pista": "Cúbicas 3/8 · Paridad adaptable",
+            },
+        ),
     )
-
-    tabs = st.tabs(
-        [
-            "1️⃣ Diferenciación (Gregory)",
-            "2️⃣ Regla de Trapecios",
-            "3️⃣ Regla de Simpson 1/3",
-            "4️⃣ Simpson 3/8 y Combinado",
-        ]
-    )
-    with tabs[0]:
+    if activo == 0:
         _tab_diferenciacion()
-    with tabs[1]:
+    elif activo == 1:
         _render_integracion_tab("trapecio", "int_trap", "trapecio")
-    with tabs[2]:
+    elif activo == 2:
         _render_integracion_tab("simpson_1_3", "int_s13", "simpson_1_3")
-    with tabs[3]:
+    else:
         _render_integracion_tab("simpson_3_8_combinado", "int_s38", "simpson_3_8")
 
 

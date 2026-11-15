@@ -26,7 +26,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mini_catalogo_vista,
+    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -420,31 +420,49 @@ def vista_fundamentos() -> None:
         r"Cómo traduce la CPU funciones ($e^x$, $\pi$) a bucles, por qué se pierde precisión en punto flotante ($k$ dígitos) "
         r"y cómo reordenar expresiones para preservar exactitud."
     )
-    render_mini_catalogo_vista(
-        [
-            ("1. Series en CPU", "Aproxima eˣ, ln(1+x) y π sumando términos hasta cumplir tolerancia."),
-            ("2. Punto Flotante", "Muestra cuándo (u+v)+w ≠ u+(v+w) al limitar k dígitos en mantisa."),
-            ("3. Cancelación", "Evita restas de números casi iguales racionalizando la fórmula."),
-            ("4. Horner O(N)", "Evalúa polinomios anidando productos con menos redondeos."),
-        ]
+    activo = render_mazo_tarot_metodos(
+        "fundamentos",
+        (
+            {
+                "romano": "I",
+                "clave_svg": "tarot_taylor",
+                "titulo": "Series de Taylor (e^x y π)",
+                "subtitulo_arcano": "ARCANO I · TRUNCAMIENTO",
+                "resumen": "Aproxima e^x, ln(1+x) y π sumando términos en CPU hasta cumplir tolerancia.",
+                "pista": "Bucle for CPU · Error de resto",
+            },
+            {
+                "romano": "II",
+                "clave_svg": "tarot_aritmetica",
+                "titulo": "Aritmética de Máquina & Asociatividad",
+                "subtitulo_arcano": "ARCANO II · MANTISA k",
+                "resumen": "Comprueba cuándo (u+v)+w != u+(v+w) al restringir k dígitos flotantes.",
+                "pista": "Redondeo vs. Truncamiento",
+            },
+            {
+                "romano": "III",
+                "clave_svg": "tarot_cancelacion",
+                "titulo": "Cancelación Cuadrática",
+                "subtitulo_arcano": "ARCANO III · ESTABILIDAD",
+                "resumen": "Evita restas entre números casi iguales mediante racionalización algebraica.",
+                "pista": "Pérdida de dígitos · Condición",
+            },
+            {
+                "romano": "IV",
+                "clave_svg": "tarot_horner",
+                "titulo": "Forma Anidada de Horner",
+                "subtitulo_arcano": "ARCANO IV · COSTO O(N)",
+                "resumen": "Evalúa polinomios anidando productos con menos multiplicaciones y redondeos.",
+                "pista": "Polinomio anidado · O(N)",
+            },
+        ),
     )
-
-    tabs = st.tabs(
-        [
-            "1️⃣ Series de Taylor (eˣ y π)",
-            "2️⃣ Aritmética de Máquina & Asociatividad",
-            "3️⃣ Cancelación Cuadrática",
-            "4️⃣ Forma Anidada de Horner",
-        ]
-    )
-    with tabs[0]:
-        _tab_series_taylor()
-    with tabs[1]:
-        _tab_aritmetica_maquina()
-    with tabs[2]:
-        _tab_cancelacion_cuadratica()
-    with tabs[3]:
-        _tab_horner()
+    (
+        _tab_series_taylor,
+        _tab_aritmetica_maquina,
+        _tab_cancelacion_cuadratica,
+        _tab_horner,
+    )[activo]()
 
 
 vista_fundamentos()

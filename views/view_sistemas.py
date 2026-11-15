@@ -28,7 +28,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mini_catalogo_vista,
+    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -507,39 +507,67 @@ def vista_sistemas() -> None:
         r"Métodos directos ($O(n^3)$ por triangulación), esquemas iterativos condicionados por dominancia diagonal "
         r"y extracción del espectro característico."
     )
-    render_mini_catalogo_vista(
-        [
-            ("1. Gauss", "Triangula la matriz con pivoteo y despeja hacia atrás."),
-            ("2. Gauss-Jordan", "Diagonaliza directo y calcula la matriz inversa A⁻¹."),
-            ("3. Factorización LU", "Descompone A = L·U para resolver múltiples vectores b."),
-            ("4. Gauss-Seidel", "Itera variable por variable si A es diagonal dominante."),
-            ("5. Potencias", "Extrae el autovalor |λ_max| o |λ_min| por iteración."),
-            ("6. Faddeev-Leverrier", "Obtiene el polinomio característico completo y su espectro."),
-        ]
+    activo = render_mazo_tarot_metodos(
+        "sistemas",
+        (
+            {
+                "romano": "I",
+                "clave_svg": "tarot_gauss",
+                "titulo": "Eliminación de Gauss",
+                "subtitulo_arcano": "ARCANO I · DIRECTO O(n³)",
+                "resumen": "Triangula la matriz con pivoteo parcial y despeja por sustitución inversa.",
+                "pista": "Triangular superior · Pivoteo",
+            },
+            {
+                "romano": "II",
+                "clave_svg": "tarot_gauss_jordan",
+                "titulo": "Gauss-Jordan",
+                "subtitulo_arcano": "ARCANO II · DIAGONAL",
+                "resumen": "Reduce la matriz directamente a la identidad I y calcula su inversa A⁻¹.",
+                "pista": "Identidad I · Matriz Inversa",
+            },
+            {
+                "romano": "III",
+                "clave_svg": "tarot_lu",
+                "titulo": "Factorización LU",
+                "subtitulo_arcano": "ARCANO III · DESCOMPOSICIÓN",
+                "resumen": "Descompone A = L·U para resolver múltiples vectores independientes b.",
+                "pista": "Reutilizable · A = L·U",
+            },
+            {
+                "romano": "IV",
+                "clave_svg": "tarot_gauss_seidel",
+                "titulo": "Gauss-Seidel",
+                "subtitulo_arcano": "ARCANO IV · ITERATIVO",
+                "resumen": "Actualiza cada incógnita al vuelo garantizando convergencia si domina diagonal.",
+                "pista": "Iterativo · Dominancia diagonal",
+            },
+            {
+                "romano": "V",
+                "clave_svg": "tarot_potencias",
+                "titulo": "Método de Potencias",
+                "subtitulo_arcano": "ARCANO V · EIGENVALOR",
+                "resumen": "Extrae el autovalor dominante |λ_max| o el menor |λ_min| por iteración.",
+                "pista": "Cociente de Rayleigh · Espectro",
+            },
+            {
+                "romano": "VI",
+                "clave_svg": "tarot_faddeev",
+                "titulo": "Faddeev-Leverrier",
+                "subtitulo_arcano": "ARCANO VI · POLINOMIO",
+                "resumen": "Construye el polinomio característico completo usando trazas sucesivas.",
+                "pista": "Espectro completo · Trazas",
+            },
+        ),
     )
-
-    tabs = st.tabs(
-        [
-            "1️⃣ Eliminación de Gauss",
-            "2️⃣ Gauss-Jordan",
-            "3️⃣ Factorización LU",
-            "4️⃣ Gauss-Seidel",
-            "5️⃣ Método de Potencias",
-            "6️⃣ Faddeev-Leverrier",
-        ]
-    )
-    with tabs[0]:
-        _tab_gauss()
-    with tabs[1]:
-        _tab_gauss_jordan()
-    with tabs[2]:
-        _tab_lu()
-    with tabs[3]:
-        _tab_gauss_seidel()
-    with tabs[4]:
-        _tab_potencias()
-    with tabs[5]:
-        _tab_faddeev()
+    (
+        _tab_gauss,
+        _tab_gauss_jordan,
+        _tab_lu,
+        _tab_gauss_seidel,
+        _tab_potencias,
+        _tab_faddeev,
+    )[activo]()
 
 
 vista_sistemas()

@@ -31,7 +31,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
-    render_mini_catalogo_vista,
+    render_mazo_tarot_metodos,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_slider_paso_k,
@@ -474,31 +474,49 @@ def vista_raices() -> None:
         r"Localización inicial, encierro con cambio de signo garantizado (**Bolzano**) y algoritmos abiertos "
         r"desde convergencia lineal hasta orden cuadrático."
     )
-    render_mini_catalogo_vista(
-        [
-            ("1. Bisección", "Divide [a, b] por la mitad garantizando convergencia si f(a)·f(b) < 0."),
-            ("2. Regula Falsi", "Traza una secante ponderada dentro del intervalo manteniendo el encierro."),
-            ("3. Newton-Raphson", "Usa la recta tangente f'(x) para acelerar a convergencia cuadrática."),
-            ("4. Punto Fijo + Aitken", "Itera x = g(x) si |g'(x)| < 1 y extrapola saltos con Δ²."),
-        ]
+    activo = render_mazo_tarot_metodos(
+        "raices",
+        (
+            {
+                "romano": "I",
+                "clave_svg": "tarot_biseccion",
+                "titulo": "Bisección (y Descartes/Tanteo)",
+                "subtitulo_arcano": "ARCANO I · BOLZANO",
+                "resumen": "Divide [a, b] por la mitad garantizando convergencia si f(a)·f(b) < 0.",
+                "pista": "Orden 1 · Encierro seguro",
+            },
+            {
+                "romano": "II",
+                "clave_svg": "tarot_regula_falsi",
+                "titulo": "Interpolación Lineal (Regula Falsi)",
+                "subtitulo_arcano": "ARCANO II · SECANTE",
+                "resumen": "Traza una secante ponderada dentro del intervalo manteniendo el encierro.",
+                "pista": "Cuerda ponderada · Bolzano",
+            },
+            {
+                "romano": "III",
+                "clave_svg": "tarot_newton_raphson",
+                "titulo": "Newton-Raphson (Fourier)",
+                "subtitulo_arcano": "ARCANO III · TANGENTE",
+                "resumen": "Usa la recta tangente f'(x) verificando Fourier para converger rápido.",
+                "pista": "Orden 2 cuadrático · f'(x) != 0",
+            },
+            {
+                "romano": "IV",
+                "clave_svg": "tarot_punto_fijo",
+                "titulo": "Punto Fijo & Aitken Δ²",
+                "subtitulo_arcano": "ARCANO IV · RECURRENCIA",
+                "resumen": "Itera x = g(x) bajo |g'(x)| < 1 y extrapola saltos con Aitken Δ².",
+                "pista": "Telaraña g(x) · Aceleración Δ²",
+            },
+        ),
     )
-
-    tabs = st.tabs(
-        [
-            "1️⃣ Bisección (y Descartes/Tanteo)",
-            "2️⃣ Interpolación Lineal (Regula Falsi)",
-            "3️⃣ Newton-Raphson (Fourier)",
-            "4️⃣ Punto Fijo & Aitken Δ²",
-        ]
-    )
-    with tabs[0]:
-        _tab_biseccion()
-    with tabs[1]:
-        _tab_interpolacion_lineal()
-    with tabs[2]:
-        _tab_newton_raphson()
-    with tabs[3]:
-        _tab_punto_fijo_aitken()
+    (
+        _tab_biseccion,
+        _tab_interpolacion_lineal,
+        _tab_newton_raphson,
+        _tab_punto_fijo_aitken,
+    )[activo]()
 
 
 vista_raices()
