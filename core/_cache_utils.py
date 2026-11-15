@@ -7,15 +7,111 @@ y sanitización de datos numéricos para Plotly y Streamlit.
 
 from __future__ import annotations
 
+import ast
 import math
+import re
 from typing import Any, Callable, Iterable
 
 import numpy as np
 import streamlit as st
 
+_MAX_LEN_EXPR = 220
+_MAX_ANIDAMIENTO_EXPR = 12
+_MAX_PASOS_AST = 120
+_MAX_EXPONENTE_LITERAL = 50.0
+_MAX_GRADO_POLINOMIO = 30
+_FUNCIONES_SEGURAS = frozenset({
+    "sin", "cos", "tan", "asin", "acos", "atan",
+    "sinh", "cosh", "tanh", "exp", "log", "ln", "sqrt", "abs", "Abs",
+})
+_CONSTANTES_SEGURAS = frozenset({"e", "pi", "E"})
+_RE_IDENTIFICADORES = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\b")
+_RE_ATRIBUTO = re.compile(r"\.[A-Za-z_]")
+
 
 def _normalizar_expr_str(expr_str: str) -> str:
     return " ".join((expr_str or "").strip().split())
+
+
+def _validar_nodo_ast(nodo: ast.AST, variables: frozenset[str], contador: list[int], en_potencia: bool = False) -> None:
+    contador[0] += 1
+    if contador[0] > _MAX_PASOS_AST:
+        raise ValueError("La expresión es demasiado compleja.")
+
+    if isinstance(nodo, ast.Expression):
+        _validar_nodo_ast(nodo.body, variables, contador)
+    elif isinstance(nodo, ast.Constant):
+        if not isinstance(nodo.value, (int, float)) or isinstance(nodo.value, bool):
+            raise ValueError("Solo se permiten constantes numéricas reales.")
+        if abs(float(nodo.value)) > 1e12:
+            raise ValueError("Constante numérica fuera de rango permitido.")
+    elif isinstance(nodo, ast.Name):
+        if nodo.id not in variables and nodo.id not in _CONSTANTES_SEGURAS:
+            raise ValueError(f"Símbolo no permitido: '{nodo.id}'.")
+    elif isinstance(nodo, ast.UnaryOp):
+        if not isinstance(nodo.op, (ast.UAdd, ast.USub)):
+            raise ValueError("Operador unario no permitido.")
+        _validar_nodo_ast(nodo.operand, variables, contador)
+    elif isinstance(nodo, ast.BinOp):
+        if not isinstance(nodo.op, (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow)):
+            raise ValueError("Operador binario no permitido.")
+        es_pow = isinstance(nodo.op, ast.Pow)
+        if es_pow and en_potencia:
+            raise ValueError("No se permiten torres de potencias anidadas.")
+        _validar_nodo_ast(nodo.left, variables, contador, en_potencia=es_pow)
+        _validar_nodo_ast(nodo.right, variables, contador, en_potencia=es_pow)
+        if es_pow and isinstance(nodo.right, ast.Constant) and abs(float(nodo.right.value)) > _MAX_EXPONENTE_LITERAL:
+            raise ValueError(f"Exponente literal fuera de rango (|k| <= {int(_MAX_EXPONENTE_LITERAL)}).")
+        if es_pow and isinstance(nodo.right, ast.UnaryOp) and isinstance(nodo.right.operand, ast.Constant):
+            if abs(float(nodo.right.operand.value)) > _MAX_EXPONENTE_LITERAL:
+                raise ValueError(f"Exponente literal fuera de rango (|k| <= {int(_MAX_EXPONENTE_LITERAL)}).")
+    elif isinstance(nodo, ast.Call):
+        if not isinstance(nodo.func, ast.Name) or nodo.func.id not in _FUNCIONES_SEGURAS:
+            raise ValueError("Función matemática no permitida.")
+        if nodo.keywords or len(nodo.args) != 1:
+            raise ValueError("Cada función matemática admite exactamente 1 argumento posicional.")
+        _validar_nodo_ast(nodo.args[0], variables, contador)
+    else:
+        raise ValueError("Construcción sintáctica no permitida en expresiones matemáticas.")
+
+
+def _validar_expresion_segura(expr_str: str, variables: frozenset[str] = frozenset({"x"})) -> str:
+    """Valida estrictamente expresiones matemáticas contra inyección de código y DoS."""
+    texto = _normalizar_expr_str(expr_str)
+    if not texto:
+        raise ValueError("La expresión matemática no puede estar vacía.")
+    if len(texto) > _MAX_LEN_EXPR:
+        raise ValueError(f"La expresión supera el máximo permitido de {_MAX_LEN_EXPR} caracteres.")
+    if "__" in texto or _RE_ATRIBUTO.search(texto) or any(ch in texto for ch in "[]{};:=\"'\\`@~"):
+        raise ValueError("La expresión contiene caracteres o accesos no permitidos.")
+
+    profundidad = 0
+    for ch in texto:
+        if ch == "(":
+            profundidad += 1
+            if profundidad > _MAX_ANIDAMIENTO_EXPR:
+                raise ValueError("Demasiados paréntesis anidados en la expresión.")
+        elif ch == ")":
+            profundidad -= 1
+            if profundidad < 0:
+                raise ValueError("Paréntesis desbalanceados en la expresión.")
+    if profundidad != 0:
+        raise ValueError("Paréntesis desbalanceados en la expresión.")
+
+    permitidos = variables | _CONSTANTES_SEGURAS | _FUNCIONES_SEGURAS
+    for ident in _RE_IDENTIFICADORES.findall(texto):
+        if ident not in permitidos:
+            raise ValueError(f"Identificador no permitido en la expresión: '{ident}'.")
+
+    texto_ast = texto.replace("^", "**")
+    texto_ast = re.sub(r"(\d)([A-Za-z(])", r"\1*\2", texto_ast)
+    texto_ast = re.sub(r"\)\s*([A-Za-z0-9(])", r")*\1", texto_ast)
+    try:
+        arbol = ast.parse(texto_ast, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError(f"Sintaxis matemática inválida: {exc.msg}") from exc
+    _validar_nodo_ast(arbol, variables, [0])
+    return texto
 
 
 def limpiar_valores_plotly(
@@ -110,7 +206,7 @@ def analizar_raices_sympy_cached(f_str: str) -> dict[str, Any]:
     """Parsea f(x), calcula f'(x), f''(x), LaTeX y Descartes en caché para expresiones personalizadas."""
     import sympy as sp
 
-    texto = _normalizar_expr_str(f_str)
+    texto = _validar_expresion_segura(f_str)
     x_sym = sp.Symbol("x")
     try:
         f_simb = sp.sympify(texto, locals=_sympy_entorno_1d(sp, x_sym))
@@ -127,6 +223,8 @@ def analizar_raices_sympy_cached(f_str: str) -> dict[str, Any]:
     else:
         poly_pos = sp.Poly(f_simb, x_sym)
         grado = int(poly_pos.degree())
+        if grado > _MAX_GRADO_POLINOMIO:
+            raise ValueError(f"El grado del polinomio ({grado}) supera el máximo permitido ({_MAX_GRADO_POLINOMIO}).")
         coefs_pos = [float(c) for _, c in poly_pos.terms() if abs(float(c)) > 1e-14]
         signos_pos = ["+" if c > 0 else "-" for c in coefs_pos]
         cambios_pos = sum(1 for i in range(len(signos_pos) - 1) if signos_pos[i] != signos_pos[i + 1])
@@ -169,7 +267,7 @@ def compilar_lambdify_raices(f_str: str) -> tuple[Any, Any, Any]:
     """Compila con sp.lambdify(..., 'numpy') las derivadas f, f' y f'' y retiene en memoria."""
     import sympy as sp
 
-    texto = _normalizar_expr_str(f_str)
+    texto = _validar_expresion_segura(f_str)
     x_sym = sp.Symbol("x")
     try:
         f_simb = sp.sympify(texto, locals=_sympy_entorno_1d(sp, x_sym))
@@ -187,7 +285,7 @@ def compilar_lambdify_raices(f_str: str) -> tuple[Any, Any, Any]:
 def analizar_g_pf_sympy_cached(g_str: str) -> dict[str, str]:
     import sympy as sp
 
-    texto = _normalizar_expr_str(g_str)
+    texto = _validar_expresion_segura(g_str)
     x_sym = sp.Symbol("x")
     try:
         g_simb = sp.sympify(texto, locals=_sympy_entorno_1d(sp, x_sym))
@@ -201,7 +299,7 @@ def analizar_g_pf_sympy_cached(g_str: str) -> dict[str, str]:
 def compilar_lambdify_pf(g_str: str) -> tuple[Any, Any]:
     import sympy as sp
 
-    texto = _normalizar_expr_str(g_str)
+    texto = _validar_expresion_segura(g_str)
     x_sym = sp.Symbol("x")
     try:
         g_simb = sp.sympify(texto, locals=_sympy_entorno_1d(sp, x_sym))
@@ -215,7 +313,7 @@ def compilar_lambdify_pf(g_str: str) -> tuple[Any, Any]:
 def compilar_lambdify_1d(f_str: str) -> Any:
     import sympy as sp
 
-    texto = _normalizar_expr_str(f_str)
+    texto = _validar_expresion_segura(f_str)
     x_sym = sp.Symbol("x")
     try:
         expr = sp.sympify(texto, locals=_sympy_entorno_1d(sp, x_sym))
@@ -258,9 +356,7 @@ def analizar_edo_f_cached(f_str: str) -> str:
         standard_transformations,
     )
 
-    texto = _normalizar_expr_str(f_str)
-    if not texto:
-        raise ValueError("La expresión f(x, y) no puede estar vacía.")
+    texto = _validar_expresion_segura(f_str, variables=frozenset({"x", "y"}))
     x_sym, y_sym = sp.symbols("x y")
     entorno = {
         "x": x_sym, "y": y_sym, "e": sp.E, "pi": sp.pi,
@@ -269,7 +365,7 @@ def analizar_edo_f_cached(f_str: str) -> str:
     }
     transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, transformations=transf)
+        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
         return sp.latex(expr)
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar f(x, y) = '{f_str}': {exc}") from exc
@@ -285,7 +381,7 @@ def compilar_lambdify_edo_f(f_str: str) -> Any:
         standard_transformations,
     )
 
-    texto = _normalizar_expr_str(f_str)
+    texto = _validar_expresion_segura(f_str, variables=frozenset({"x", "y"}))
     x_sym, y_sym = sp.symbols("x y")
     entorno = {
         "x": x_sym, "y": y_sym, "e": sp.E, "pi": sp.pi,
@@ -294,7 +390,7 @@ def compilar_lambdify_edo_f(f_str: str) -> Any:
     }
     transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, transformations=transf)
+        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
         return sp.lambdify((x_sym, y_sym), expr, "numpy")
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar f(x, y) = '{f_str}': {exc}") from exc
@@ -310,9 +406,7 @@ def analizar_edo_exacta_cached(y_str: str) -> str:
         standard_transformations,
     )
 
-    texto = _normalizar_expr_str(y_str)
-    if not texto:
-        raise ValueError("La expresión exacta y(x) está vacía.")
+    texto = _validar_expresion_segura(y_str)
     x_sym = sp.Symbol("x")
     entorno = {
         "x": x_sym, "e": sp.E, "pi": sp.pi,
@@ -321,7 +415,7 @@ def analizar_edo_exacta_cached(y_str: str) -> str:
     }
     transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, transformations=transf)
+        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
         return sp.latex(expr)
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar y_exacta(x) = '{y_str}': {exc}") from exc
@@ -337,7 +431,7 @@ def compilar_lambdify_edo_exacta(y_str: str) -> Any:
         standard_transformations,
     )
 
-    texto = _normalizar_expr_str(y_str)
+    texto = _validar_expresion_segura(y_str)
     x_sym = sp.Symbol("x")
     entorno = {
         "x": x_sym, "e": sp.E, "pi": sp.pi,
@@ -346,7 +440,7 @@ def compilar_lambdify_edo_exacta(y_str: str) -> Any:
     }
     transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, transformations=transf)
+        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
         return sp.lambdify(x_sym, expr, "numpy")
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar y_exacta(x) = '{y_str}': {exc}") from exc
@@ -356,7 +450,7 @@ def compilar_lambdify_edo_exacta(y_str: str) -> Any:
 def integral_sympy_cached(f_str: str, a_tot: float, b_tot: float) -> dict[str, Any]:
     import sympy as sp
 
-    texto = _normalizar_expr_str(f_str)
+    texto = _validar_expresion_segura(f_str)
     x_sym = sp.Symbol("x")
     f_simb = sp.sympify(texto, locals=_sympy_entorno_1d(sp, x_sym))
     integral_exacta = float(sp.N(sp.integrate(f_simb, (x_sym, float(a_tot), float(b_tot)))))

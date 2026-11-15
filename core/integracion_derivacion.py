@@ -629,6 +629,8 @@ def remuestrear_tabla_integracion(
     a, b = float(xb[0]), float(xb[-1])
 
     if nuevo_n is not None and nuevo_n >= 1:
+        if int(nuevo_n) > 5000:
+            raise ValueError("El número máximo de subintervalos permitido es 5000.")
         x_nuevos = np.linspace(a, b, int(nuevo_n) + 1)
         h_eff = float((b - a) / int(nuevo_n))
     elif nuevo_h is not None and nuevo_h > 0:
@@ -638,6 +640,8 @@ def remuestrear_tabla_integracion(
         else:
             pts = [a]
             while pts[-1] + h_val < b - 1e-7:
+                if len(pts) >= 5000:
+                    raise ValueError("El paso h genera demasiados subintervalos (máximo 5000).")
                 pts.append(round(pts[-1] + h_val, 8))
             if abs(pts[-1] - b) > 1e-6:
                 pts.append(b)

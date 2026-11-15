@@ -91,6 +91,8 @@ def _construir_malla_edo(
     aviso = None
     if n_pasos is not None and n_pasos >= 1:
         n_eff = int(n_pasos)
+        if n_eff > 5000:
+            raise ValueError("El número máximo de pasos permitido es 5000.")
         xf_real = float(x0 + n_eff * h)
         if xf is not None and abs(xf_real - xf) > 1e-6:
             aviso = (
@@ -105,6 +107,8 @@ def _construir_malla_edo(
         raise ValueError(f"El extremo final xf ({xf}) debe ser mayor que x0 ({x0}).")
 
     n_eff = max(1, int(round((xf - x0) / h)))
+    if n_eff > 5000:
+        raise ValueError("El paso h es demasiado pequeño para el intervalo indicado (máximo 5000 pasos).")
     xf_real = float(x0 + n_eff * h)
     if abs(xf_real - xf) > 1e-5:
         aviso = (
