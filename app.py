@@ -15,27 +15,25 @@ if str(ROOT_DIR) not in sys.path:
 
 import streamlit as st
 
+from core.version import APP_VERSION, OFFLINE_PWA_URL, es_entorno_offline_wasm
 from views.theme import (
-    LOGO_JPG_PATH,
-    LOGO_SVG_PATH,
+    FEEDBACK_FORMS_URL,
     aplicar_estilo_arandu,
     obtener_logo_arandu_src,
+    obtener_logos_app,
 )
-from views.ui_shared import FEEDBACK_FORMS_URL
 
-_SIDEBAR_LOGO = LOGO_JPG_PATH if LOGO_JPG_PATH.is_file() else LOGO_SVG_PATH
-_PAGE_ICON = str(LOGO_SVG_PATH) if LOGO_SVG_PATH.is_file() else (str(LOGO_JPG_PATH) if LOGO_JPG_PATH.is_file() else "🌳")
+_SIDEBAR_LOGO, _PAGE_ICON = obtener_logos_app()
 
 st.set_page_config(
-    page_title="Arandú — Métodos Computacionales v3.0",
+    page_title=f"Arandú — Métodos Computacionales v{APP_VERSION}",
     page_icon=_PAGE_ICON,
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-if _SIDEBAR_LOGO.is_file():
-    _ICON_IMG = LOGO_SVG_PATH if LOGO_SVG_PATH.is_file() else _SIDEBAR_LOGO
-    st.logo(str(_SIDEBAR_LOGO), size="large", icon_image=str(_ICON_IMG))
+if _SIDEBAR_LOGO is not None:
+    st.logo(_SIDEBAR_LOGO, size="large", icon_image=_PAGE_ICON if _PAGE_ICON != "🌳" else _SIDEBAR_LOGO)
 
 aplicar_estilo_arandu()
 
@@ -141,9 +139,27 @@ with st.sidebar:
         st.link_button(
             "📝 Dar Feedback",
             FEEDBACK_FORMS_URL,
-            width="stretch",
+            use_container_width=True,
         )
-    st.caption("**Arandú v3.0** • Dark Botanical & Golden Wisdom")
+    if es_entorno_offline_wasm():
+        st.markdown(
+            """
+            <div style="padding: 0.65rem 0.85rem; border-radius: 10px; background-color: rgba(104, 125, 91, 0.22); border: 1px solid #687D5B; border-left: 4px solid #7A9A65; color: #EDE4D3; font-size: 0.86rem; font-weight: 600; margin-top: 0.5rem;">
+                ⚡ Motor Local Activo (100% Sin Internet)
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        with st.container(border=True):
+            st.markdown("#### 📲 Modo Offline (PWA)")
+            st.caption("Ideal para instalar en notebook y estudiar sin Wi-Fi")
+            st.link_button(
+                "📲 Versión 100% Sin Conexión (PWA)",
+                OFFLINE_PWA_URL,
+                use_container_width=True,
+            )
+    st.caption(f"**Arandú v{APP_VERSION}** • Dark Botanical & Golden Wisdom")
     st.caption("Proyecto Final de Carrera • FaCENA — UNNE")
 
 nav.run()

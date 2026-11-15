@@ -1,0 +1,435 @@
+"""
+Generador de distribución estática PWA Offline (stlite + WebAssembly) para Arandú.
+
+Empaqueta exactamente los mismos archivos fuente que Streamlit Community Cloud
+(`app.py`, `core/`, `views/`, `.streamlit/config.toml` y `assets/`) dentro de
+`dist_offline/` listo para desplegar en Vercel o GitHub Pages sin duplicar lógica.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+
+from core.version import APP_VERSION
+
+ROOT_DIR = Path(__file__).resolve().parent
+DIST_DIR = ROOT_DIR / "dist_offline"
+STLITE_CDN_BASE = "https://cdn.jsdelivr.net/npm/@stlite/browser@1.12.2/build"
+REQUIRED_PACKAGES = ["sympy", "numpy", "pandas", "plotly"]
+
+
+def _preparar_directorio_salida() -> None:
+    if DIST_DIR.exists():
+        shutil.rmtree(DIST_DIR)
+    DIST_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _copiar_activos_y_config() -> None:
+    assets_src = ROOT_DIR / "assets"
+    assets_dst = DIST_DIR / "assets"
+    if assets_src.exists():
+        shutil.copytree(
+            assets_src,
+            assets_dst,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".gitkeep"),
+        )
+
+    config_src = ROOT_DIR / ".streamlit" / "config.toml"
+    if config_src.exists():
+        config_dst = DIST_DIR / ".streamlit" / "config.toml"
+        config_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(config_src, config_dst)
+
+
+def _recolectar_vfs() -> dict[str, object]:
+    """Construye el mapa de archivos virtuales (POSIX) para montar en stlite."""
+    archivos: dict[str, object] = {}
+
+    for rel in ("app.py", ".streamlit/config.toml", "assets/svg/arandu.svg"):
+        ruta = ROOT_DIR / rel
+        if ruta.exists():
+            archivos[rel] = ruta.read_text(encoding="utf-8")
+
+    for carpeta in ("core", "views"):
+        dir_path = ROOT_DIR / carpeta
+        if not dir_path.exists():
+            continue
+        for py_file in sorted(dir_path.rglob("*.py")):
+            if "__pycache__" in py_file.parts:
+                continue
+            rel_posix = py_file.relative_to(ROOT_DIR).as_posix()
+            archivos[rel_posix] = py_file.read_text(encoding="utf-8")
+
+    logo_jpg = ROOT_DIR / "assets" / "logo_arandu.jpg"
+    if logo_jpg.exists():
+        archivos["assets/logo_arandu.jpg"] = {"url": "./assets/logo_arandu.jpg"}
+
+    return archivos
+
+
+def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
+    vfs_json = json.dumps(archivos_vfs, ensure_ascii=False).replace("</", "<\\/")
+    pkgs_json = json.dumps(REQUIRED_PACKAGES, ensure_ascii=False)
+    streamlit_cfg_json = json.dumps(
+        {
+            "theme.base": "dark",
+            "theme.primaryColor": "#D4A359",
+            "theme.backgroundColor": "#0A0B09",
+            "theme.secondaryBackgroundColor": "#161814",
+            "theme.textColor": "#EDE4D3",
+            "theme.font": "sans serif",
+            "client.toolbarMode": "minimal",
+            "client.showErrorDetails": False,
+            "browser.gatherUsageStats": False,
+        },
+        ensure_ascii=False,
+    )
+
+    html = f"""<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="theme-color" content="#0A0B09" />
+  <meta name="description" content="Arandú — Métodos Computacionales v{APP_VERSION} (Modo Offline WebAssembly / PWA)" />
+  <title>Arandú — Métodos Computacionales (Offline v{APP_VERSION})</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./assets/svg/arandu.svg" />
+  <link rel="apple-touch-icon" href="./assets/logo_arandu.jpg" />
+  <link rel="stylesheet" href="{STLITE_CDN_BASE}/stlite.css" />
+  <style>
+    html, body {{
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #0A0B09;
+      color: #EDE4D3;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow-x: hidden;
+    }}
+    #root {{
+      width: 100%;
+      min-height: 100vh;
+    }}
+    #arandu-splash {{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: radial-gradient(circle at top center, rgba(212, 163, 89, 0.14), #0A0B09 62%);
+      color: #EDE4D3;
+      text-align: center;
+      transition: opacity 0.4s ease;
+    }}
+    #arandu-splash.oculto {{
+      opacity: 0;
+      pointer-events: none;
+    }}
+    .splash-logo {{
+      width: 96px;
+      height: 96px;
+      margin-bottom: 1.1rem;
+      filter: drop-shadow(0 0 18px rgba(212, 163, 89, 0.35));
+    }}
+    .splash-title {{
+      margin: 0;
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #EDE4D3;
+    }}
+    .splash-badge {{
+      display: inline-block;
+      margin-top: 0.55rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid #D4A359;
+      background: rgba(212, 163, 89, 0.14);
+      color: #D4A359;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }}
+    .splash-spinner {{
+      width: 38px;
+      height: 38px;
+      margin: 1.4rem 0 0.9rem 0;
+      border-radius: 50%;
+      border: 3px solid rgba(212, 163, 89, 0.2);
+      border-top-color: #D4A359;
+      animation: arandu-spin 0.9s linear infinite;
+    }}
+    @keyframes arandu-spin {{
+      to {{ transform: rotate(360deg); }}
+    }}
+    .splash-status {{
+      max-width: 440px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: #C7BFA9;
+    }}
+  </style>
+</head>
+<body>
+  <div id="arandu-splash" role="status" aria-live="polite">
+    <img src="./assets/svg/arandu.svg" class="splash-logo" alt="Isotipo de Arandú" />
+    <h1 class="splash-title">Arandú — Métodos Computacionales</h1>
+    <span class="splash-badge">v{APP_VERSION} • PWA Offline WebAssembly</span>
+    <div class="splash-spinner"></div>
+    <p id="arandu-status" class="splash-status">
+      Inicializando Python y librerías científicas (<code>numpy</code>, <code>sympy</code>, <code>pandas</code>, <code>plotly</code>) en tu navegador.<br />
+      La primera carga guarda todo localmente para funcionar 100% sin conexión.
+    </p>
+  </div>
+  <div id="root"></div>
+
+  <script type="module">
+    import {{ mount }} from "{STLITE_CDN_BASE}/stlite.js";
+
+    const ocultarSplash = () => {{
+      const splash = document.getElementById("arandu-splash");
+      if (splash && !splash.classList.contains("oculto")) {{
+        splash.classList.add("oculto");
+        setTimeout(() => splash.remove(), 450);
+      }}
+    }};
+
+    // Registro seguro de Service Worker para caché offline
+    try {{
+      if ("serviceWorker" in navigator) {{
+        window.addEventListener("load", () => {{
+          navigator.serviceWorker.register("./sw.js").catch(() => {{}});
+        }});
+      }}
+    }} catch (_err) {{}}
+
+    // Ocultar splash apenas Streamlit renderice el contenedor principal
+    const observer = new MutationObserver(() => {{
+      const root = document.getElementById("root");
+      if (root && root.querySelector('[data-testid="stAppViewContainer"]')) {{
+        ocultarSplash();
+        observer.disconnect();
+      }}
+    }});
+    observer.observe(document.getElementById("root"), {{ childList: true, subtree: true }});
+
+    const files = {vfs_json};
+    const requirements = {pkgs_json};
+    const streamlitConfig = {streamlit_cfg_json};
+
+    try {{
+      const app = mount(
+        {{
+          requirements,
+          entrypoint: "app.py",
+          files,
+          streamlitConfig,
+        }},
+        document.getElementById("root")
+      );
+      if (app && typeof app.then === "function") {{
+        app.then(() => setTimeout(ocultarSplash, 800)).catch((err) => {{
+          const status = document.getElementById("arandu-status");
+          if (status) {{
+            status.innerHTML = "<b>No se pudo iniciar el entorno WebAssembly:</b> " + (err?.message || err);
+          }}
+        }});
+      }}
+    }} catch (err) {{
+      const status = document.getElementById("arandu-status");
+      if (status) {{
+        status.innerHTML = "<b>Error cargando Arandú Offline:</b> " + (err?.message || err);
+      }}
+    }}
+  </script>
+</body>
+</html>
+"""
+    (DIST_DIR / "index.html").write_text(html, encoding="utf-8")
+
+
+def _generar_manifest() -> None:
+    manifest = {
+        "name": "Arandú — Métodos Computacionales",
+        "short_name": "Arandú",
+        "description": "Plataforma educativa de Métodos Numéricos con ejecución Python offline en el navegador.",
+        "start_url": "./",
+        "scope": "./",
+        "display": "standalone",
+        "background_color": "#0A0B09",
+        "theme_color": "#D4A359",
+        "lang": "es-AR",
+        "icons": [
+            {
+                "src": "./assets/svg/arandu.svg",
+                "sizes": "any",
+                "type": "image/svg+xml",
+                "purpose": "any",
+            },
+            {
+                "src": "./assets/logo_arandu.jpg",
+                "sizes": "512x512",
+                "type": "image/jpeg",
+                "purpose": "any",
+            },
+        ],
+    }
+    (DIST_DIR / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _generar_service_worker() -> None:
+    sw_js = f"""const CACHE_SHELL = "arandu-offline-shell-v{APP_VERSION}";
+const CACHE_RUNTIME = "arandu-offline-runtime-v{APP_VERSION}";
+
+const PRECACHE_URLS = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./assets/svg/arandu.svg",
+  "./assets/logo_arandu.jpg",
+  "./.streamlit/config.toml",
+  "{STLITE_CDN_BASE}/stlite.css",
+  "{STLITE_CDN_BASE}/stlite.js"
+];
+
+self.addEventListener("install", (event) => {{
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_SHELL).then(async (cache) => {{
+      await Promise.allSettled(PRECACHE_URLS.map((u) => cache.add(u)));
+    }})
+  );
+}});
+
+self.addEventListener("activate", (event) => {{
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k !== CACHE_SHELL && k !== CACHE_RUNTIME)
+          .map((k) => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
+}});
+
+const esRecursoCdnInmutable = (url) => {{
+  const host = url.hostname;
+  if (
+    host.includes("cdn.jsdelivr.net") ||
+    host.includes("pypi.org") ||
+    host.includes("files.pythonhosted.org") ||
+    host.includes("fonts.googleapis.com") ||
+    host.includes("fonts.gstatic.com")
+  ) {{
+    return true;
+  }}
+  return /\\.(wasm|whl|zip|data|so|js|css|woff2?)$/i.test(url.pathname);
+}};
+
+self.addEventListener("fetch", (event) => {{
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
+
+  if (esRecursoCdnInmutable(url)) {{
+    // Cache-First para Pyodide, wheels científicas y runtime @stlite/browser
+    event.respondWith(
+      caches.match(req).then((cached) => {{
+        if (cached) return cached;
+        return fetch(req).then((resp) => {{
+          if (resp && (resp.ok || resp.type === "opaque")) {{
+            const clone = resp.clone();
+            caches.open(CACHE_RUNTIME).then((cache) => cache.put(req, clone));
+          }}
+          return resp;
+        }});
+      }})
+    );
+    return;
+  }}
+
+  // Stale-While-Revalidate para app shell y assets locales
+  event.respondWith(
+    caches.match(req).then((cached) => {{
+      const networkFetch = fetch(req)
+        .then((resp) => {{
+          if (resp && resp.ok) {{
+            const clone = resp.clone();
+            caches.open(CACHE_SHELL).then((cache) => cache.put(req, clone));
+          }}
+          return resp;
+        }})
+        .catch(() => {{
+          if (req.mode === "navigate") {{
+            return caches.match("./index.html");
+          }}
+          return cached;
+        }});
+      return cached || networkFetch;
+    }})
+  );
+}});
+"""
+    (DIST_DIR / "sw.js").write_text(sw_js, encoding="utf-8")
+
+
+def _generar_vercel_config() -> None:
+    vercel_cfg = {
+        "$schema": "https://openapi.vercel.sh/vercel.json",
+        "headers": [
+            {
+                "source": "/sw.js",
+                "headers": [
+                    {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"},
+                    {"key": "Service-Worker-Allowed", "value": "/"},
+                ],
+            },
+            {
+                "source": "/manifest.json",
+                "headers": [
+                    {"key": "Content-Type", "value": "application/manifest+json; charset=utf-8"},
+                    {"key": "Cache-Control", "value": "public, max-age=3600"},
+                ],
+            },
+            {
+                "source": "/assets/(.*)",
+                "headers": [
+                    {"key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800"},
+                ],
+            },
+        ],
+    }
+    (DIST_DIR / "vercel.json").write_text(
+        json.dumps(vercel_cfg, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def build() -> Path:
+    """Ejecuta el empaquetado completo en `dist_offline/` y devuelve la ruta."""
+    _preparar_directorio_salida()
+    _copiar_activos_y_config()
+    archivos_vfs = _recolectar_vfs()
+    _generar_index_html(archivos_vfs)
+    _generar_manifest()
+    _generar_service_worker()
+    _generar_vercel_config()
+    return DIST_DIR
+
+
+if __name__ == "__main__":
+    salida = build()
+    print(f"[Arandú v{APP_VERSION}] Build PWA Offline generado en: {salida}")
+
