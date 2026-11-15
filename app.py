@@ -145,6 +145,12 @@ nav = st.navigation(
 
 _sidebar_uri = obtener_logo_arandu_src(prefer_svg=False)
 
+def _al_cambiar_tema_arandu() -> None:
+    st.session_state["arandu_tema_modo"] = (
+        "claro" if st.session_state.get("ui_tema_claro", False) else "oscuro"
+    )
+
+
 with st.sidebar:
     if _sidebar_uri:
         st.markdown(
@@ -167,6 +173,15 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
+    st.session_state.setdefault(
+        "ui_tema_claro",
+        st.session_state.get("arandu_tema_modo", "oscuro") == "claro",
+    )
+    st.toggle(
+        "Modo claro suave",
+        key="ui_tema_claro",
+        on_change=_al_cambiar_tema_arandu,
+    )
     st.markdown("---")
     with st.container(border=True):
         st.markdown("#### Feedback")
