@@ -7,6 +7,7 @@ paginación acotada (> 300 filas) y renderizado Plotly ligero para producción/P
 from __future__ import annotations
 
 import copy
+import html
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
@@ -37,6 +38,7 @@ from views.theme import (
     PALETA_ARANDU,
     PLOTLY_CONFIG_ARANDU,
     aplicar_estilo_arandu,
+    construir_html_carta_tarot,
     construir_html_mini_tarjetas,
     construir_html_tarjeta_catalogo,
     estilizar_figura_arandu,
@@ -395,6 +397,67 @@ def render_mini_catalogo_vista(
     st.markdown(construir_html_mini_tarjetas(tuple(items)), unsafe_allow_html=True)
 
 
+def _activar_carta_tarot(state_key: str, idx: int) -> None:
+    st.session_state[state_key] = idx
+
+
+def render_mazo_tarot_metodos(
+    vista_id: str,
+    cartas: list[dict[str, str]] | tuple[dict[str, str], ...],
+    default_idx: int = 0,
+) -> int:
+    """Renderiza un selector interactivo de métodos tipo mazo Tarot y retorna el índice activo."""
+    if not cartas:
+        return 0
+    state_key = f"arandu_tarot_{vista_id}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = default_idx
+    activo = max(0, min(len(cartas) - 1, int(st.session_state[state_key])))
+    st.session_state[state_key] = activo
+
+    n = len(cartas)
+    cols_por_fila = 4 if n == 4 else (3 if n >= 3 else n)
+    for ini in range(0, n, cols_por_fila):
+        fila = cartas[ini : ini + cols_por_fila]
+        cols = st.columns(cols_por_fila)
+        for offset, carta in enumerate(fila):
+            idx = ini + offset
+            es_activa = idx == activo
+            with cols[offset]:
+                st.markdown(
+                    construir_html_carta_tarot(
+                        romano=carta["romano"],
+                        clave_svg=carta["clave_svg"],
+                        titulo=carta["titulo"],
+                        subtitulo_arcano=carta["subtitulo_arcano"],
+                        resumen=carta["resumen"],
+                        pista=carta["pista"],
+                        activa=es_activa,
+                    ),
+                    unsafe_allow_html=True,
+                )
+                st.button(
+                    "Carta en Mesa" if es_activa else f"Elegir Arcano {carta['romano']}",
+                    key=f"tarot_{vista_id}_{idx}",
+                    type="primary" if es_activa else "secondary",
+                    use_container_width=True,
+                    on_click=_activar_carta_tarot,
+                    args=(state_key, idx),
+                )
+
+    carta_activa = cartas[activo]
+    titulo_esc = html.escape(f"Carta {carta_activa['romano']} en Mesa — {carta_activa['titulo']}")
+    pista_esc = html.escape(carta_activa["pista"])
+    st.markdown(
+        '<div class="arandu-tarot-mesa-banner">'
+        f'<span class="arandu-tarot-mesa-titulo">{titulo_esc}</span>'
+        f'<span class="arandu-tarot-mesa-pista">{pista_esc}</span>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    return activo
+
+
 __all__ = [
     "ARANDU_BARK",
     "ARANDU_CARD_BORDER",
@@ -429,6 +492,7 @@ __all__ = [
     "render_bloque_1_teoria_y_ejemplo",
     "render_controles_edicion_practica",
     "render_dataframe_acotado",
+    "render_mazo_tarot_metodos",
     "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",

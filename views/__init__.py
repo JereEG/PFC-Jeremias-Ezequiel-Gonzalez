@@ -33,6 +33,7 @@ _THEME_EXPORTS = {
     "PLOTLY_ARANDU_TEMPLATE",
     "PLOTLY_CONFIG_ARANDU",
     "aplicar_estilo_arandu",
+    "construir_html_carta_tarot",
     "construir_html_mini_tarjetas",
     "construir_html_tarjeta_catalogo",
     "estilizar_figura_arandu",
@@ -45,6 +46,7 @@ _THEME_EXPORTS = {
     "obtener_logos_app",
     "obtener_plotly_arandu_template",
     "obtener_svg_tarjeta_arandu",
+    "obtener_svg_tarot_arandu",
 }
 
 _UI_SHARED_EXPORTS = {
@@ -58,6 +60,7 @@ _UI_SHARED_EXPORTS = {
     "render_bloque_1_teoria_y_ejemplo",
     "render_controles_edicion_practica",
     "render_dataframe_acotado",
+    "render_mazo_tarot_metodos",
     "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",
