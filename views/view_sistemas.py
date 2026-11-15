@@ -28,6 +28,7 @@ from views.ui_shared import (
     muestrear_para_grafico,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -47,7 +48,7 @@ def _editor_sistema(clave_state: str, solo_lectura: bool, incluir_x0: bool = Fal
         x0 = st.session_state[f"{clave_state}_x0"]
         df_mat["x0"] = x0
 
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_mat,
         use_container_width=True,
         hide_index=True,
@@ -353,7 +354,7 @@ def _frag_potencias(defaults: dict) -> None:
     cols_A = [f"a_{i+1}" for i in range(len(A))]
     df_in = pd.DataFrame(A, columns=cols_A)
     df_in["x0"] = x0
-    df_edit = st.data_editor(df_in, use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_pot__editor_df")
+    df_edit = render_data_editor_arandu(df_in, use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_pot__editor_df")
     if not solo_lectura:
         A = df_edit[cols_A].astype(float).values.tolist()
         x0 = df_edit["x0"].astype(float).tolist()
@@ -435,7 +436,7 @@ def _frag_faddeev(defaults: dict) -> None:
 
     A = st.session_state["sis_fad_A"]
     cols_A = [f"c_{i+1}" for i in range(len(A))]
-    df_edit = st.data_editor(pd.DataFrame(A, columns=cols_A), use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_fad__editor_df")
+    df_edit = render_data_editor_arandu(pd.DataFrame(A, columns=cols_A), use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_fad__editor_df")
     if not solo_lectura:
         A = df_edit[cols_A].astype(float).values.tolist()
         st.session_state["sis_fad_A"] = A

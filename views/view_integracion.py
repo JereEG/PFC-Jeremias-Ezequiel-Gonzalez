@@ -26,11 +26,13 @@ from views.ui_shared import (
     limpiar_valores_plotly,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
     render_slider_paso_k,
+    render_subtitulo_controles_vivo,
     rerun_fragmento_seguro,
 )
 
@@ -45,7 +47,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
     solo_lectura = modo == "catedra"
 
     df_in = pd.DataFrame({"x": st.session_state["int_deriv_x"], "y": st.session_state["int_deriv_y"]})
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_in,
         use_container_width=True,
         hide_index=True,
@@ -157,7 +159,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
     col_tbl, col_ctrl = st.columns([1.4, 1.3])
     with col_tbl:
         df_in = pd.DataFrame({"x": st.session_state[f"{clave_state}_x"], "y": st.session_state[f"{clave_state}_y"]})
-        df_edit = st.data_editor(
+        df_edit = render_data_editor_arandu(
             df_in,
             use_container_width=True,
             hide_index=True,
@@ -186,6 +188,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         n_actual = max(1, len(xs_act) - 1)
 
         st.markdown(r"**Ajuste de Paso $\Delta h$ y Subintervalos $n$ en Vivo:**")
+        render_subtitulo_controles_vivo()
         nuevo_h = st.number_input(
             r"Paso $\Delta h$ deseado (prueba cambiarlo para observar adaptación de paridad):",
             value=float(round(h_actual, 4)),
@@ -371,6 +374,7 @@ def _frag_laboratorio_paso_variable() -> None:
             st.session_state[f"lab_dh_{idx}"] = 0.5
         rerun_fragmento_seguro()
 
+    render_subtitulo_controles_vivo()
     fila_1 = st.columns(3)
     for offset, col in enumerate(fila_1):
         idx = offset + 1

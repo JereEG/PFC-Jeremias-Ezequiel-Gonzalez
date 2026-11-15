@@ -201,6 +201,13 @@ def render_practica_catedra_info(
                     st.success(solucion_referencia)
 
 
+def render_subtitulo_controles_vivo(
+    texto: str = "Ajustá los controles para recalcular el gráfico en tiempo real",
+) -> None:
+    """Muestra un subtítulo claro sobre paneles de parámetros reactivos en vivo."""
+    st.markdown(f'<p class="arandu-ctrl-hint">{html.escape(texto)}</p>', unsafe_allow_html=True)
+
+
 def render_controles_edicion_practica(
     clave_state: str,
     defaults_dict: dict[str, Any],
@@ -242,6 +249,7 @@ def render_controles_edicion_practica(
             f'<div class="arandu-edit-banner">{mensaje_edicion}</div>',
             unsafe_allow_html=True,
         )
+    render_subtitulo_controles_vivo()
     return modo
 
 
@@ -285,8 +293,8 @@ def crear_figura_base_plotly(
         yaxis_title=y_label,
         height=altura,
         hovermode="x unified",
-        margin=dict(l=48, r=24, t=54, b=46),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1.0),
+        margin=dict(l=50, r=30, t=60, b=50),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
     )
     return fig
 
@@ -313,6 +321,15 @@ def muestrear_para_grafico(
     return [secuencia[i] for i in indices]
 
 
+def render_data_editor_arandu(datos: Any, **kwargs: Any) -> Any:
+    """Envuelve st.data_editor con encabezado técnico y borde punteado para evidenciar edición en vivo."""
+    st.markdown(
+        '<div class="arandu-tbl-tag-edit">[ TABLA INTERACTIVA — Hacé doble clic en cualquier celda para editar los valores en vivo ]</div>',
+        unsafe_allow_html=True,
+    )
+    return st.data_editor(datos, **kwargs)
+
+
 def render_dataframe_acotado(
     datos: Any,
     max_filas: int = 300,
@@ -323,6 +340,10 @@ def render_dataframe_acotado(
     """Renderiza tablas grandes paginadas en bloques de <= 300 filas para evitar saturar el navegador."""
     import pandas as pd
 
+    st.markdown(
+        '<div class="arandu-tbl-tag-readonly">[ RESULTADOS CALCULADOS (SOLO LECTURA) ]</div>',
+        unsafe_allow_html=True,
+    )
     df = datos if isinstance(datos, pd.DataFrame) else pd.DataFrame(datos)
     total = len(df)
     if total <= max_filas:
@@ -456,6 +477,7 @@ def render_selector_fichas_metodos(
     pista_esc = html.escape(ficha_activa["pista"])
     st.markdown(
         '<div class="arandu-ficha-activa-banner" role="status" aria-live="polite">'
+        '<span class="arandu-eyebrow">NOTA DE CÁTEDRA</span>'
         f'<span class="arandu-ficha-activa-titulo">{titulo_esc}</span>'
         f'<span class="arandu-ficha-activa-pista">{pista_esc}</span>'
         "</div>",
@@ -497,12 +519,14 @@ __all__ = [
     "render_banner_edicion_profesora",
     "render_bloque_1_teoria_y_ejemplo",
     "render_controles_edicion_practica",
+    "render_data_editor_arandu",
     "render_dataframe_acotado",
     "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",
     "render_selector_fichas_metodos",
     "render_slider_paso_k",
+    "render_subtitulo_controles_vivo",
     "render_tarjeta_catalogo",
     "rerun_fragmento_seguro",
     "restaurar_estado_practica",

@@ -62,7 +62,9 @@ from views.ui_shared import (
     inject_arandu_css,
     limpiar_valores_plotly,
     muestrear_para_grafico,
+    render_data_editor_arandu,
     render_plotly_arandu,
+    render_subtitulo_controles_vivo,
 )
 
 
@@ -102,6 +104,7 @@ def _render_ficha_tecnica(titulo_slot: str, ficha: dict, color_acento: str) -> N
 @st.fragment
 def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Raíces sobre una misma Ecuación $f(x) = 0$")
+    render_subtitulo_controles_vivo()
     c1, c2 = st.columns(2)
     f_str = c1.text_input("Ecuación $f(x) = 0$:", value="x**3 - 2*x - 5", key="vs_raiz_f")
     g_str = c2.text_input("Despeje $x = g(x)$ (si participa Aitken):", value="(2*x + 5)**(1/3)", key="vs_raiz_g")
@@ -175,12 +178,13 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 @st.fragment
 def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Sistemas Lineales $Ax = b$")
+    render_subtitulo_controles_vivo()
     default_mat = pd.DataFrame(
         [[18.72, 8.20, 8.76, 121.280], [6.40, 15.90, 7.18, 126.321], [5.22, 6.40, 14.31, 118.522]],
         columns=["a_1", "a_2", "a_3", "b"],
     )
     st.caption(r"Modifica la matriz $A$ o el vector $b$ para ensayar matrices con y sin dominancia diagonal:")
-    df_ed = st.data_editor(default_mat, use_container_width=True, hide_index=True, key="vs_sis_mat")
+    df_ed = render_data_editor_arandu(default_mat, use_container_width=True, hide_index=True, key="vs_sis_mat")
     A = df_ed[["a_1", "a_2", "a_3"]].astype(float).values.tolist()
     b = df_ed["b"].astype(float).tolist()
     tol = st.number_input("Tolerancia $E$ (si participa Gauss-Seidel):", value=1e-4, format="%.6f", key="vs_sis_tol")
@@ -224,11 +228,12 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 @st.fragment
 def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown("## Arena en Vivo — Autovalores de una Matriz Cuadrada")
+    render_subtitulo_controles_vivo()
     default_a = pd.DataFrame(
         [[3.556, -1.778, 0.0], [-1.778, 3.556, -1.778], [0.0, -1.778, 3.556]],
         columns=["c_1", "c_2", "c_3"],
     )
-    df_ed = st.data_editor(default_a, use_container_width=True, hide_index=True, key="vs_aut_mat")
+    df_ed = render_data_editor_arandu(default_a, use_container_width=True, hide_index=True, key="vs_aut_mat")
     A = df_ed.astype(float).values.tolist()
 
     def _correr(clave: str):
@@ -289,9 +294,10 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
 @st.fragment
 def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown("## Arena en Vivo — Interpolación sobre Tabla Discreta")
+    render_subtitulo_controles_vivo()
     df_def = pd.DataFrame({"x": [0.2, 0.5, 0.8, 1.1, 1.4], "y": [0.258, 2.535, 4.902, 6.722, 10.704]})
     st.caption(r"Modifica cualquier nodo $x_i$ para comprobar qué ocurre con Newton-Gregory cuando se rompe la equidistancia:")
-    df_ed = st.data_editor(df_def, use_container_width=True, hide_index=True, num_rows="dynamic", key="vs_int_tbl")
+    df_ed = render_data_editor_arandu(df_def, use_container_width=True, hide_index=True, num_rows="dynamic", key="vs_int_tbl")
     df_c = df_ed.dropna()
     xs, ys = df_c["x"].astype(float).tolist(), df_c["y"].astype(float).tolist()
     x_eval = st.number_input("Punto $x^*$ a evaluar:", value=0.35, format="%.4f", key="vs_int_xe")
@@ -349,6 +355,7 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
 @st.fragment
 def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Cuadratura Numérica con Paso $\Delta h$ Variable")
+    render_subtitulo_controles_vivo()
     x_base = [0.5, 5.5, 10.5, 15.5, 20.5, 25.5]
     y_base = [0.05, 6.05, 22.05, 48.05, 84.05, 130.05]
     c1, c2 = st.columns(2)
@@ -406,6 +413,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
 @st.fragment
 def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Trayectorias de EDO ($y' = f(x, y)$)")
+    render_subtitulo_controles_vivo()
     c1, c2 = st.columns(2)
     f_str = c1.text_input("EDO $y' = f(x, y)$:", value="6*x**2 / y", key="vs_edo_f")
     y_ex_str = c2.text_input("Exacta $y(x)$:", value="2*x*sqrt(x)", key="vs_edo_yex")

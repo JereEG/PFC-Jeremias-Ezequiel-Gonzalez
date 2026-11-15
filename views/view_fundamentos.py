@@ -26,6 +26,7 @@ from views.ui_shared import (
     muestrear_para_grafico,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -361,7 +362,7 @@ def _frag_horner(defaults: dict) -> None:
     df_in = pd.DataFrame(
         {"Potencia": [f"x^{len(coefs_curr) - 1 - i}" for i in range(len(coefs_curr))], "Coeficiente": coefs_curr}
     )
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_in,
         use_container_width=True,
         hide_index=True,

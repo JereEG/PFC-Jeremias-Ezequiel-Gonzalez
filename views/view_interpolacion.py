@@ -36,11 +36,13 @@ from views.ui_shared import (
     limpiar_valores_plotly,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
     render_slider_paso_k,
+    render_subtitulo_controles_vivo,
     rerun_fragmento_seguro,
 )
 
@@ -54,7 +56,7 @@ def _editor_tabla_xy(
     xs = st.session_state[f"{clave_state}_x"]
     ys = st.session_state[f"{clave_state}_y"]
     df_in = pd.DataFrame({col_x_label: xs, col_y_label: ys})
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_in,
         use_container_width=True,
         hide_index=True,
@@ -1048,6 +1050,7 @@ def _frag_newton_gregory(defaults: dict) -> None:
 
     with col_ctrl:
         st.markdown("#### Punto Objetivo $x^*$, Grado y Enfoque")
+        render_subtitulo_controles_vivo()
         x_min, x_max = min(xs), max(xs)
         span = max(abs(x_max - x_min), 1.0)
         pad = round(max(0.35, 0.15 * span), 4)
