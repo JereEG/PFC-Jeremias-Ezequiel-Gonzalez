@@ -169,10 +169,86 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       to {{ transform: rotate(360deg); }}
     }}
     .splash-status {{
-      max-width: 440px;
+      max-width: 520px;
       font-size: 0.92rem;
       line-height: 1.5;
       color: #C7BFA9;
+      margin-bottom: 1rem;
+    }}
+    .splash-skeleton-grid {{
+      width: min(760px, 92vw);
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 0.9rem;
+      margin-top: 0.35rem;
+      text-align: left;
+    }}
+    @media (max-width: 640px) {{
+      .splash-skeleton-grid {{
+        grid-template-columns: 1fr;
+      }}
+    }}
+    .sk-panel {{
+      background-color: #161814;
+      border: 1px solid #2E2920;
+      border-radius: 12px;
+      padding: 0.85rem;
+    }}
+    .sk-bar {{
+      height: 12px;
+      border-radius: 6px;
+      margin-bottom: 0.65rem;
+      background: linear-gradient(90deg, #1E201B 25%, #2E2920 50%, #1E201B 75%);
+      background-size: 200% 100%;
+      animation: arandu-shimmer 1.5s infinite linear;
+    }}
+    .sk-bar.w-60 {{ width: 60%; }}
+    .sk-bar.w-80 {{ width: 80%; }}
+    .sk-bar.w-45 {{ width: 45%; }}
+    .sk-bar.tall {{ height: 48px; border-radius: 10px; }}
+    .sk-cards {{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }}
+    @keyframes arandu-shimmer {{
+      to {{ background-position: -200% 0; }}
+    }}
+    .splash-retry {{
+      display: none;
+      margin-top: 1rem;
+      padding: 0.55rem 1.15rem;
+      border-radius: 10px;
+      border: 1px solid #D4A359;
+      background: #1E201B;
+      color: #EDE4D3;
+      font-weight: 600;
+      cursor: pointer;
+    }}
+    .splash-retry.visible {{
+      display: inline-block;
+    }}
+    #arandu-net-pill {{
+      display: none;
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 9998;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(22, 24, 20, 0.94);
+      border: 1px solid #687D5B;
+      border-left: 4px solid #7A9A65;
+      color: #EDE4D3;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }}
+    #arandu-net-pill.visible {{
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
     }}
   </style>
 </head>
@@ -181,18 +257,78 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
     <img src="./assets/svg/arandu.svg" class="splash-logo" alt="Isotipo de Arandú" />
     <h1 class="splash-title">Arandú — Métodos Computacionales</h1>
     <span class="splash-badge">v{APP_VERSION} • PWA Offline WebAssembly</span>
-    <div class="splash-spinner"></div>
+    <div class="splash-spinner" id="arandu-spinner"></div>
     <p id="arandu-status" class="splash-status">
       Inicializando Python y librerías científicas (<code>numpy</code>, <code>sympy</code>, <code>pandas</code>, <code>plotly</code>) en tu navegador.<br />
       La primera carga guarda todo localmente para funcionar 100% sin conexión.
     </p>
+    <div class="splash-skeleton-grid" aria-hidden="true">
+      <div class="sk-panel">
+        <div class="sk-bar w-60"></div>
+        <div class="sk-bar w-80"></div>
+        <div class="sk-bar w-45"></div>
+        <div class="sk-bar w-80"></div>
+      </div>
+      <div class="sk-panel">
+        <div class="sk-bar tall"></div>
+        <div class="sk-cards">
+          <div class="sk-bar tall"></div>
+          <div class="sk-bar tall"></div>
+        </div>
+      </div>
+    </div>
+    <button type="button" id="arandu-retry-btn" class="splash-retry" onclick="window.location.reload()">
+      Reintentar carga
+    </button>
+  </div>
+  <div id="arandu-net-pill" role="status" aria-live="polite">
+    Sin conexión • Motor WebAssembly local activo
   </div>
   <div id="root"></div>
 
   <script type="module">
     import {{ mount }} from "{STLITE_CDN_BASE}/stlite.js";
 
+    const safeStorageGet = (key) => {{
+      try {{
+        return window.localStorage ? window.localStorage.getItem(key) : null;
+      }} catch (_err) {{
+        return null;
+      }}
+    }};
+
+    const safeStorageSet = (key, value) => {{
+      try {{
+        if (window.localStorage) window.localStorage.setItem(key, value);
+      }} catch (_err) {{}}
+    }};
+
+    const actualizarEstadoRed = () => {{
+      const pill = document.getElementById("arandu-net-pill");
+      if (!pill) return;
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      pill.classList.toggle("visible", offline);
+    }};
+    window.addEventListener("offline", actualizarEstadoRed);
+    window.addEventListener("online", actualizarEstadoRed);
+    actualizarEstadoRed();
+
+    const mostrarModoOfflineSinCache = (detalle) => {{
+      const status = document.getElementById("arandu-status");
+      const spinner = document.getElementById("arandu-spinner");
+      const retryBtn = document.getElementById("arandu-retry-btn");
+      if (spinner) spinner.style.display = "none";
+      if (retryBtn) retryBtn.classList.add("visible");
+      if (status) {{
+        status.innerHTML =
+          "<b>Sin conexión a internet antes de completar la caché inicial.</b><br />" +
+          "Conectate una primera vez para descargar Pyodide o tocá <i>Reintentar carga</i> cuando vuelva la red." +
+          (detalle ? "<br /><small>" + detalle + "</small>" : "");
+      }}
+    }};
+
     const ocultarSplash = () => {{
+      safeStorageSet("arandu_wasm_ready_v{APP_VERSION}", "1");
       const splash = document.getElementById("arandu-splash");
       if (splash && !splash.classList.contains("oculto")) {{
         splash.classList.add("oculto");
@@ -208,6 +344,11 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
         }});
       }}
     }} catch (_err) {{}}
+
+    const yaCacheado = safeStorageGet("arandu_wasm_ready_v{APP_VERSION}") === "1";
+    if (typeof navigator !== "undefined" && navigator.onLine === false && !yaCacheado) {{
+      mostrarModoOfflineSinCache("Aún no se guardaron paquetes en este navegador.");
+    }}
 
     // Ocultar splash apenas Streamlit renderice el contenedor principal
     const observer = new MutationObserver(() => {{
@@ -235,16 +376,28 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
       );
       if (app && typeof app.then === "function") {{
         app.then(() => setTimeout(ocultarSplash, 800)).catch((err) => {{
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {{
+            mostrarModoOfflineSinCache(err?.message || "");
+            return;
+          }}
           const status = document.getElementById("arandu-status");
+          const retryBtn = document.getElementById("arandu-retry-btn");
+          if (retryBtn) retryBtn.classList.add("visible");
           if (status) {{
             status.innerHTML = "<b>No se pudo iniciar el entorno WebAssembly:</b> " + (err?.message || err);
           }}
         }});
       }}
     }} catch (err) {{
-      const status = document.getElementById("arandu-status");
-      if (status) {{
-        status.innerHTML = "<b>Error cargando Arandú Offline:</b> " + (err?.message || err);
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {{
+        mostrarModoOfflineSinCache(err?.message || "");
+      }} else {{
+        const status = document.getElementById("arandu-status");
+        const retryBtn = document.getElementById("arandu-retry-btn");
+        if (retryBtn) retryBtn.classList.add("visible");
+        if (status) {{
+          status.innerHTML = "<b>Error cargando Arandú Offline:</b> " + (err?.message || err);
+        }}
       }}
     }}
   </script>
@@ -348,13 +501,15 @@ self.addEventListener("fetch", (event) => {{
     event.respondWith(
       caches.match(req).then((cached) => {{
         if (cached) return cached;
-        return fetch(req).then((resp) => {{
-          if (resp && (resp.ok || resp.type === "opaque")) {{
-            const clone = resp.clone();
-            caches.open(CACHE_RUNTIME).then((cache) => cache.put(req, clone));
-          }}
-          return resp;
-        }});
+        return fetch(req)
+          .then((resp) => {{
+            if (resp && (resp.ok || resp.type === "opaque")) {{
+              const clone = resp.clone();
+              caches.open(CACHE_RUNTIME).then((cache) => cache.put(req, clone));
+            }}
+            return resp;
+          }})
+          .catch(() => caches.match(req).then((r) => r || new Response("", {{ status: 503, statusText: "Offline" }})));
       }})
     );
     return;
