@@ -337,6 +337,7 @@ def obtener_css_arandu() -> str:
         "--arandu-sage-14": hex_a_rgba(PALETA_ARANDU["salvia"], 0.14),
         "--arandu-sage-18": hex_a_rgba(PALETA_ARANDU["salvia_borde"], 0.18),
         "--arandu-sage-22": hex_a_rgba(PALETA_ARANDU["salvia_borde"], 0.22),
+        "--arandu-sage-55": hex_a_rgba(PALETA_ARANDU["salvia"], 0.55),
         "--arandu-terracotta-18": hex_a_rgba(PALETA_ARANDU["terracota_oscuro"], 0.18),
         "--arandu-terracotta-26": hex_a_rgba(PALETA_ARANDU["terracota_oscuro"], 0.26),
         "--arandu-surface-92": hex_a_rgba(PALETA_ARANDU["bg_secundario"], 0.92),
@@ -954,6 +955,251 @@ def obtener_css_arandu() -> str:
         @keyframes arandu-skeleton-shimmer {{
             0% {{ background-position: 200% 0; }}
             100% {{ background-position: -200% 0; }}
+        }}
+        .arandu-ng-banner {{
+            padding: 0.65rem 0.95rem;
+            border-radius: 10px;
+            border: 1px solid var(--arandu-border);
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: var(--arandu-text);
+            margin: 0.45rem 0 0.85rem 0;
+        }}
+        .arandu-ng-banner-asc {{
+            background-color: var(--arandu-sage-14);
+            border-left: 4px solid var(--arandu-sage);
+        }}
+        .arandu-ng-banner-desc {{
+            background-color: var(--arandu-gold-12);
+            border-left: 4px solid var(--arandu-gold);
+        }}
+        .arandu-ng-summary-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin: 0.75rem 0 1rem 0;
+        }}
+        .arandu-ng-summary-card {{
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--arandu-border);
+            background-color: var(--arandu-surface);
+        }}
+        .arandu-ng-summary-asc {{
+            background-color: var(--arandu-sage-14);
+            border-color: var(--arandu-sage-55);
+        }}
+        .arandu-ng-summary-desc {{
+            background-color: var(--arandu-gold-12);
+            border-color: var(--arandu-gold-45);
+        }}
+        .arandu-ng-summary-head {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--arandu-text);
+        }}
+        .arandu-ng-summary-val {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.32rem;
+            font-weight: 700;
+            color: var(--arandu-text);
+            margin: 0.3rem 0 0.18rem 0;
+        }}
+        .arandu-ng-summary-sub {{
+            font-size: 0.76rem;
+            color: var(--arandu-muted);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.45;
+        }}
+        .arandu-ng-pill-asc,
+        .arandu-ng-pill-desc,
+        .arandu-ng-pill-muted {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.12rem 0.45rem;
+            border-radius: 6px;
+        }}
+        .arandu-ng-pill-asc {{
+            background-color: var(--arandu-sage-22);
+            color: var(--arandu-sage);
+            border: 1px solid var(--arandu-sage-55);
+        }}
+        .arandu-ng-pill-desc {{
+            background-color: var(--arandu-gold-18);
+            color: var(--arandu-gold);
+            border: 1px solid var(--arandu-gold-45);
+        }}
+        .arandu-ng-pill-muted {{
+            background-color: var(--arandu-canvas);
+            color: var(--arandu-muted);
+            border: 1px solid var(--arandu-border);
+        }}
+        .arandu-ng-diff-wrap {{
+            overflow-x: auto;
+            border: 1px solid var(--arandu-border);
+            border-radius: 12px;
+            background-color: var(--arandu-canvas);
+            padding: 0.4rem;
+            margin-bottom: 0.75rem;
+        }}
+        .arandu-ng-diff-table {{
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }}
+        .arandu-ng-diff-th {{
+            background-color: var(--arandu-surface);
+            color: var(--arandu-gold);
+            font-weight: 600;
+            padding: 0.48rem 0.55rem;
+            border: 1px solid var(--arandu-border);
+        }}
+        .arandu-ng-diff-idx {{
+            background-color: var(--arandu-surface);
+            color: var(--arandu-muted);
+            padding: 0.32rem 0.5rem;
+            border: 1px solid var(--arandu-border);
+        }}
+        .arandu-ng-diff-empty {{
+            border: 1px solid var(--arandu-grid);
+            background-color: var(--arandu-canvas);
+        }}
+        .arandu-ng-cell {{
+            padding: 0.36rem 0.55rem;
+            border: 1px solid var(--arandu-border);
+            background-color: var(--arandu-surface);
+            color: var(--arandu-text);
+            vertical-align: middle;
+        }}
+        .arandu-ng-cell-asc {{
+            background-color: var(--arandu-sage-18);
+            border: 1.5px solid var(--arandu-sage);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-desc {{
+            background-color: var(--arandu-gold-16);
+            border: 1.5px solid var(--arandu-gold);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-both {{
+            background-color: var(--arandu-terracotta-18);
+            border: 1.5px solid var(--arandu-terracotta);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-trunc {{
+            opacity: 0.38;
+        }}
+        .arandu-ng-badge-asc,
+        .arandu-ng-badge-desc {{
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-bottom: 0.12rem;
+        }}
+        .arandu-ng-badge-asc {{
+            color: var(--arandu-sage);
+        }}
+        .arandu-ng-badge-desc {{
+            color: var(--arandu-gold);
+        }}
+        .arandu-ng-formula-card {{
+            border-radius: 14px;
+            padding: 1rem;
+            background-color: var(--arandu-surface);
+            border: 1px solid var(--arandu-border);
+        }}
+        .arandu-ng-formula-card-asc {{
+            border-color: var(--arandu-sage-55);
+        }}
+        .arandu-ng-formula-card-desc {{
+            border-color: var(--arandu-gold-45);
+        }}
+        .arandu-ng-formula-muted {{
+            opacity: 0.45;
+        }}
+        .arandu-ng-formula-head {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+            padding-bottom: 0.65rem;
+            margin-bottom: 0.65rem;
+            border-bottom: 1px solid var(--arandu-border);
+        }}
+        .arandu-ng-formula-icon-asc,
+        .arandu-ng-formula-icon-desc {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--arandu-canvas);
+            flex-shrink: 0;
+        }}
+        .arandu-ng-formula-icon-asc {{
+            background-color: var(--arandu-sage);
+        }}
+        .arandu-ng-formula-icon-desc {{
+            background-color: var(--arandu-gold);
+        }}
+        .arandu-ng-step-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            padding: 0.42rem 0.65rem;
+            border-radius: 8px;
+            background-color: var(--arandu-canvas);
+            border: 1px solid var(--arandu-border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            margin-bottom: 0.35rem;
+        }}
+        .arandu-ng-step-val-asc {{
+            color: var(--arandu-sage);
+            font-weight: 700;
+        }}
+        .arandu-ng-step-val-desc {{
+            color: var(--arandu-gold);
+            font-weight: 700;
+        }}
+        .arandu-ng-step-total-asc,
+        .arandu-ng-step-total-desc {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.55rem 0.75rem;
+            border-radius: 9px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            color: var(--arandu-canvas);
+        }}
+        .arandu-ng-step-total-asc {{
+            background-color: var(--arandu-sage);
+        }}
+        .arandu-ng-step-total-desc {{
+            background-color: var(--arandu-gold);
+        }}
+        @media (max-width: 900px) {{
+            .arandu-ng-summary-grid {{
+                grid-template-columns: 1fr;
+            }}
         }}
         </style>
         """

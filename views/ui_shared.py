@@ -148,7 +148,7 @@ _PREFIJOS_WIDGETS_PRACTICA: dict[str, tuple[str, ...]] = {
     "int_lin": ("ui_lin_yb", "ui_lin_xe"),
     "int_cuad": ("ui_cuad_yb",),
     "int_lag": ("ui_lag_xe", "ui_lag_n"),
-    "int_ng": ("ui_ng_xe", "ui_ng_dh"),
+    "int_ng": ("ui_ng_", "vis_ng_"),
     "int_deriv": ("ui_der_xe",),
     "edo_eh": ("ui_eh_corr",),
 }
