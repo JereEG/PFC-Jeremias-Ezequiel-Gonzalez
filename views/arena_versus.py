@@ -63,6 +63,7 @@ from views.ui_shared import (
     limpiar_valores_plotly,
     muestrear_para_grafico,
     render_data_editor_arandu,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_subtitulo_controles_vivo,
 )
@@ -139,7 +140,12 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         ra, ita, ea, _ta, err_a = _correr(m_a)
         rb, itb, eb, _tb, err_b = _correr(m_b)
     except Exception as exc:
-        st.error(f"Error ejecutando el duelo de raíces: {exc}")
+        render_excepcion_validacion(
+            exc,
+            campo="Ecuación o intervalo del duelo de raíces",
+            sugerencia_defecto="Verificá sintaxis Python en f(x), cambio de signo f(a)*f(b) < 0 o g(x) contractiva.",
+            ejemplo_defecto="f(x) = x**3 - 2*x - 5 en [2.0, 3.0]",
+        )
         return
 
     ca, cb = st.columns(2)
@@ -155,8 +161,8 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 y=err_a_s,
                 mode="lines+markers",
                 name=nombre_a,
-                line=dict(color=PALETA_ARANDU["oro"], width=2.5),
-                marker=dict(size=7, color=PALETA_ARANDU["oro"]),
+                line=dict(color=PALETA_ARANDU["oro"], width=2.5, dash="solid"),
+                marker=dict(size=7, symbol="circle", color=PALETA_ARANDU["oro"]),
             )
         )
     if err_b:
@@ -168,7 +174,7 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 mode="lines+markers",
                 name=nombre_b,
                 line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dot"),
-                marker=dict(size=7, color=PALETA_ARANDU["terracota"]),
+                marker=dict(size=7, symbol="diamond", color=PALETA_ARANDU["terracota"]),
             )
         )
     fig.update_yaxes(type="log")
@@ -210,7 +216,12 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         sa, na, _ta, d_a = _correr(m_a)
         sb, nb, _tb, d_b = _correr(m_b)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A y vector b",
+            sugerencia_defecto="Ingresá una matriz cuadrada invertible A (sin ceros insalvables en diagonal) y vector b compatible.",
+            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]], b = [2, 6, 2]",
+        )
         return
 
     ca, cb = st.columns(2)
@@ -252,7 +263,12 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         va, ita, sa = _correr(m_a)
         vb, itb, sb = _correr(m_b)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A y vector b",
+            sugerencia_defecto="Ingresá una matriz cuadrada invertible A (sin ceros insalvables en diagonal) y vector b compatible.",
+            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]], b = [2, 6, 2]",
+        )
         return
 
     ca, cb = st.columns(2)
@@ -286,8 +302,26 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         render_plotly_arandu(fig, key="plot_vs_aut_fad")
     else:
         fig = crear_figura_base_plotly("Trayectoria de Potencias λ_k", "Iteración", "λ_k")
-        fig.add_trace(go.Scatter(x=list(range(1, len(sa) + 1)), y=limpiar_valores_plotly(sa), mode="lines+markers", name=nombre_a, line=dict(color=PALETA_ARANDU["salvia"], width=2.5)))
-        fig.add_trace(go.Scatter(x=list(range(1, len(sb) + 1)), y=limpiar_valores_plotly(sb), mode="lines+markers", name=nombre_b, line=dict(color=PALETA_ARANDU["terracota"], width=2.5)))
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, len(sa) + 1)),
+                y=limpiar_valores_plotly(sa),
+                mode="lines+markers",
+                name=nombre_a,
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.5, dash="solid"),
+                marker=dict(symbol="circle", size=7),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, len(sb) + 1)),
+                y=limpiar_valores_plotly(sb),
+                mode="lines+markers",
+                name=nombre_b,
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dashdot"),
+                marker=dict(symbol="diamond", size=7),
+            )
+        )
         render_plotly_arandu(fig, key="plot_vs_aut_pot")
 
 
@@ -329,7 +363,10 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
         )
     )
 
-    for col, clave, nombre, color in ((ca, m_a, nombre_a, PALETA_ARANDU["salvia"]), (cb, m_b, nombre_b, PALETA_ARANDU["terracota"])):
+    for col, clave, nombre, color, estilo in (
+        (ca, m_a, nombre_a, PALETA_ARANDU["salvia"], "solid"),
+        (cb, m_b, nombre_b, PALETA_ARANDU["terracota"], "dash"),
+    ):
         try:
             val, _dur, nota, modo_g = _correr(clave)
             col.metric(nombre, f"{val:.6f}", nota)
@@ -343,11 +380,17 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
                     y=limpiar_valores_plotly(yg_raw, limite_abs=1e9),
                     mode="lines",
                     name=nombre,
-                    line=dict(color=color, width=2.4),
+                    line=dict(color=color, width=2.4, dash=estilo),
                 )
             )
         except Exception as exc:
-            col.error(f"{nombre}: {exc}")
+            with col:
+                render_excepcion_validacion(
+                    exc,
+                    campo=f"Interpolación ({nombre})",
+                    sugerencia_defecto="Verificá nodos x crecientes sin duplicar; Newton-Gregory exige paso h constante.",
+                    ejemplo_defecto="x = [0.0, 1.0, 2.0, 3.0]",
+                )
 
     render_plotly_arandu(fig, key="plot_vs_interp")
 
@@ -423,23 +466,27 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     xf = c5.number_input(r"$x_f$:", value=4.4, format="%.4f", key="vs_edo_xf")
     h = c6.number_input(r"Paso $\Delta h$:", value=0.1, min_value=0.01, step=0.05, format="%.4f", key="vs_edo_h")
 
-    comp_f = compilar_funcion_edo(f_str)
-    comp_ex = compilar_exacta_edo(y_ex_str) if y_ex_str.strip() else None
-    y_ex_fn = comp_ex["fn"] if comp_ex else None
-
-    runners = {
-        "euler": lambda: metodo_euler(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
-        "heun": lambda: metodo_euler_modificado(comp_f["fn"], x0, y0, h, xf=xf, iterar_corrector=True, y_exacta_fn=y_ex_fn),
-        "rk2": lambda: metodo_runge_kutta_2(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
-        "rk4": lambda: metodo_runge_kutta_4(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
-        "milne": lambda: metodo_milne(comp_f["fn"], x0, y0, h, xf=xf, n_correcciones=2, y_exacta_fn=y_ex_fn),
-    }
-
     try:
+        comp_f = compilar_funcion_edo(f_str)
+        comp_ex = compilar_exacta_edo(y_ex_str) if y_ex_str.strip() else None
+        y_ex_fn = comp_ex["fn"] if comp_ex else None
+
+        runners = {
+            "euler": lambda: metodo_euler(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
+            "heun": lambda: metodo_euler_modificado(comp_f["fn"], x0, y0, h, xf=xf, iterar_corrector=True, y_exacta_fn=y_ex_fn),
+            "rk2": lambda: metodo_runge_kutta_2(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
+            "rk4": lambda: metodo_runge_kutta_4(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
+            "milne": lambda: metodo_milne(comp_f["fn"], x0, y0, h, xf=xf, n_correcciones=2, y_exacta_fn=y_ex_fn),
+        }
         ra = runners[m_a]()
         rb = runners[m_b]()
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="EDO y' = f(x, y) o intervalo PVI",
+            sugerencia_defecto="Revisá sintaxis Python en y'=f(x,y), x_f != x_0 y al menos 4 pasos en Milne.",
+            ejemplo_defecto="y' = 6*x**2 / y con x0 = 4.0, y0 = 16.0, xf = 4.4, h = 0.1",
+        )
         return
 
     ea = ra["tabla"][-1].get("error_abs") or 0.0
@@ -464,8 +511,26 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         )
     pares_a = muestrear_para_grafico(list(zip(ra["x"], ra["y"])), max_puntos=300)
     pares_b = muestrear_para_grafico(list(zip(rb["x"], rb["y"])), max_puntos=300)
-    fig.add_trace(go.Scatter(x=[p[0] for p in pares_a], y=[p[1] for p in pares_a], mode="lines+markers", name=nombre_a, line=dict(color=PALETA_ARANDU["salvia"], width=2.4)))
-    fig.add_trace(go.Scatter(x=[p[0] for p in pares_b], y=[p[1] for p in pares_b], mode="lines+markers", name=nombre_b, line=dict(color=PALETA_ARANDU["terracota"], width=2.4)))
+    fig.add_trace(
+        go.Scatter(
+            x=[p[0] for p in pares_a],
+            y=[p[1] for p in pares_a],
+            mode="lines+markers",
+            name=nombre_a,
+            line=dict(color=PALETA_ARANDU["salvia"], width=2.4, dash="solid"),
+            marker=dict(symbol="circle", size=7),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[p[0] for p in pares_b],
+            y=[p[1] for p in pares_b],
+            mode="lines+markers",
+            name=nombre_b,
+            line=dict(color=PALETA_ARANDU["terracota"], width=2.4, dash="dot"),
+            marker=dict(symbol="diamond", size=7),
+        )
+    )
     render_plotly_arandu(fig, key="plot_vs_edo")
 
 

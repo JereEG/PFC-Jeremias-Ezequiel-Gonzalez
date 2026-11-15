@@ -38,6 +38,7 @@ from views.ui_shared import (
     render_controles_edicion_practica,
     render_data_editor_arandu,
     render_dataframe_acotado,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
@@ -111,7 +112,12 @@ def _frag_lineal(defaults: dict) -> None:
             px, py = res["x_eval"], res["y_interpolado"]
             st.metric("y estimado por interpolación lineal directa", f"{py:.6f}")
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla (x, y) o valor buscado (Lineal)",
+            sugerencia_defecto="Ingresá nodos x crecientes sin repetir y un valor objetivo dentro del intervalo de la tabla.",
+            ejemplo_defecto="x = [0.0, 5.0, 10.0], x* = 2.5",
+        )
         return
 
     st.markdown("### Bloque 4 — Recta Secante Local Paso a Paso")
@@ -176,7 +182,12 @@ def _frag_cuadratica_inversa(defaults: dict) -> None:
     try:
         res = interpolar_cuadratica_inversa(xs, ys, y_busc)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla (x, y) u ordenada y* (Cuadrática Inversa)",
+            sugerencia_defecto="Asegurá al menos 3 puntos con ordenadas y distintas para evitar división por cero.",
+            ejemplo_defecto="x = [0.0, 5.0, 10.0], y = [1.792, 1.519, 1.308]",
+        )
         return
 
     m1, m2 = st.columns(2)
@@ -261,7 +272,12 @@ def _frag_lagrange(defaults: dict) -> None:
         res = interpolar_lagrange(xs, ys, x_eval)
         simb = construir_polinomio_simbolico_lagrange(xs, ys)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla de nodos (x, y) (Lagrange)",
+            sugerencia_defecto="Usá al menos 2 nodos con abscisas x distintas sin duplicar.",
+            ejemplo_defecto="x = [-1.0, 0.0, 2.0, 3.0]",
+        )
         return
 
     m1, m2 = st.columns(2)
@@ -930,7 +946,7 @@ def _render_grafica_gregory_comparativa(
             y=[ys[-1]],
             mode="markers",
             name="Ancla xₙ (Descendente)",
-            marker=dict(size=12, color=PALETA_ARANDU["oro"], line=dict(color=PALETA_ARANDU["marfil_nodo"], width=1.6)),
+            marker=dict(size=12, symbol="triangle-up", color=PALETA_ARANDU["oro"], line=dict(color=PALETA_ARANDU["marfil_nodo"], width=1.6)),
         )
     )
 
@@ -1127,7 +1143,12 @@ def _frag_newton_gregory(defaults: dict) -> None:
             )
             render_plotly_arandu(fig, key="plot_int_ng_fallback")
         except ValueError as exc:
-            st.error(str(exc))
+            render_excepcion_validacion(
+                exc,
+                campo="Tabla de nodos (respaldo Lagrange)",
+                sugerencia_defecto="Eliminá nodos con valores x repetidos e ingresá al menos 2 filas finitas.",
+                ejemplo_defecto="x = [0.0, 0.25, 0.5, 0.75]",
+            )
         return
 
     st.success(diag["mensaje"])

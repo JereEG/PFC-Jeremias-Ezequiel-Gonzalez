@@ -7,7 +7,11 @@ paginación acotada (> 300 filas) y renderizado Plotly ligero para producción/P
 from __future__ import annotations
 
 import copy
+import csv
 import html
+import io
+import math
+import re
 from typing import TYPE_CHECKING, Any
 
 import streamlit as st
@@ -299,14 +303,233 @@ def crear_figura_base_plotly(
     return fig
 
 
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _limpiar_texto_plotly(valor: Any, defecto: str) -> str:
+    if not valor:
+        return defecto
+    limpio = _HTML_TAG_RE.sub(" ", str(valor))
+    limpio = re.sub(r"\s+", " ", limpio).strip()
+    return limpio or defecto
+
+
+def _extraer_accesibilidad_plotly(
+    fig: go.Figure,
+    resumen_accesible: str | None = None,
+) -> tuple[str, str, str, str, list[tuple[str, str, str]], list[tuple[str, str, str]]]:
+    """Extrae título, ejes, resumen textual, filas HTML muestreadas y filas CSV de una figura Plotly."""
+    titulo = _limpiar_texto_plotly(getattr(getattr(fig.layout, "title", None), "text", None), "Gráfico numérico")
+    ejex = _limpiar_texto_plotly(getattr(getattr(fig.layout.xaxis, "title", None), "text", None), "x")
+    ejey = _limpiar_texto_plotly(getattr(getattr(fig.layout.yaxis, "title", None), "text", None), "y")
+
+    resumen_series: list[str] = []
+    filas_html: list[tuple[str, str, str]] = []
+    filas_csv: list[tuple[str, str, str]] = []
+
+    trazas = list(getattr(fig, "data", ()) or ())
+    for idx_t, traza in enumerate(trazas):
+        nombre = _limpiar_texto_plotly(getattr(traza, "name", None), f"Serie {idx_t + 1}")
+        ty = getattr(traza, "y", None)
+        if ty is None:
+            continue
+        ys = list(ty)
+        tx = getattr(traza, "x", None)
+        xs = list(tx) if tx is not None else list(range(len(ys)))
+
+        pares: list[tuple[str, str, float]] = []
+        for xv, yv in zip(xs, ys):
+            if yv is None:
+                continue
+            try:
+                yf = float(yv)
+                if not math.isfinite(yf):
+                    continue
+            except (TypeError, ValueError):
+                continue
+            try:
+                xf = float(xv)
+                x_str = f"{xf:.6g}" if math.isfinite(xf) else str(xv)
+            except (TypeError, ValueError):
+                x_str = str(xv)
+            pares.append((x_str, f"{yf:.6g}", yf))
+
+        if not pares:
+            continue
+
+        ys_num = [p[2] for p in pares]
+        if len(resumen_series) < 5:
+            resumen_series.append(
+                f"{nombre} ({len(pares)} pts, mín={min(ys_num):.4g}, máx={max(ys_num):.4g})"
+            )
+
+        idx_csv = muestrear_indices_acotados(len(pares), max_puntos=600)
+        for i in idx_csv:
+            filas_csv.append((nombre, pares[i][0], pares[i][1]))
+
+        if len(filas_html) < 48:
+            cupo = min(12, 48 - len(filas_html))
+            idx_html = muestrear_indices_acotados(len(pares), max_puntos=cupo)
+            for i in idx_html:
+                filas_html.append((nombre, pares[i][0], pares[i][1]))
+
+    if len(trazas) > 5:
+        resumen_series.append(f"+{len(trazas) - 5} series adicionales")
+
+    partes_desc = []
+    if resumen_accesible:
+        partes_desc.append(resumen_accesible.strip())
+    if resumen_series:
+        partes_desc.append(
+            f"Gráfico '{titulo}' (horizontal: {ejex}; vertical: {ejey}). Series: "
+            + "; ".join(resumen_series)
+            + "."
+        )
+    else:
+        partes_desc.append(f"Gráfico '{titulo}' sin puntos finitos disponibles.")
+
+    resumen_final = " ".join(partes_desc)
+    return titulo, ejex, ejey, resumen_final, filas_html, filas_csv
+
+
 def render_plotly_arandu(
     fig: go.Figure,
     key: str | None = None,
+    resumen_accesible: str | None = None,
     **kwargs: Any,
 ) -> None:
-    """Renderiza figuras Plotly optimizando payload de UI (sin logo Plotly y barra al pasar el cursor)."""
+    """Renderiza figuras Plotly con resumen accesible, tabla semántica HTML y descarga CSV."""
     config = kwargs.pop("config", PLOTLY_CONFIG_ARANDU)
     st.plotly_chart(fig, use_container_width=True, config=config, key=key, **kwargs)
+
+    titulo, ejex, ejey, resumen_final, filas_html, filas_csv = _extraer_accesibilidad_plotly(
+        fig, resumen_accesible=resumen_accesible
+    )
+    st.markdown(
+        f'<p class="arandu-chart-desc" role="region" aria-live="polite" '
+        f'aria-label="Resumen accesible: {html.escape(titulo)}">'
+        f"<strong>Descripción accesible:</strong> {html.escape(resumen_final)}</p>",
+        unsafe_allow_html=True,
+    )
+
+    if not filas_csv:
+        return
+
+    with st.expander("Datos del gráfico en tabla accesible y descarga CSV", expanded=False):
+        filas_tr = "".join(
+            f"<tr><td>{html.escape(s)}</td><td>{html.escape(x)}</td><td>{html.escape(y)}</td></tr>"
+            for s, x, y in filas_html
+        )
+        st.markdown(
+            '<div class="arandu-chart-table-wrap">'
+            '<table class="arandu-chart-table">'
+            f"<caption>Datos numéricos de {html.escape(titulo)}</caption>"
+            "<thead><tr>"
+            '<th scope="col">Serie</th>'
+            f'<th scope="col">{html.escape(ejex)}</th>'
+            f'<th scope="col">{html.escape(ejey)}</th>'
+            "</tr></thead>"
+            f"<tbody>{filas_tr}</tbody>"
+            "</table>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            f"Vista rápida de {len(filas_html)} puntos representativos ({len(filas_csv)} exportables en CSV)."
+        )
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(["Serie", ejex, ejey])
+        writer.writerows(filas_csv)
+        slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", titulo.lower()).strip("_") or "grafico_arandu"
+        dl_key = f"csv_dl_{key}" if key else f"csv_dl_{abs(hash((titulo, ejex, ejey, len(filas_csv))))}"
+        st.download_button(
+            "Descargar datos del gráfico (CSV)",
+            data=buf.getvalue().encode("utf-8-sig"),
+            file_name=f"{slug[:48]}.csv",
+            mime="text/csv",
+            key=dl_key,
+        )
+
+
+def render_error_validacion(
+    campo: str,
+    detalle: str,
+    sugerencia: str,
+    ejemplo: str | None = None,
+) -> None:
+    """Presenta errores de validación accesibles con diagnóstico y corrección sugerida (WCAG 3.3.3)."""
+    campo_esc = html.escape(str(campo))
+    detalle_esc = html.escape(str(detalle))
+    sugerencia_esc = html.escape(str(sugerencia))
+    ejemplo_html = (
+        f"<br/><strong>Ejemplo válido:</strong> <code>{html.escape(str(ejemplo))}</code>"
+        if ejemplo
+        else ""
+    )
+    st.markdown(
+        f'<div class="arandu-error-callout" role="alert" aria-live="assertive" data-arandu-invalid-field="{campo_esc}">'
+        f'<span class="arandu-error-tag">CORRECCIÓN REQUERIDA · {campo_esc}</span>'
+        f"<strong>Qué ocurrió:</strong> {detalle_esc}<br/>"
+        f"<strong>Cómo corregirlo:</strong> {sugerencia_esc}"
+        f"{ejemplo_html}"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+_REGLAS_ERROR_VALIDACION: tuple[tuple[tuple[str, ...], str, str, str], ...] = (
+    (
+        ("signo", "bolzano", "mismo signo"),
+        "Intervalo [a, b] o función f(x)",
+        "Elegí extremos a < b donde f(a) y f(b) tengan signos opuestos (f(a)*f(b) < 0).",
+        "f(x) = x**3 - 2*x - 5 con a = 2.0, b = 3.0",
+    ),
+    (
+        ("singular", "pivote", "determinante", "división por cero", "division por cero", "dividir por cero", "cero"),
+        "Sistema o denominador numérico",
+        "Verificá que no haya ceros en el denominador ni filas repetidas, nulas o colineales.",
+        "A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]]",
+    ),
+    (
+        ("equidistant", "equiespaciad", "duplicad", "orden", "paso h"),
+        "Tabla de nodos (xᵢ, yᵢ) / paso Δh",
+        "Ingresá valores de x estrictamente crecientes y sin repetir; en paso fijo usá espaciado h > 0 constante.",
+        "x = [0.0, 0.2, 0.4, 0.6]",
+    ),
+    (
+        ("sintaxis", "expresi", "sympy", "parse", "vací", "vaci"),
+        "Expresión matemática",
+        "Usá sintaxis Python explícita con * para multiplicar y ** para potencias.",
+        "2*x**3 - 5*sin(x) + 1",
+    ),
+)
+
+
+def render_excepcion_validacion(
+    exc: Exception,
+    campo: str,
+    sugerencia_defecto: str,
+    ejemplo_defecto: str | None = None,
+) -> None:
+    """Clasifica una excepción de validación numérica y muestra guía clara de corrección."""
+    detalle = str(exc).strip() or "Entrada fuera del dominio esperado."
+    texto_low = detalle.lower()
+    for palabras, campo_regla, sug_regla, ej_regla in _REGLAS_ERROR_VALIDACION:
+        if any(p in texto_low for p in palabras):
+            render_error_validacion(
+                campo=campo_regla,
+                detalle=detalle,
+                sugerencia=sug_regla,
+                ejemplo=ej_regla,
+            )
+            return
+    render_error_validacion(
+        campo=campo,
+        detalle=detalle,
+        sugerencia=sugerencia_defecto,
+        ejemplo=ejemplo_defecto,
+    )
 
 
 def muestrear_para_grafico(
@@ -521,6 +744,8 @@ __all__ = [
     "render_controles_edicion_practica",
     "render_data_editor_arandu",
     "render_dataframe_acotado",
+    "render_error_validacion",
+    "render_excepcion_validacion",
     "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",

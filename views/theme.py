@@ -24,7 +24,7 @@ PALETA_ARANDU: dict[str, str] = {
     "terracota": "#C86D44",
     "texto_principal": "#EDE4D3",
     "texto_secundario": "#C7BFA9",
-    "borde": "#2E2920",
+    "borde": "#736958",
     "salvia_borde": "#687D5B",
     "terracota_oscuro": "#B5673F",
     "marfil_nodo": "#FFFDF9",
@@ -1620,8 +1620,124 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         .arandu-ng-step-total-desc {{
             background-color: var(--arandu-gold);
         }}
+        a.arandu-skip-link {{
+            position: fixed;
+            top: -120px;
+            left: 1rem;
+            z-index: 9999;
+            padding: 0.65rem 1.1rem;
+            border-radius: 8px;
+            background-color: var(--arandu-surface-elevated);
+            color: var(--arandu-gold) !important;
+            border: 2px solid var(--arandu-gold);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.96rem;
+            text-decoration: none;
+            box-shadow: 0 6px 18px var(--arandu-black-35);
+        }}
+        a.arandu-skip-link:focus,
+        a.arandu-skip-link:focus-visible {{
+            top: 0.75rem;
+        }}
+        [data-baseweb="checkbox"] span,
+        [data-baseweb="radio"] div[role="radio"],
+        [data-baseweb="select"] > div {{
+            border-color: var(--arandu-text-faint) !important;
+        }}
+        .stMain,
+        .arandu-hero,
+        .arandu-nav-card,
+        .arandu-ficha-card,
+        .arandu-callout,
+        .arandu-error-callout,
+        .arandu-chart-desc {{
+            overflow-wrap: break-word;
+            word-break: normal;
+        }}
+        .arandu-chart-desc {{
+            border-left: 3px solid var(--arandu-sage);
+            background-color: var(--arandu-sage-14);
+            padding: 0.5rem 0.85rem;
+            margin: 0.3rem 0 0.55rem 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.92rem;
+            color: var(--arandu-text);
+            line-height: 1.5;
+            text-align: left;
+        }}
+        .arandu-chart-table-wrap {{
+            overflow-x: auto;
+            max-width: 100%;
+            border: 1px solid var(--arandu-border);
+            border-radius: 6px;
+            padding: 0.25rem;
+            background-color: var(--arandu-surface);
+        }}
+        table.arandu-chart-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            color: var(--arandu-text);
+        }}
+        table.arandu-chart-table caption {{
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--arandu-gold);
+            padding: 0.35rem 0.5rem;
+        }}
+        table.arandu-chart-table th {{
+            background-color: var(--arandu-surface-elevated);
+            color: var(--arandu-gold);
+            font-weight: 700;
+            text-align: left;
+            padding: 0.4rem 0.55rem;
+            border-bottom: 2px solid var(--arandu-gold);
+        }}
+        table.arandu-chart-table td {{
+            padding: 0.35rem 0.55rem;
+            border-bottom: 1px solid var(--arandu-border);
+        }}
+        .arandu-error-callout {{
+            border: none;
+            border-left: 4px solid var(--arandu-terracotta);
+            border-radius: 0 4px 4px 0;
+            background-color: var(--arandu-terr-18);
+            padding: 0.8rem 1.05rem;
+            margin: 0.5rem 0 0.9rem 0;
+            color: var(--arandu-text);
+            line-height: 1.58;
+            text-align: left;
+        }}
+        .arandu-error-tag {{
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--arandu-terracotta);
+            margin-bottom: 0.25rem;
+        }}
+        .arandu-footer {{
+            margin-top: 1.1rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid var(--arandu-border);
+            font-size: 0.86rem;
+            color: var(--arandu-muted);
+            line-height: 1.45;
+        }}
         @media (max-width: 900px) {{
             .arandu-ng-summary-grid {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+        @media (max-width: 640px) {{
+            .arandu-hero {{
+                padding: 1rem 1.05rem;
+            }}
+            .arandu-pillars {{
                 grid-template-columns: 1fr;
             }}
         }}
@@ -1827,16 +1943,16 @@ def _construir_html_tarjeta_catalogo_cached(
         else ""
     )
     return (
-        '<div class="arandu-nav-card">'
+        f'<article class="arandu-nav-card" aria-label="{html.escape(titulo)}">'
         f'<div class="arandu-nav-card-header">{media_html}</div>'
         '<div class="arandu-nav-card-body">'
         '<div class="arandu-nav-card-top">'
         f"{tag_html}"
-        f'<div class="arandu-nav-card-title">{html.escape(titulo)}</div>'
+        f'<h3 class="arandu-nav-card-title">{html.escape(titulo)}</h3>'
         "</div>"
         f'<p class="arandu-nav-card-desc">{html.escape(descripcion)}</p>'
         "</div>"
-        "</div>"
+        "</article>"
     )
 
 
@@ -2141,7 +2257,7 @@ def _construir_html_ficha_metodo_cached(
     else:
         media_html = obtener_svg_borrador_metodo(clave_svg, modo=modo)
     return (
-        f'<div class="arandu-ficha-card{clase_activa}">'
+        f'<article class="arandu-ficha-card{clase_activa}" aria-label="Método {html.escape(numero)}: {html.escape(titulo)}">'
         '<div class="arandu-ficha-main">'
         '<div class="arandu-ficha-top">'
         f'<span class="arandu-ficha-num">{html.escape(numero)}</span>{badge}'
@@ -2151,7 +2267,7 @@ def _construir_html_ficha_metodo_cached(
         f'<p class="arandu-ficha-desc">{html.escape(resumen)}</p>'
         "</div>"
         f'<div class="arandu-ficha-foot">{html.escape(pista)}</div>'
-        "</div>"
+        "</article>"
     )
 
 

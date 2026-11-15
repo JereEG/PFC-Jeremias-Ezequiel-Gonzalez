@@ -32,6 +32,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
@@ -58,12 +59,18 @@ def _frag_biseccion(defaults: dict) -> None:
     )
     solo_lectura = modo == "catedra"
 
-    f_str = st.text_input("Ecuación $f(x) = 0$:", value=str(st.session_state["raiz_bis_f_str"]), disabled=solo_lectura, key="ui_bis_f")
+    f_str = st.text_input(
+        "Ecuación $f(x) = 0$:",
+        value=str(st.session_state["raiz_bis_f_str"]),
+        disabled=solo_lectura,
+        help="Expresión en variable x usando * y ** (ej: -2.75*x**3 + 18*x**2 - 21*x - 12).",
+        key="ui_bis_f",
+    )
     c1, c2, c3, c4 = st.columns(4)
-    a_val = c1.number_input("Extremo $a$:", value=float(st.session_state["raiz_bis_a"]), format="%.4f", disabled=solo_lectura, key="ui_bis_a")
-    b_val = c2.number_input("Extremo $b$:", value=float(st.session_state["raiz_bis_b"]), format="%.4f", disabled=solo_lectura, key="ui_bis_b")
-    tol_val = c3.number_input("Tolerancia $E$:", value=float(st.session_state["raiz_bis_tol"]), min_value=1e-10, format="%.6f", disabled=solo_lectura, key="ui_bis_tol")
-    max_it = c4.number_input("Iteraciones máx:", value=int(st.session_state["raiz_bis_max_iter"]), min_value=1, max_value=200, disabled=solo_lectura, key="ui_bis_max")
+    a_val = c1.number_input("Extremo $a$:", value=float(st.session_state["raiz_bis_a"]), format="%.4f", disabled=solo_lectura, help="Límite inferior del intervalo [a, b].", key="ui_bis_a")
+    b_val = c2.number_input("Extremo $b$:", value=float(st.session_state["raiz_bis_b"]), format="%.4f", disabled=solo_lectura, help="Límite superior del intervalo [a, b] con signo opuesto a f(a).", key="ui_bis_b")
+    tol_val = c3.number_input("Tolerancia $E$:", value=float(st.session_state["raiz_bis_tol"]), min_value=1e-10, format="%.6f", disabled=solo_lectura, help="Error máximo permitido (> 1e-10, unidades de x).", key="ui_bis_tol")
+    max_it = c4.number_input("Iteraciones máx:", value=int(st.session_state["raiz_bis_max_iter"]), min_value=1, max_value=200, disabled=solo_lectura, help="Tope de ciclos permitido entre 1 y 200.", key="ui_bis_max")
 
     if not solo_lectura:
         st.session_state["raiz_bis_f_str"] = f_str
@@ -75,7 +82,12 @@ def _frag_biseccion(defaults: dict) -> None:
     try:
         comp = compilar_funcion_raices(f_str)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Ecuación f(x) = 0",
+            sugerencia_defecto="Ingresá una expresión válida en variable x usando operadores explícitos * y **.",
+            ejemplo_defecto="-2.75*x**3 + 18*x**2 - 21*x - 12",
+        )
         return
 
     with st.expander("Análisis Previo: Conteo de Signos (Regla de Descartes) & Barrido por Tanteos"):
@@ -95,7 +107,12 @@ def _frag_biseccion(defaults: dict) -> None:
     try:
         res = metodo_biseccion(comp["fn"], a_val, b_val, tol=tol_val, max_iter=int(max_it))
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Intervalo [a, b] de Bisección",
+            sugerencia_defecto="Elegí extremos a y b donde f(a)*f(b) < 0 (usá el barrido por tanteos arriba).",
+            ejemplo_defecto="a = 2.0, b = 2.5 para f(x) = x**3 - 2*x - 5",
+        )
         return
 
     m1, m2, m3, m4 = st.columns(4)
@@ -206,7 +223,12 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
         else:
             res = metodo_interpolacion_lineal_bolzano(comp["fn"], a=min(a_val, b_val), b=max(a_val, b_val), tol=tol_val)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Intervalo [a, b] o ecuación f(x) (Regula Falsi)",
+            sugerencia_defecto="Revisá que f(a)*f(b) < 0 y la función sea continua en [a, b].",
+            ejemplo_defecto="f(x) = x**3 - 2*x - 5, a = 2.0, b = 2.5",
+        )
         return
 
     m1, m2, m3 = st.columns(3)
@@ -301,7 +323,12 @@ def _frag_newton_raphson(defaults: dict) -> None:
     try:
         comp = compilar_funcion_raices(f_str)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Ecuación f(x) para Newton-Raphson",
+            sugerencia_defecto="Ingresá una función derivable f(x) con sintaxis Python válida (*, **).",
+            ejemplo_defecto="x**3 - 2*x - 5",
+        )
         return
 
     st.latex(rf"f'(x) = {comp['d1_latex']}, \qquad f''(x) = {comp['d2_latex']}")
@@ -391,7 +418,12 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
         comp_g = compilar_g_punto_fijo(g_str)
         deriv_x0 = abs(comp_g["dgn"](x0_val))
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Despeje x = g(x) o semilla x0",
+            sugerencia_defecto="Escribí g(x) con variable x usando sintaxis Python y evitá puntos x0 donde g(x0) o g'(x0) se indefina.",
+            ejemplo_defecto="g(x) = (2*x + 5)**(1/3), x0 = 2.0",
+        )
         return
 
     st.latex(rf"g'(x) = {comp_g['dg_latex']}, \qquad |g'(x_0)| = {deriv_x0:.4f}")

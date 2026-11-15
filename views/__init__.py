@@ -61,6 +61,8 @@ _UI_SHARED_EXPORTS = {
     "render_controles_edicion_practica",
     "render_data_editor_arandu",
     "render_dataframe_acotado",
+    "render_error_validacion",
+    "render_excepcion_validacion",
     "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",

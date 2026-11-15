@@ -27,7 +27,7 @@ def vista_inicio() -> None:
 
     st.markdown(
         f"""
-        <div class="arandu-hero">
+        <header class="arandu-hero">
             <div class="arandu-hero-grid">
                 {logo_html}
                 <div style="flex:1; min-width:260px;">
@@ -51,7 +51,7 @@ def vista_inicio() -> None:
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
         """,
         unsafe_allow_html=True,
     )
