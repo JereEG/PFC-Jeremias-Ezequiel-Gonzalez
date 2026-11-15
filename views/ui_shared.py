@@ -38,7 +38,7 @@ from views.theme import (
     PALETA_ARANDU,
     PLOTLY_CONFIG_ARANDU,
     aplicar_estilo_arandu,
-    construir_html_carta_tarot,
+    construir_html_ficha_metodo,
     construir_html_mini_tarjetas,
     construir_html_tarjeta_catalogo,
     estilizar_figura_arandu,
@@ -64,7 +64,7 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     Renderiza la arquitectura de lectura en 3 niveles (Anti-Muro de Texto) para Sistemas:
     - Bloque A: Título + Resumen Ejecutivo (2-3 líneas).
     - Bloque B: Intuición visual/algorítmica + fórmulas st.latex() + Expander de profundización.
-    - Bloque C: Veredicto Práctico (✅ Cuándo elegir / ⚠️ Cuándo evitar o tener cuidado).
+    - Bloque C: Veredicto Práctico (Cuándo elegirlo / Cuándo evitarlo o tener cuidado).
     """
     meta = obtener_metodo(clave_metodo)
     if not meta:
@@ -74,7 +74,7 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     guru = meta.get("guru", {})
 
     # Bloque A: Título + Resumen Ejecutivo (siempre visible arriba)
-    st.subheader(f"{meta.get('icono', '📘')} {meta['nombre']}")
+    st.subheader(meta["nombre"])
     with st.container(border=True):
         st.markdown(f"**Resumen Ejecutivo:** {meta.get('resumen_corto', '')}")
 
@@ -97,7 +97,7 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     ejemplo = meta.get("ejemplo_teorico", {})
     profundizacion = guru.get("profundizacion", [])
     if profundizacion or ejemplo:
-        with st.expander("📖 Ver desarrollo teórico detallado (Para profundizar)", expanded=False):
+        with st.expander("Ver desarrollo teórico detallado (Para profundizar)", expanded=False):
             for detalle in profundizacion:
                 st.markdown(f"- {detalle}")
             if ejemplo:
@@ -116,12 +116,18 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     col_pro, col_warn = st.columns(2)
     with col_pro:
         with st.container(border=True):
-            st.markdown("#### ✅ Cuándo elegir este método")
+            st.markdown(
+                '<div class="arandu-verdict-head arandu-verdict-head-pro">Cuándo elegirlo</div>',
+                unsafe_allow_html=True,
+            )
             for item in guru.get("cuando_usar", []):
                 st.markdown(f"- {item}")
     with col_warn:
         with st.container(border=True):
-            st.markdown("#### ⚠️ Cuándo evitarlo o tener cuidado")
+            st.markdown(
+                '<div class="arandu-verdict-head arandu-verdict-head-warn">Cuándo evitarlo o tener cuidado</div>',
+                unsafe_allow_html=True,
+            )
             for item in guru.get("cuando_falla", []):
                 st.markdown(f"- {item}")
 
@@ -184,21 +190,21 @@ def render_practica_catedra_info(
 ) -> None:
     """Renderiza únicamente la zona estática del ejercicio de cátedra (fuera de fragmentos)."""
     if titulo_practica or enunciado_practica:
-        st.markdown("### 📝 Práctica de Cátedra Interactiva")
+        st.markdown("### Práctica de Cátedra Interactiva")
         with st.container(border=True):
             if titulo_practica:
                 st.markdown(f"**{titulo_practica}**")
             if enunciado_practica:
                 st.markdown(enunciado_practica)
             if solucion_referencia:
-                with st.expander("✅ Ver solución de referencia esperada", expanded=False):
+                with st.expander("Ver solución de referencia esperada", expanded=False):
                     st.success(solucion_referencia)
 
 
 def render_controles_edicion_practica(
     clave_state: str,
     defaults_dict: dict[str, Any],
-    mensaje_edicion: str = "✏️ Parámetros editables en vivo: modificá los valores o probá con un caso propio.",
+    mensaje_edicion: str = "Parámetros editables en vivo: modificá los valores o probá con un caso propio.",
     scope_rerun: str = "fragment",
 ) -> str:
     """Renderiza los controles interactivos (modo Cátedra / Manual + Restaurar) dentro de @st.fragment."""
@@ -213,9 +219,9 @@ def render_controles_edicion_practica(
             "Modo de datos de entrada:",
             options=["catedra", "manual"],
             format_func=lambda m: (
-                "🔒 Valores oficiales de cátedra"
+                "Valores oficiales de cátedra"
                 if m == "catedra"
-                else "✏️ Edición manual en vivo"
+                else "Edición manual en vivo"
             ),
             horizontal=True,
             key=modo_key,
@@ -223,12 +229,12 @@ def render_controles_edicion_practica(
     with c_reset:
         st.markdown("<div style='padding-top: 1.55rem;'></div>", unsafe_allow_html=True)
         if st.button(
-            "🔄 Restaurar valores originales de la profesora",
+            "Restaurar valores originales de la profesora",
             key=f"{clave_state}_btn_restaurar",
             use_container_width=True,
         ):
             restaurar_estado_practica(clave_state, defaults_dict)
-            st.toast("Valores originales restaurados correctamente.", icon="✅")
+            st.toast("Valores originales restaurados correctamente.")
             rerun_fragmento_seguro(scope_rerun)
 
     if modo == "manual":
@@ -246,7 +252,7 @@ def render_banner_edicion_profesora(
     titulo_practica: str | None = None,
     enunciado_practica: str | None = None,
     solucion_referencia: str | None = None,
-    mensaje_edicion: str = "✏️ Parámetros editables en vivo: modificá los valores o probá con un caso propio.",
+    mensaje_edicion: str = "Parámetros editables en vivo: modificá los valores o probá con un caso propio.",
     scope_rerun: str = "fragment",
 ) -> str:
     """Wrapper compatible que combina zona informativa de práctica y controles interactivos."""
@@ -354,7 +360,7 @@ def render_slider_paso_k(
 ) -> int:
     """Renderiza de forma segura el slider 'Ver hasta el paso k' incluso si hay 1 paso."""
     if max_val <= min_val:
-        st.caption(f"ℹ️ {label}: **{max_val}** (único paso disponible)")
+        st.caption(f"{label}: **{max_val}** (único paso disponible)")
         return max_val
     val_def = max_val if default_val is None else min(max_val, max(min_val, default_val))
     return int(st.slider(label, min_value=min_val, max_value=max_val, value=val_def, key=key))
@@ -397,61 +403,61 @@ def render_mini_catalogo_vista(
     st.markdown(construir_html_mini_tarjetas(tuple(items)), unsafe_allow_html=True)
 
 
-def _activar_carta_tarot(state_key: str, idx: int) -> None:
+def _activar_ficha_metodo(state_key: str, idx: int) -> None:
     st.session_state[state_key] = idx
 
 
-def render_mazo_tarot_metodos(
+def render_selector_fichas_metodos(
     vista_id: str,
-    cartas: list[dict[str, str]] | tuple[dict[str, str], ...],
+    fichas: list[dict[str, str]] | tuple[dict[str, str], ...],
     default_idx: int = 0,
 ) -> int:
-    """Renderiza un selector interactivo de métodos tipo mazo Tarot y retorna el índice activo."""
-    if not cartas:
+    """Renderiza un selector interactivo de fichas de estudio y retorna el índice activo."""
+    if not fichas:
         return 0
-    state_key = f"arandu_tarot_{vista_id}"
+    state_key = f"arandu_ficha_{vista_id}"
     if state_key not in st.session_state:
         st.session_state[state_key] = default_idx
-    activo = max(0, min(len(cartas) - 1, int(st.session_state[state_key])))
+    activo = max(0, min(len(fichas) - 1, int(st.session_state[state_key])))
     st.session_state[state_key] = activo
 
-    n = len(cartas)
+    n = len(fichas)
     cols_por_fila = 4 if n == 4 else (3 if n >= 3 else n)
     for ini in range(0, n, cols_por_fila):
-        fila = cartas[ini : ini + cols_por_fila]
+        fila = fichas[ini : ini + cols_por_fila]
         cols = st.columns(cols_por_fila)
-        for offset, carta in enumerate(fila):
+        for offset, ficha in enumerate(fila):
             idx = ini + offset
             es_activa = idx == activo
             with cols[offset]:
                 st.markdown(
-                    construir_html_carta_tarot(
-                        romano=carta["romano"],
-                        clave_svg=carta["clave_svg"],
-                        titulo=carta["titulo"],
-                        subtitulo_arcano=carta["subtitulo_arcano"],
-                        resumen=carta["resumen"],
-                        pista=carta["pista"],
+                    construir_html_ficha_metodo(
+                        numero=ficha["numero"],
+                        clave_svg=ficha["clave_svg"],
+                        titulo=ficha["titulo"],
+                        subtitulo=ficha["subtitulo"],
+                        resumen=ficha["resumen"],
+                        pista=ficha["pista"],
                         activa=es_activa,
                     ),
                     unsafe_allow_html=True,
                 )
                 st.button(
-                    "Carta en Mesa" if es_activa else f"Elegir Arcano {carta['romano']}",
-                    key=f"tarot_{vista_id}_{idx}",
+                    "Método activo" if es_activa else f"Seleccionar método {ficha['numero']}",
+                    key=f"ficha_{vista_id}_{idx}",
                     type="primary" if es_activa else "secondary",
                     use_container_width=True,
-                    on_click=_activar_carta_tarot,
+                    on_click=_activar_ficha_metodo,
                     args=(state_key, idx),
                 )
 
-    carta_activa = cartas[activo]
-    titulo_esc = html.escape(f"Carta {carta_activa['romano']} en Mesa — {carta_activa['titulo']}")
-    pista_esc = html.escape(carta_activa["pista"])
+    ficha_activa = fichas[activo]
+    titulo_esc = html.escape(f"Método {ficha_activa['numero']} — {ficha_activa['titulo']}")
+    pista_esc = html.escape(ficha_activa["pista"])
     st.markdown(
-        '<div class="arandu-tarot-mesa-banner">'
-        f'<span class="arandu-tarot-mesa-titulo">{titulo_esc}</span>'
-        f'<span class="arandu-tarot-mesa-pista">{pista_esc}</span>'
+        '<div class="arandu-ficha-activa-banner">'
+        f'<span class="arandu-ficha-activa-titulo">{titulo_esc}</span>'
+        f'<span class="arandu-ficha-activa-pista">{pista_esc}</span>'
         "</div>",
         unsafe_allow_html=True,
     )
@@ -492,10 +498,10 @@ __all__ = [
     "render_bloque_1_teoria_y_ejemplo",
     "render_controles_edicion_practica",
     "render_dataframe_acotado",
-    "render_mazo_tarot_metodos",
     "render_mini_catalogo_vista",
     "render_plotly_arandu",
     "render_practica_catedra_info",
+    "render_selector_fichas_metodos",
     "render_slider_paso_k",
     "render_tarjeta_catalogo",
     "rerun_fragmento_seguro",
