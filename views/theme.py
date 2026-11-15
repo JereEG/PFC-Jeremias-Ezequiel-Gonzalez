@@ -459,6 +459,24 @@ def obtener_css_arandu() -> str:
             color: #D4A359 !important;
             border-bottom-color: #D4A359 !important;
         }
+
+        [data-testid="stSkeleton"],
+        .arandu-skeleton-box {
+            background: linear-gradient(
+                90deg,
+                #161814 25%,
+                #26241E 50%,
+                #161814 75%
+            ) !important;
+            background-size: 200% 100% !important;
+            border: 1px solid #2E2920 !important;
+            border-radius: 10px !important;
+            animation: arandu-skeleton-shimmer 1.6s ease-in-out infinite !important;
+        }
+        @keyframes arandu-skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
         </style>
         """
 
