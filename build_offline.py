@@ -66,6 +66,16 @@ def _recolectar_vfs() -> dict[str, object]:
     if logo_jpg.exists():
         archivos["assets/logo_arandu.jpg"] = {"url": "./assets/logo_arandu.jpg"}
 
+    metodos_dir = ROOT_DIR / "assets" / "metodos"
+    if metodos_dir.exists():
+        for img_file in sorted(metodos_dir.iterdir()):
+            if img_file.is_file() and img_file.suffix.lower() in (".png", ".jpg", ".jpeg", ".svg"):
+                rel_posix = img_file.relative_to(ROOT_DIR).as_posix()
+                if img_file.suffix.lower() == ".svg":
+                    archivos[rel_posix] = img_file.read_text(encoding="utf-8")
+                else:
+                    archivos[rel_posix] = {"url": f"./{rel_posix}"}
+
     return archivos
 
 
@@ -440,19 +450,27 @@ def _generar_manifest() -> None:
 
 
 def _generar_service_worker() -> None:
+    precache = [
+        "./",
+        "./index.html",
+        "./manifest.json",
+        "./assets/svg/arandu.svg",
+        "./assets/logo_arandu.jpg",
+        "./.streamlit/config.toml",
+        f"{STLITE_CDN_BASE}/stlite.css",
+        f"{STLITE_CDN_BASE}/stlite.js",
+    ]
+    metodos_dir = ROOT_DIR / "assets" / "metodos"
+    if metodos_dir.exists():
+        for img_file in sorted(metodos_dir.iterdir()):
+            if img_file.is_file() and img_file.suffix.lower() in (".png", ".jpg", ".jpeg", ".svg"):
+                precache.append(f"./{img_file.relative_to(ROOT_DIR).as_posix()}")
+    precache_json = json.dumps(precache, indent=2, ensure_ascii=False)
+
     sw_js = f"""const CACHE_SHELL = "arandu-offline-shell-v{APP_VERSION}";
 const CACHE_RUNTIME = "arandu-offline-runtime-v{APP_VERSION}";
 
-const PRECACHE_URLS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./assets/svg/arandu.svg",
-  "./assets/logo_arandu.jpg",
-  "./.streamlit/config.toml",
-  "{STLITE_CDN_BASE}/stlite.css",
-  "{STLITE_CDN_BASE}/stlite.js"
-];
+const PRECACHE_URLS = {precache_json};
 
 self.addEventListener("install", (event) => {{
   self.skipWaiting();

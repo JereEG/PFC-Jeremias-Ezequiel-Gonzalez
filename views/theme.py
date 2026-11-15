@@ -229,7 +229,11 @@ def obtener_logos_app() -> tuple[bytes | str | None, str | bytes]:
     jpg_bytes = leer_asset_bytes("logo_arandu.jpg")
     svg_txt = leer_asset_texto("svg/arandu.svg")
     sidebar_logo = jpg_bytes if jpg_bytes is not None else svg_txt
-    page_icon: str | bytes = svg_txt if svg_txt is not None else (jpg_bytes if jpg_bytes is not None else "🌳")
+    page_icon: str | bytes = (
+        svg_txt
+        if svg_txt is not None
+        else (jpg_bytes if jpg_bytes is not None else ":material/calculate:")
+    )
     return sidebar_logo, page_icon
 
 
@@ -577,7 +581,15 @@ def obtener_css_arandu() -> str:
             }
         }
 
-        .arandu-tarot-card {
+        .arandu-nav-card-header img.arandu-card-media-img,
+        .arandu-ficha-art img.arandu-card-media-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            border-radius: 6px;
+        }
+        .arandu-ficha-card {
             background: linear-gradient(175deg, #171A14 0%, #10120E 58%, #16130E 100%);
             border: 1px solid #2E2920;
             border-radius: 14px;
@@ -588,53 +600,66 @@ def obtener_css_arandu() -> str:
             position: relative;
             overflow: hidden;
         }
-        .arandu-tarot-card:hover {
-            transform: translateY(-6px) rotate(-0.45deg);
+        .arandu-ficha-card:hover {
+            transform: translateY(-5px);
             border-color: #D4A359;
             box-shadow: inset 0 0 0 4px #11130F, inset 0 0 0 5px rgba(212, 163, 89, 0.56), 0 14px 28px rgba(212, 163, 89, 0.18);
         }
-        .arandu-tarot-card.is-active {
+        .arandu-ficha-card.is-active {
             background: radial-gradient(circle at 50% 34%, rgba(212, 163, 89, 0.15), transparent 64%),
                         linear-gradient(175deg, #1E2018 0%, #121410 62%, #1C170F 100%);
             border: 1.5px solid #D4A359;
             transform: translateY(-4px);
             box-shadow: inset 0 0 0 4px #121410, inset 0 0 0 5px rgba(212, 163, 89, 0.84), 0 14px 28px rgba(212, 163, 89, 0.26);
         }
-        .arandu-tarot-top {
+        .arandu-ficha-top {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.45rem;
-            margin-bottom: 0.14rem;
+            margin-bottom: 0.2rem;
         }
-        .arandu-tarot-top::before,
-        .arandu-tarot-top::after {
+        .arandu-ficha-top::before,
+        .arandu-ficha-top::after {
             content: "";
             flex: 1;
             height: 1px;
             background: linear-gradient(90deg, transparent, rgba(212, 163, 89, 0.45), transparent);
         }
-        .arandu-tarot-num {
-            font-family: 'Cinzel', 'Fraunces', serif;
-            font-size: 0.92rem;
+        .arandu-ficha-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.55rem;
+            height: 1.55rem;
+            padding: 0 0.42rem;
+            border-radius: 999px;
+            border: 1px solid rgba(212, 163, 89, 0.55);
+            background-color: rgba(212, 163, 89, 0.12);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
             font-weight: 700;
-            letter-spacing: 0.18em;
             color: #D4A359;
             line-height: 1;
         }
-        .arandu-tarot-badge {
+        .arandu-ficha-card.is-active .arandu-ficha-num {
+            background-color: #D4A359;
+            color: #121410;
+            border-color: #D4A359;
+        }
+        .arandu-ficha-badge {
             display: inline-block;
-            margin-left: 0.25rem;
-            padding: 0.08rem 0.38rem;
+            margin-left: 0.35rem;
+            padding: 0.12rem 0.45rem;
             border-radius: 999px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
+            font-size: 0.62rem;
             font-weight: 700;
             letter-spacing: 0.08em;
             color: #121410;
             background-color: #D4A359;
         }
-        .arandu-tarot-suit {
+        .arandu-ficha-tag {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.64rem;
             letter-spacing: 0.09em;
@@ -643,10 +668,10 @@ def obtener_css_arandu() -> str:
             margin: 0.1rem 0 0.42rem 0;
             text-transform: uppercase;
         }
-        .arandu-tarot-card.is-active .arandu-tarot-suit {
+        .arandu-ficha-card.is-active .arandu-ficha-tag {
             color: #D4A359;
         }
-        .arandu-tarot-art {
+        .arandu-ficha-art {
             width: 100%;
             height: 158px;
             background: #0C0E0A;
@@ -660,17 +685,17 @@ def obtener_css_arandu() -> str:
             margin-bottom: 0.56rem;
             overflow: hidden;
         }
-        .arandu-tarot-card.is-active .arandu-tarot-art {
+        .arandu-ficha-card.is-active .arandu-ficha-art {
             border-color: rgba(212, 163, 89, 0.65);
             background: radial-gradient(circle at 50% 45%, rgba(212, 163, 89, 0.09), #0C0E0A 72%);
         }
-        .arandu-tarot-art svg {
+        .arandu-ficha-art svg {
             width: 100%;
             height: 100%;
             max-height: 148px;
             display: block;
         }
-        .arandu-tarot-title {
+        .arandu-ficha-title {
             font-family: 'Cinzel', 'Fraunces', serif;
             font-size: 0.92rem;
             font-weight: 700;
@@ -683,11 +708,11 @@ def obtener_css_arandu() -> str:
             justify-content: center;
             margin: 0 0 0.32rem 0;
         }
-        .arandu-tarot-card:hover .arandu-tarot-title,
-        .arandu-tarot-card.is-active .arandu-tarot-title {
+        .arandu-ficha-card:hover .arandu-ficha-title,
+        .arandu-ficha-card.is-active .arandu-ficha-title {
             color: #D4A359;
         }
-        .arandu-tarot-desc {
+        .arandu-ficha-desc {
             font-size: 0.79rem;
             line-height: 1.38;
             color: #C7BFA9;
@@ -699,7 +724,7 @@ def obtener_css_arandu() -> str:
             -webkit-box-orient: vertical;
             margin: 0 0 0.48rem 0;
         }
-        .arandu-tarot-foot {
+        .arandu-ficha-foot {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.68rem;
             color: #D4A359;
@@ -711,7 +736,7 @@ def obtener_css_arandu() -> str:
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .arandu-tarot-mesa-banner {
+        .arandu-ficha-activa-banner {
             padding: 0.65rem 1.05rem;
             border-radius: 10px;
             border: 1px solid #2E2920;
@@ -724,23 +749,42 @@ def obtener_css_arandu() -> str:
             gap: 0.75rem;
             flex-wrap: wrap;
         }
-        .arandu-tarot-mesa-titulo {
+        .arandu-ficha-activa-titulo {
             font-family: 'Cinzel', 'Fraunces', serif;
             font-size: 1.02rem;
             font-weight: 700;
             color: #D4A359;
         }
-        .arandu-tarot-mesa-pista {
+        .arandu-ficha-activa-pista {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.78rem;
             color: #7A9A65;
         }
+        .arandu-verdict-head {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.96rem;
+            font-weight: 700;
+            padding: 0.35rem 0.65rem;
+            border-radius: 7px;
+            margin-bottom: 0.55rem;
+            letter-spacing: 0.01em;
+        }
+        .arandu-verdict-head-pro {
+            color: #EDE4D3;
+            background-color: rgba(104, 125, 91, 0.18);
+            border-left: 3px solid #7A9A65;
+        }
+        .arandu-verdict-head-warn {
+            color: #EDE4D3;
+            background-color: rgba(181, 103, 63, 0.18);
+            border-left: 3px solid #C86D44;
+        }
         @media (max-width: 768px) {
-            .arandu-tarot-art {
+            .arandu-ficha-art {
                 height: 132px;
             }
-            .arandu-tarot-title,
-            .arandu-tarot-desc {
+            .arandu-ficha-title,
+            .arandu-ficha-desc {
                 min-height: auto;
                 height: auto;
                 -webkit-line-clamp: 3;
@@ -910,15 +954,44 @@ def obtener_svg_tarjeta_arandu(clave_svg: str) -> str:
     return svgs.get(clave_svg, svgs["arena_versus"])
 
 
+_EXTENSIONES_IMAGEN_METODO = (".png", ".jpg", ".jpeg", ".svg")
+
+
+def _buscar_asset_metodo(clave_metodo: str) -> tuple[str, int, str] | None:
+    """Busca si existe un archivo personalizado en assets/metodos/<clave>.(png|jpg|jpeg|svg)."""
+    limpia = clave_metodo.strip().replace("\\", "/").split("/")[-1]
+    if not limpia:
+        return None
+    for ext in _EXTENSIONES_IMAGEN_METODO:
+        ruta = _resolver_ruta_asset(f"metodos/{limpia}{ext}")
+        if ruta is not None:
+            mime = _MIME_TYPES.get(ext, "application/octet-stream")
+            return str(ruta), ruta.stat().st_mtime_ns, mime
+    return None
+
+
 @st.cache_data(show_spinner=False)
-def construir_html_tarjeta_catalogo(
+def _leer_asset_metodo_html(ruta_str: str, mtime_ns: int, mime: str, alt: str) -> str:
+    """Codifica y cachea una imagen personalizada local para tarjetas sin dependencias externas."""
+    _ = mtime_ns
+    raw = Path(ruta_str).read_bytes()
+    encoded = base64.b64encode(raw).decode("ascii")
+    alt_esc = html.escape(alt)
+    return f'<img src="data:{mime};base64,{encoded}" class="arandu-card-media-img" alt="{alt_esc}" />'
+
+
+@st.cache_data(show_spinner=False)
+def _construir_html_tarjeta_catalogo_cached(
     clave_svg: str,
     titulo: str,
     descripcion: str,
-    subtitulo_tag: str = "",
+    subtitulo_tag: str,
+    firma_asset: tuple[str, int, str] | None,
 ) -> str:
-    """Construye y cachea el HTML completo de una tarjeta visual Refactoring.Guru en Arandú."""
-    svg_inline = obtener_svg_tarjeta_arandu(clave_svg)
+    if firma_asset is not None:
+        media_html = _leer_asset_metodo_html(*firma_asset, alt=titulo)
+    else:
+        media_html = obtener_svg_tarjeta_arandu(clave_svg)
     tag_html = (
         f'<span class="arandu-nav-card-tag">{html.escape(subtitulo_tag)}</span>'
         if subtitulo_tag
@@ -926,13 +999,30 @@ def construir_html_tarjeta_catalogo(
     )
     return (
         '<div class="arandu-nav-card">'
-        f'<div class="arandu-nav-card-header">{svg_inline}</div>'
+        f'<div class="arandu-nav-card-header">{media_html}</div>'
         '<div class="arandu-nav-card-body">'
         f"{tag_html}"
         f'<div class="arandu-nav-card-title">{html.escape(titulo)}</div>'
         f'<p class="arandu-nav-card-desc">{html.escape(descripcion)}</p>'
         "</div>"
         "</div>"
+    )
+
+
+def construir_html_tarjeta_catalogo(
+    clave_svg: str,
+    titulo: str,
+    descripcion: str,
+    subtitulo_tag: str = "",
+) -> str:
+    """Construye el HTML de una tarjeta visual del catálogo principal con soporte de imagen en assets/metodos/."""
+    firma_asset = _buscar_asset_metodo(clave_svg)
+    return _construir_html_tarjeta_catalogo_cached(
+        clave_svg=clave_svg,
+        titulo=titulo,
+        descripcion=descripcion,
+        subtitulo_tag=subtitulo_tag,
+        firma_asset=firma_asset,
     )
 
 
@@ -949,32 +1039,29 @@ def construir_html_mini_tarjetas(items: tuple[tuple[str, str], ...]) -> str:
     return f'<div class="arandu-mini-grid">{cards}</div>'
 
 
-_TAROT_FRAME_PREFIX = (
+_FICHA_SVG_FRAME_PREFIX = (
     '<svg viewBox="0 0 180 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{label}">'
     '<rect x="5" y="5" width="170" height="180" rx="8" fill="#0C0E0A" stroke="#2E2920" stroke-width="1.2"/>'
     '<rect x="10" y="10" width="160" height="170" rx="5" fill="none" stroke="#D4A359" stroke-opacity="0.28" stroke-width="0.9"/>'
-    '<path d="M22,164 L22,66 A68,48 0 0,1 158,66 L158,164 Z" fill="#121410" stroke="#2E2920" stroke-width="1.2"/>'
-    '<polygon points="18,15 21,18 18,21 15,18" fill="#D4A359" opacity="0.7"/>'
-    '<polygon points="162,15 165,18 162,21 159,18" fill="#D4A359" opacity="0.7"/>'
-    '<polygon points="18,169 21,172 18,175 15,172" fill="#D4A359" opacity="0.7"/>'
-    '<polygon points="162,169 165,172 162,175 159,172" fill="#D4A359" opacity="0.7"/>'
-    '<circle cx="90" cy="24" r="2.8" fill="#D4A359"/>'
-    '<line x1="64" y1="24" x2="82" y2="24" stroke="#D4A359" stroke-opacity="0.45" stroke-width="1"/>'
-    '<line x1="98" y1="24" x2="116" y2="24" stroke="#D4A359" stroke-opacity="0.45" stroke-width="1"/>'
+    '<rect x="20" y="34" width="140" height="132" rx="6" fill="#121410" stroke="#2E2920" stroke-width="1.1"/>'
+    '<line x1="18" y1="22" x2="26" y2="22" stroke="#D4A359" stroke-opacity="0.55" stroke-width="1.2"/>'
+    '<line x1="154" y1="22" x2="162" y2="22" stroke="#D4A359" stroke-opacity="0.55" stroke-width="1.2"/>'
+    '<line x1="64" y1="22" x2="116" y2="22" stroke="#D4A359" stroke-opacity="0.35" stroke-width="1"/>'
+    '<circle cx="90" cy="22" r="2.2" fill="#D4A359"/>'
 )
 
-_TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
-    "tarot_taylor": (
-        "Arcano Series de Taylor",
+_BORRADOR_METODO_SVGS: dict[str, tuple[str, str]] = {
+    "taylor": (
+        "Esquema Series de Taylor",
         '<line x1="30" y1="146" x2="150" y2="146" stroke="#2E2920" stroke-width="1.2"/>'
         '<path d="M36,142 Q96,128 144,48" fill="none" stroke="#EDE4D3" stroke-width="2" stroke-dasharray="4 3"/>'
         '<polyline points="36,142 64,142 64,124 92,124 92,98 120,98 120,66 144,66" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
         '<rect x="120" y="54" width="24" height="12" rx="2" fill="#687D5B" opacity="0.55" stroke="#687D5B"/>'
         '<circle cx="144" cy="48" r="4.5" fill="#D4A359" stroke="#121410" stroke-width="1.2"/>',
     ),
-    "tarot_aritmetica": (
-        "Arcano Aritmética de Máquina",
-        '<line x1="90" y1="42" x2="90" y2="148" stroke="#D4A359" stroke-width="1.8"/>'
+    "aritmetica_maquina": (
+        "Esquema Aritmética de Máquina",
+        '<line x1="90" y1="44" x2="90" y2="148" stroke="#D4A359" stroke-width="1.8"/>'
         '<polygon points="72,148 108,148 96,138 84,138" fill="#2E2920" stroke="#D4A359" stroke-width="1"/>'
         '<line x1="40" y1="74" x2="140" y2="56" stroke="#EDE4D3" stroke-width="2.2"/>'
         '<line x1="44" y1="74" x2="36" y2="108" stroke="#687D5B" stroke-width="1.3"/><line x1="44" y1="74" x2="54" y2="108" stroke="#687D5B" stroke-width="1.3"/>'
@@ -983,8 +1070,8 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<path d="M122,92 Q136,102 150,92 Z" fill="#B5673F" opacity="0.7" stroke="#B5673F"/>'
         '<circle cx="90" cy="65" r="4" fill="#D4A359"/>',
     ),
-    "tarot_cancelacion": (
-        "Arcano Cancelación Cuadrática",
+    "cancelacion": (
+        "Esquema Cancelación Cuadrática",
         '<line x1="30" y1="134" x2="150" y2="134" stroke="#2E2920" stroke-width="1.2"/>'
         '<line x1="36" y1="68" x2="138" y2="94" stroke="#EDE4D3" stroke-width="2.2"/>'
         '<line x1="36" y1="74" x2="138" y2="97" stroke="#B5673F" stroke-width="2" stroke-dasharray="3 2"/>'
@@ -993,16 +1080,16 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="138" cy="95" r="3.5" fill="#D4A359"/>'
         '<path d="M46,120 Q90,104 134,120" fill="none" stroke="#687D5B" stroke-width="1.6"/>',
     ),
-    "tarot_horner": (
-        "Arcano Forma Anidada de Horner",
+    "horner": (
+        "Esquema Forma Anidada de Horner",
         '<rect x="34" y="52" width="112" height="96" rx="12" fill="none" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
         '<rect x="48" y="66" width="84" height="68" rx="9" fill="none" stroke="#D4A359" stroke-opacity="0.7" stroke-width="1.6"/>'
         '<rect x="64" y="82" width="52" height="36" rx="6" fill="#181A14" stroke="#D4A359" stroke-width="2"/>'
         '<polygon points="90,89 99,100 90,111 81,100" fill="#D4A359"/>'
         '<circle cx="34" cy="100" r="3.5" fill="#EDE4D3"/><circle cx="146" cy="100" r="3.5" fill="#B5673F"/>',
     ),
-    "tarot_biseccion": (
-        "Arcano Bisección y Bolzano",
+    "biseccion": (
+        "Esquema Bisección y Bolzano",
         '<line x1="28" y1="100" x2="152" y2="100" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
         '<line x1="46" y1="54" x2="46" y2="148" stroke="#687D5B" stroke-width="1.6"/>'
         '<line x1="134" y1="54" x2="134" y2="148" stroke="#B5673F" stroke-width="1.6"/>'
@@ -1011,8 +1098,8 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="46" cy="134" r="3.8" fill="#687D5B"/><circle cx="134" cy="63" r="3.8" fill="#B5673F"/>'
         '<polygon points="90,91 96,100 90,109 84,100" fill="#D4A359" stroke="#121410" stroke-width="1"/>',
     ),
-    "tarot_regula_falsi": (
-        "Arcano Regula Falsi Secante",
+    "regula_falsi": (
+        "Esquema Regula Falsi Secante",
         '<line x1="28" y1="100" x2="152" y2="100" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
         '<path d="M38,142 Q96,126 142,54" fill="none" stroke="#EDE4D3" stroke-width="2.3"/>'
         '<line x1="42" y1="140" x2="138" y2="60" stroke="#D4A359" stroke-width="2"/>'
@@ -1021,8 +1108,8 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="90" cy="100" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>'
         '<circle cx="107" cy="100" r="3.2" fill="#EDE4D3"/>',
     ),
-    "tarot_newton_raphson": (
-        "Arcano Newton-Raphson Tangente",
+    "newton_raphson": (
+        "Esquema Newton-Raphson Tangente",
         '<line x1="28" y1="126" x2="152" y2="126" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
         '<path d="M40,148 Q106,124 142,46" fill="none" stroke="#EDE4D3" stroke-width="2.4"/>'
         '<line x1="74" y1="144" x2="148" y2="48" stroke="#D4A359" stroke-width="2.2"/>'
@@ -1031,24 +1118,24 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="88" cy="126" r="5.5" fill="#D4A359" stroke="#121410" stroke-width="1.4"/>'
         '<circle cx="103" cy="126" r="3.2" fill="#687D5B"/>',
     ),
-    "tarot_punto_fijo": (
-        "Arcano Punto Fijo y Aitken",
+    "punto_fijo": (
+        "Esquema Punto Fijo y Aitken",
         '<line x1="36" y1="146" x2="144" y2="48" stroke="#687D5B" stroke-width="1.6" stroke-dasharray="4 3"/>'
         '<path d="M34,116 Q88,108 144,64" fill="none" stroke="#EDE4D3" stroke-width="2.3"/>'
         '<polyline points="48,146 48,113 84,113 84,99 100,99 100,91" fill="none" stroke="#D4A359" stroke-width="1.9"/>'
         '<path d="M48,146 Q92,138 106,86" fill="none" stroke="#B5673F" stroke-width="1.6" stroke-dasharray="3 2"/>'
         '<circle cx="106" cy="83" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>',
     ),
-    "tarot_gauss": (
-        "Arcano Eliminación de Gauss",
+    "gauss": (
+        "Esquema Eliminación de Gauss",
         '<g transform="translate(46,56)">'
         '<rect x="0" y="0" width="24" height="24" rx="3" fill="#D4A359"/><rect x="30" y="0" width="24" height="24" rx="3" fill="#687D5B" opacity="0.65"/><rect x="60" y="0" width="24" height="24" rx="3" fill="#687D5B" opacity="0.45"/>'
         '<rect x="0" y="30" width="24" height="24" rx="3" fill="#2E2920" opacity="0.35"/><rect x="30" y="30" width="24" height="24" rx="3" fill="#D4A359"/><rect x="60" y="30" width="24" height="24" rx="3" fill="#687D5B" opacity="0.55"/>'
         '<rect x="0" y="60" width="24" height="24" rx="3" fill="#2E2920" opacity="0.25"/><rect x="30" y="60" width="24" height="24" rx="3" fill="#2E2920" opacity="0.35"/><rect x="60" y="60" width="24" height="24" rx="3" fill="#D4A359"/>'
         '</g>',
     ),
-    "tarot_gauss_jordan": (
-        "Arcano Gauss-Jordan Diagonal",
+    "gauss_jordan": (
+        "Esquema Gauss-Jordan Diagonal",
         '<g transform="translate(46,56)">'
         '<rect x="0" y="0" width="24" height="24" rx="3" fill="#D4A359"/><rect x="30" y="0" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/><rect x="60" y="0" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/>'
         '<rect x="0" y="30" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/><rect x="30" y="30" width="24" height="24" rx="3" fill="#D4A359"/><rect x="60" y="30" width="24" height="24" rx="3" fill="#2E2920" opacity="0.3"/>'
@@ -1056,14 +1143,14 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<line x1="-4" y1="-4" x2="88" y2="88" stroke="#EDE4D3" stroke-width="1.6" stroke-dasharray="3 3"/>'
         '</g>',
     ),
-    "tarot_lu": (
-        "Arcano Factorización LU",
+    "lu": (
+        "Esquema Factorización LU",
         '<polygon points="44,62 44,142 124,142" fill="#687D5B" opacity="0.55" stroke="#687D5B" stroke-width="2"/>'
         '<polygon points="56,56 136,56 136,136" fill="#D4A359" opacity="0.52" stroke="#D4A359" stroke-width="2"/>'
         '<line x1="40" y1="54" x2="140" y2="144" stroke="#EDE4D3" stroke-width="1.6" stroke-dasharray="4 3"/>',
     ),
-    "tarot_gauss_seidel": (
-        "Arcano Iteración Gauss-Seidel",
+    "gauss_seidel": (
+        "Esquema Iteración Gauss-Seidel",
         '<circle cx="90" cy="100" r="38" fill="none" stroke="#2E2920" stroke-width="1.5"/>'
         '<path d="M90,62 A38,38 0 0,1 128,100" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
         '<path d="M128,100 A38,38 0 0,1 90,138" fill="none" stroke="#687D5B" stroke-width="2.4"/>'
@@ -1073,8 +1160,8 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="90" cy="138" r="4.5" fill="#B5673F"/><circle cx="52" cy="100" r="4.5" fill="#EDE4D3"/>'
         '<circle cx="90" cy="100" r="6" fill="#D4A359"/>',
     ),
-    "tarot_potencias": (
-        "Arcano Método de Potencias",
+    "potencias": (
+        "Esquema Método de Potencias",
         '<line x1="42" y1="142" x2="144" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
         '<line x1="42" y1="142" x2="42" y2="54" stroke="#2E2920" stroke-width="1.3"/>'
         '<line x1="42" y1="142" x2="128" y2="122" stroke="#687D5B" stroke-width="1.8" stroke-dasharray="3 2"/>'
@@ -1083,16 +1170,16 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<polygon points="144,57 132,61 139,69" fill="#D4A359"/>'
         '<circle cx="42" cy="142" r="4" fill="#EDE4D3"/>',
     ),
-    "tarot_faddeev": (
-        "Arcano Faddeev-Leverrier",
+    "faddeev": (
+        "Esquema Faddeev-Leverrier",
         '<line x1="30" y1="100" x2="150" y2="100" stroke="#2E2920" stroke-width="1.3"/>'
         '<path d="M36,64 C56,144 74,144 90,100 C106,56 124,56 144,136" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
         '<circle cx="51" cy="100" r="4.5" fill="#687D5B" stroke="#EDE4D3" stroke-width="1"/>'
         '<circle cx="90" cy="100" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>'
         '<circle cx="129" cy="100" r="4.5" fill="#B5673F" stroke="#EDE4D3" stroke-width="1"/>',
     ),
-    "tarot_interp_lineal": (
-        "Arcano Interpolación Lineal",
+    "interp_lineal": (
+        "Esquema Interpolación Lineal",
         '<line x1="30" y1="142" x2="150" y2="142" stroke="#2E2920" stroke-width="1.2"/>'
         '<line x1="46" y1="126" x2="134" y2="66" stroke="#D4A359" stroke-width="2.6"/>'
         '<line x1="90" y1="96" x2="90" y2="142" stroke="#687D5B" stroke-width="1.5" stroke-dasharray="3 2"/>'
@@ -1100,15 +1187,15 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="134" cy="66" r="5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.5"/>'
         '<circle cx="90" cy="96" r="4.5" fill="#687D5B" stroke="#EDE4D3" stroke-width="1.3"/>',
     ),
-    "tarot_cuad_inversa": (
-        "Arcano Cuadrática Inversa",
+    "cuadratica_inversa": (
+        "Esquema Cuadrática Inversa",
         '<line x1="34" y1="98" x2="146" y2="98" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="4 3"/>'
         '<path d="M40,66 Q90,158 140,66" fill="none" stroke="#EDE4D3" stroke-width="2.3"/>'
         '<circle cx="46" cy="76" r="4.2" fill="#B5673F"/><circle cx="90" cy="112" r="4.2" fill="#B5673F"/><circle cx="134" cy="76" r="4.2" fill="#B5673F"/>'
         '<circle cx="114" cy="98" r="5" fill="#D4A359" stroke="#121410" stroke-width="1.3"/>',
     ),
-    "tarot_lagrange": (
-        "Arcano Polinomio de Lagrange",
+    "lagrange": (
+        "Esquema Polinomio de Lagrange",
         '<path d="M36,136 C64,56 106,142 144,62" fill="none" stroke="#D4A359" stroke-width="2.5"/>'
         '<path d="M36,78 Q90,136 144,122" fill="none" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="3 3"/>'
         '<circle cx="44" cy="114" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>'
@@ -1116,38 +1203,38 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="112" cy="110" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>'
         '<circle cx="138" cy="70" r="4.5" fill="#EDE4D3" stroke="#B5673F" stroke-width="1.4"/>',
     ),
-    "tarot_newton_gregory": (
-        "Arcano Newton-Gregory Diferencias",
+    "newton_gregory": (
+        "Esquema Newton-Gregory Diferencias",
         '<line x1="34" y1="142" x2="146" y2="142" stroke="#2E2920" stroke-width="1.2"/>'
         '<path d="M44,128 Q92,102 138,56" fill="none" stroke="#D4A359" stroke-width="2.5"/>'
         '<polyline points="44,128 74,128 74,110 106,110 106,86 138,86 138,56" fill="none" stroke="#687D5B" stroke-width="1.6" stroke-dasharray="3 2"/>'
         '<circle cx="44" cy="128" r="4" fill="#EDE4D3"/><circle cx="74" cy="110" r="4" fill="#EDE4D3"/>'
         '<circle cx="106" cy="86" r="4" fill="#EDE4D3"/><circle cx="138" cy="56" r="4.5" fill="#B5673F"/>',
     ),
-    "tarot_diferenciacion": (
-        "Arcano Diferenciación Gregory",
+    "diferenciacion": (
+        "Esquema Diferenciación Gregory",
         '<path d="M36,138 C64,72 108,128 144,62" fill="none" stroke="#EDE4D3" stroke-width="2.4"/>'
         '<line x1="48" y1="128" x2="132" y2="68" stroke="#D4A359" stroke-width="2.2"/>'
         '<circle cx="90" cy="98" r="11" fill="none" stroke="#687D5B" stroke-width="1.5"/>'
         '<circle cx="90" cy="98" r="4.5" fill="#D4A359" stroke="#121410" stroke-width="1.2"/>',
     ),
-    "tarot_trapecios": (
-        "Arcano Regla de Trapecios",
+    "trapecios": (
+        "Esquema Regla de Trapecios",
         '<line x1="32" y1="142" x2="148" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
         '<polygon points="42,142 42,114 74,84 74,142" fill="#687D5B" opacity="0.34" stroke="#687D5B" stroke-width="1.3"/>'
         '<polygon points="74,142 74,84 106,70 106,142" fill="#D4A359" opacity="0.28" stroke="#D4A359" stroke-width="1.3"/>'
         '<polygon points="106,142 106,70 138,98 138,142" fill="#687D5B" opacity="0.34" stroke="#687D5B" stroke-width="1.3"/>'
         '<path d="M42,114 Q90,56 138,98" fill="none" stroke="#EDE4D3" stroke-width="2.2"/>',
     ),
-    "tarot_simpson_13": (
-        "Arcano Simpson Un Tercio",
+    "simpson_13": (
+        "Esquema Simpson Un Tercio",
         '<line x1="32" y1="142" x2="148" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
         '<path d="M42,142 L42,112 Q90,52 138,98 L138,142 Z" fill="#D4A359" opacity="0.24" stroke="#D4A359" stroke-width="1.8"/>'
         '<line x1="90" y1="74" x2="90" y2="142" stroke="#687D5B" stroke-width="1.4" stroke-dasharray="3 2"/>'
         '<circle cx="42" cy="112" r="3.8" fill="#EDE4D3"/><circle cx="90" cy="74" r="4.5" fill="#D4A359"/><circle cx="138" cy="98" r="3.8" fill="#EDE4D3"/>',
     ),
-    "tarot_simpson_38": (
-        "Arcano Simpson Tres Octavos",
+    "simpson_38": (
+        "Esquema Simpson Tres Octavos",
         '<line x1="30" y1="142" x2="150" y2="142" stroke="#2E2920" stroke-width="1.3"/>'
         '<path d="M38,142 L38,116 C64,62 114,58 142,108 L142,142 Z" fill="#687D5B" opacity="0.24" stroke="#D4A359" stroke-width="1.8"/>'
         '<line x1="72" y1="78" x2="72" y2="142" stroke="#B5673F" stroke-width="1.3" stroke-dasharray="3 2"/>'
@@ -1155,15 +1242,15 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="38" cy="116" r="3.5" fill="#EDE4D3"/><circle cx="72" cy="78" r="3.8" fill="#B5673F"/>'
         '<circle cx="108" cy="74" r="3.8" fill="#B5673F"/><circle cx="142" cy="108" r="3.5" fill="#EDE4D3"/>',
     ),
-    "tarot_euler_heun": (
-        "Arcano Euler y Heun",
+    "euler_heun": (
+        "Esquema Euler y Heun",
         '<path d="M40,136 Q92,102 142,56" fill="none" stroke="#EDE4D3" stroke-width="2" stroke-dasharray="4 3"/>'
         '<polyline points="40,136 90,118 140,86" fill="none" stroke="#B5673F" stroke-width="2"/>'
         '<polyline points="40,136 90,104 140,60" fill="none" stroke="#D4A359" stroke-width="2.4"/>'
         '<circle cx="40" cy="136" r="4" fill="#EDE4D3"/><circle cx="90" cy="104" r="4" fill="#D4A359"/><circle cx="140" cy="60" r="4.5" fill="#D4A359"/>',
     ),
-    "tarot_runge_kutta": (
-        "Arcano Runge-Kutta RK4",
+    "runge_kutta": (
+        "Esquema Runge-Kutta RK4",
         '<g stroke="#687D5B" stroke-width="1.5" opacity="0.85">'
         '<line x1="46" y1="128" x2="64" y2="116"/><line x1="74" y1="108" x2="94" y2="92"/><line x1="104" y1="84" x2="124" y2="66"/>'
         '</g>'
@@ -1171,8 +1258,8 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="42" cy="136" r="4" fill="#EDE4D3"/><circle cx="74" cy="112" r="3.8" fill="#687D5B"/>'
         '<circle cx="108" cy="84" r="3.8" fill="#B5673F"/><circle cx="142" cy="56" r="4.8" fill="#D4A359"/>',
     ),
-    "tarot_milne": (
-        "Arcano Predictor-Corrector Milne",
+    "milne": (
+        "Esquema Predictor-Corrector Milne",
         '<polyline points="38,136 62,120 86,102 110,84" fill="none" stroke="#687D5B" stroke-width="2.2"/>'
         '<line x1="110" y1="84" x2="142" y2="74" stroke="#B5673F" stroke-width="1.8" stroke-dasharray="3 2"/>'
         '<line x1="110" y1="84" x2="142" y2="56" stroke="#D4A359" stroke-width="2.4"/>'
@@ -1185,38 +1272,64 @@ _TAROT_BODY_SVGS: dict[str, tuple[str, str]] = {
 
 
 @st.cache_data(show_spinner=False)
-def obtener_svg_tarot_arandu(clave_svg: str) -> str:
-    """Retorna la ilustración vertical SVG inline estilo Tarot para cada método numérico."""
-    label, body = _TAROT_BODY_SVGS.get(clave_svg, _TAROT_BODY_SVGS["tarot_biseccion"])
-    prefix = _TAROT_FRAME_PREFIX.format(label=html.escape(label))
+def obtener_svg_borrador_metodo(clave_svg: str) -> str:
+    """Retorna la ilustración vertical SVG borrador por defecto para una ficha de método."""
+    label, body = _BORRADOR_METODO_SVGS.get(clave_svg, _BORRADOR_METODO_SVGS["biseccion"])
+    prefix = _FICHA_SVG_FRAME_PREFIX.format(label=html.escape(label))
     return f"{prefix}{body}</svg>"
 
 
 @st.cache_data(show_spinner=False)
-def construir_html_carta_tarot(
-    romano: str,
+def _construir_html_ficha_metodo_cached(
+    numero: str,
     clave_svg: str,
     titulo: str,
-    subtitulo_arcano: str,
+    subtitulo: str,
+    resumen: str,
+    pista: str,
+    activa: bool,
+    firma_asset: tuple[str, int, str] | None,
+) -> str:
+    clase_activa = " is-active" if activa else ""
+    badge = '<span class="arandu-ficha-badge">ACTIVO</span>' if activa else ""
+    if firma_asset is not None:
+        media_html = _leer_asset_metodo_html(*firma_asset, alt=titulo)
+    else:
+        media_html = obtener_svg_borrador_metodo(clave_svg)
+    return (
+        f'<div class="arandu-ficha-card{clase_activa}">'
+        '<div class="arandu-ficha-top">'
+        f'<span class="arandu-ficha-num">{html.escape(numero)}</span>{badge}'
+        "</div>"
+        f'<div class="arandu-ficha-tag">{html.escape(subtitulo)}</div>'
+        f'<div class="arandu-ficha-art">{media_html}</div>'
+        f'<div class="arandu-ficha-title">{html.escape(titulo)}</div>'
+        f'<p class="arandu-ficha-desc">{html.escape(resumen)}</p>'
+        f'<div class="arandu-ficha-foot">{html.escape(pista)}</div>'
+        "</div>"
+    )
+
+
+def construir_html_ficha_metodo(
+    numero: str,
+    clave_svg: str,
+    titulo: str,
+    subtitulo: str,
     resumen: str,
     pista: str,
     activa: bool = False,
 ) -> str:
-    """Construye y cachea el HTML de una carta coleccionable estilo Tarot Arandú."""
-    clase_activa = " is-active" if activa else ""
-    badge = '<span class="arandu-tarot-badge">ACTIVA</span>' if activa else ""
-    svg_tarot = obtener_svg_tarot_arandu(clave_svg)
-    return (
-        f'<div class="arandu-tarot-card{clase_activa}">'
-        '<div class="arandu-tarot-top">'
-        f'<span class="arandu-tarot-num">{html.escape(romano)}{badge}</span>'
-        "</div>"
-        f'<div class="arandu-tarot-suit">{html.escape(subtitulo_arcano)}</div>'
-        f'<div class="arandu-tarot-art">{svg_tarot}</div>'
-        f'<div class="arandu-tarot-title">{html.escape(titulo)}</div>'
-        f'<p class="arandu-tarot-desc">{html.escape(resumen)}</p>'
-        f'<div class="arandu-tarot-foot">{html.escape(pista)}</div>'
-        "</div>"
+    """Construye el HTML de una ficha coleccionable de estudio verificando imagen personalizada en assets/metodos/."""
+    firma_asset = _buscar_asset_metodo(clave_svg)
+    return _construir_html_ficha_metodo_cached(
+        numero=numero,
+        clave_svg=clave_svg,
+        titulo=titulo,
+        subtitulo=subtitulo,
+        resumen=resumen,
+        pista=pista,
+        activa=activa,
+        firma_asset=firma_asset,
     )
 
 
