@@ -1,7 +1,8 @@
 """
-Vista de Derivación e Integración Numérica - Arandú v3.0.
+Vista de Derivación e Integración Numérica - Arandú.
 Incluye Diferenciación (Gregory + punto libre u=0.4) y Motor Adaptativo en Vivo
 para Trapecio, Simpson 1/3 y Simpson 3/8 ante cambios de Δh o paridad n.
+Arquitectura Static-First con aislamiento mediante @st.fragment.
 """
 
 from __future__ import annotations
@@ -20,29 +21,23 @@ from core.integracion_derivacion import (
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
-    render_banner_edicion_profesora,
+    limpiar_valores_plotly,
     render_bloque_1_teoria_y_ejemplo,
+    render_controles_edicion_practica,
+    render_dataframe_acotado,
+    render_plotly_arandu,
+    render_practica_catedra_info,
     render_slider_paso_k,
+    rerun_fragmento_seguro,
 )
 
 
-def _tab_diferenciacion() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("diferenciacion_numerica")
-    practica = meta.get("practica_profesora", {})
-    defaults = {
-        "x": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
-        "y": [0.96262, 0.94718, 0.93108, 0.92221, 0.91181, 0.90151],
-        "x_eval": 12.4,
-        **practica.get("datos_iniciales", {}),
-    }
-    st.divider()
-
-    modo = render_banner_edicion_profesora(
+@st.fragment
+def _frag_diferenciacion(defaults: dict) -> None:
+    modo = render_controles_edicion_practica(
         clave_state="int_deriv",
         defaults_dict=defaults,
-        titulo_practica=practica.get("titulo"),
-        enunciado_practica=practica.get("enunciado"),
-        solucion_referencia=practica.get("solucion_referencia"),
+        mensaje_edicion=r"✏️ Edita la tabla $(x_i, y_i)$, alterna el sentido de diferencias o cambia $x^*$ (incluso fuera de nodos tabulados).",
     )
     solo_lectura = modo == "catedra"
 
@@ -66,7 +61,7 @@ def _tab_diferenciacion() -> None:
     c1, c2, c3 = st.columns(3)
     esquema = c1.radio("Diferencias:", ["Progresivas (Ascendente)", "Regresivas (Descendente)"], horizontal=True, key="ui_der_esq")
     orden = c2.radio("Orden:", [1, 2], format_func=lambda o: "1ra Derivada f'(x)" if o == 1 else "2da Derivada f''(x)", horizontal=True, key="ui_der_ord")
-    x_eval = c3.number_input("Punto x* a derivar (puede ser no tabular):", value=float(st.session_state["int_deriv_x_eval"]), format="%.4f", disabled=solo_lectura, key="ui_der_xe")
+    x_eval = c3.number_input("Punto $x^*$ a derivar (puede ser no tabular):", value=float(st.session_state["int_deriv_x_eval"]), format="%.4f", disabled=solo_lectura, key="ui_der_xe")
     if not solo_lectura:
         st.session_state["int_deriv_x_eval"] = x_eval
 
@@ -91,12 +86,21 @@ def _tab_diferenciacion() -> None:
     m2.metric(f"Parámetro {param_name}", f"{param:.4f}")
     m3.metric("Paso h", f"{res['h']:.4g}")
 
-    st.dataframe(pd.DataFrame(res["terminos_detalle"]), use_container_width=True, hide_index=True)
+    render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_deriv")
 
-    st.markdown("### 📐 Bloque 4 — Pendiente Tangente en x*")
+    st.markdown("### 📐 Bloque 4 — Pendiente Tangente en $x^*$")
     y_en_x = float(np.interp(x_eval, xs, ys))
     fig = crear_figura_base_plotly(f"Derivada Numérica en x* = {x_eval:g}", "x", "y")
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines+markers", name="Datos f(x)", line=dict(color="#D4A359", width=2.5), marker=dict(size=7, color="#D4A359")))
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=ys,
+            mode="lines+markers",
+            name="Datos f(x)",
+            line=dict(color="#D4A359", width=2.5),
+            marker=dict(size=7, color="#D4A359"),
+        )
+    )
     if orden == 1:
         dx = res["h"] * 1.2
         fig.add_trace(
@@ -108,31 +112,42 @@ def _tab_diferenciacion() -> None:
                 line=dict(color="#C86D44", width=2.5, dash="dash"),
             )
         )
-    fig.add_trace(go.Scatter(x=[x_eval], y=[y_en_x], mode="markers", name="Punto x*", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solicitado: str) -> None:
-    meta = render_bloque_1_teoria_y_ejemplo(clave_catalogo)
-    practica = meta.get("practica_profesora", {})
-    defaults = practica.get(
-        "datos_iniciales",
-        {
-            "x": [0.5, 5.5, 10.5, 15.5, 20.5, 25.5],
-            "y": [0.05, 6.05, 22.05, 48.05, 84.05, 130.05],
-            "f_str": "x**2 / 5",
-        },
+    fig.add_trace(
+        go.Scatter(
+            x=[x_eval],
+            y=[y_en_x],
+            mode="markers",
+            name="Punto x*",
+            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+        )
     )
-    if "f_str" not in defaults:
-        defaults = {**defaults, "f_str": "x**2 / 5"}
-    st.divider()
+    render_plotly_arandu(fig, key="plot_int_deriv")
 
-    modo = render_banner_edicion_profesora(
-        clave_state=clave_state,
-        defaults_dict=defaults,
+
+def _tab_diferenciacion() -> None:
+    meta = render_bloque_1_teoria_y_ejemplo("diferenciacion_numerica")
+    practica = meta.get("practica_profesora", {})
+    defaults = {
+        "x": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
+        "y": [0.96262, 0.94718, 0.93108, 0.92221, 0.91181, 0.90151],
+        "x_eval": 12.4,
+        **practica.get("datos_iniciales", {}),
+    }
+    st.divider()
+    render_practica_catedra_info(
         titulo_practica=practica.get("titulo"),
         enunciado_practica=practica.get("enunciado"),
         solucion_referencia=practica.get("solucion_referencia"),
+    )
+    _frag_diferenciacion(defaults)
+
+
+@st.fragment
+def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) -> None:
+    modo = render_controles_edicion_practica(
+        clave_state=clave_state,
+        defaults_dict=defaults,
+        mensaje_edicion=r"✏️ Modifica los puntos tabulados o ajusta el paso $\Delta h$ y la cantidad de subintervalos $n$.",
     )
     solo_lectura = modo == "catedra"
 
@@ -155,7 +170,7 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
 
     with col_ctrl:
         f_str = st.text_input(
-            "Función f(x) de referencia (opcional para remuestreo y valor exacto):",
+            "Función $f(x)$ de referencia (opcional para remuestreo y error exacto):",
             value=str(st.session_state[f"{clave_state}_f_str"]),
             disabled=solo_lectura,
             key=f"ui_{clave_state}_fstr",
@@ -167,9 +182,9 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
         h_actual = float(xs_act[1] - xs_act[0]) if len(xs_act) >= 2 else 1.0
         n_actual = max(1, len(xs_act) - 1)
 
-        st.markdown("**🎛️ Ajuste de Paso Δh y Subintervalos n en Vivo:**")
+        st.markdown(r"**🎛️ Ajuste de Paso $\Delta h$ y Subintervalos $n$ en Vivo:**")
         nuevo_h = st.number_input(
-            "Paso Δh deseado (prueba cambiarlo para ver adaptación automática):",
+            r"Paso $\Delta h$ deseado (prueba cambiarlo para observar adaptación de paridad):",
             value=float(round(h_actual, 4)),
             min_value=0.1,
             step=0.5,
@@ -177,7 +192,7 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
             key=f"ui_{clave_state}_dh",
         )
         nuevo_n = st.slider(
-            "O fijar cantidad de subintervalos n:",
+            "O fijar cantidad de subintervalos $n$:",
             min_value=2,
             max_value=24,
             value=n_actual,
@@ -198,14 +213,14 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
             st.session_state[f"{clave_state}_y"] = yn
             if f"{clave_state}__editor_df" in st.session_state:
                 del st.session_state[f"{clave_state}__editor_df"]
-            st.rerun()
+            rerun_fragmento_seguro()
         if not solo_lectura and b2.button("Aplicar n subinterv.", key=f"btn_n_{clave_state}", use_container_width=True):
             xn, yn, _ = remuestrear_tabla_integracion(defaults["x"], defaults["y"], nuevo_n=nuevo_n, f_str=f_str or None)
             st.session_state[f"{clave_state}_x"] = xn
             st.session_state[f"{clave_state}_y"] = yn
             if f"{clave_state}__editor_df" in st.session_state:
                 del st.session_state[f"{clave_state}__editor_df"]
-            st.rerun()
+            rerun_fragmento_seguro()
 
     xs = st.session_state[f"{clave_state}_x"]
     ys = st.session_state[f"{clave_state}_y"]
@@ -238,25 +253,23 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
     else:
         m4.metric("Exacta", "No provista")
 
-    df_bloques = pd.DataFrame(
-        [
-            {
-                "Bloque": i + 1,
-                "Regla": b["regla"],
-                "Intervalo": f"[{b['x_nodos'][0]:g}, {b['x_nodos'][-1]:g}]",
-                "h": round(b["h"], 6),
-                "Fórmula": b["formula"],
-                "Área": round(b["area"], 6),
-            }
-            for i, b in enumerate(res["bloques"])
-        ]
-    )
-    st.dataframe(df_bloques, use_container_width=True, hide_index=True)
+    filas_bloques = [
+        {
+            "Bloque": i + 1,
+            "Regla": b["regla"],
+            "Intervalo": f"[{b['x_nodos'][0]:g}, {b['x_nodos'][-1]:g}]",
+            "h": round(b["h"], 6),
+            "Fórmula": b["formula"],
+            "Área": round(b["area"], 6),
+        }
+        for i, b in enumerate(res["bloques"])
+    ]
+    render_dataframe_acotado(filas_bloques, max_filas=300, key_prefix=f"tbl_{clave_state}_blq")
 
     st.markdown("### 📐 Bloque 4 — Áreas Sombreadas por Sub-bloque Paso a Paso")
     bloques = res["bloques"]
     k_vis = render_slider_paso_k(
-        "Ver hasta el bloque elemental k:",
+        "Ver hasta el bloque elemental $k$:",
         len(bloques),
         key=f"vis_{clave_state}_k",
     )
@@ -275,7 +288,7 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
         fig.add_trace(
             go.Scatter(
                 x=b["x_curva"],
-                y=b["y_curva"],
+                y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
                 mode="lines",
                 fill="tozeroy",
                 fillcolor=fill_por_regla.get(b["regla"], "rgba(122, 154, 101, 0.25)"),
@@ -283,14 +296,47 @@ def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solici
                 line=dict(color=b["color"], width=2.4),
             )
         )
-    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name="Nodos tabla", marker=dict(size=9, color="#FFFDF9", line=dict(color="#B5673F", width=1.8))))
-    st.plotly_chart(fig, use_container_width=True)
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=ys,
+            mode="markers",
+            name="Nodos tabla",
+            marker=dict(size=9, color="#FFFDF9", line=dict(color="#B5673F", width=1.8)),
+        )
+    )
+    render_plotly_arandu(fig, key=f"plot_{clave_state}")
+
+
+def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solicitado: str) -> None:
+    meta = render_bloque_1_teoria_y_ejemplo(clave_catalogo)
+    practica = meta.get("practica_profesora", {})
+    defaults = practica.get(
+        "datos_iniciales",
+        {
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5, 25.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05, 130.05],
+            "f_str": "x**2 / 5",
+        },
+    )
+    if "f_str" not in defaults:
+        defaults = {**defaults, "f_str": "x**2 / 5"}
+    st.divider()
+    render_practica_catedra_info(
+        titulo_practica=practica.get("titulo"),
+        enunciado_practica=practica.get("enunciado"),
+        solucion_referencia=practica.get("solucion_referencia"),
+    )
+    _frag_integracion(clave_state, metodo_solicitado, defaults)
 
 
 def vista_integracion() -> None:
     inject_arandu_css()
     st.title("📊 Integración y Derivación Numérica")
-    st.caption("Diferenciación por Gregory y cuadratura adaptativa en vivo ante cambios de Δh o paridad n.")
+    st.markdown(
+        r"Diferenciación numérica mediante Gregory y cuadratura compuesta ($O(h^2)$ a $O(h^4)$) "
+        r"con adaptación automática ante cambios de $\Delta h$ o paridad $n$."
+    )
 
     tabs = st.tabs(
         [

@@ -1,16 +1,17 @@
 """
-Vista de Raíces de Ecuaciones No Lineales - Arandú v3.0.
+Vista de Raíces de Ecuaciones No Lineales - Arandú.
 Bisección (+ Descartes/Tanteo), Interpolación Lineal (Regula Falsi),
 Newton-Raphson (Fourier + tangentes paso a paso) y Punto Fijo + Aitken Δ².
+Arquitectura Static-First con aislamiento por @st.fragment.
 """
 
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from core._cache_utils import evaluar_fn_vectorizado
 from core.raices import (
     analizar_descartes,
     barrido_tanteo,
@@ -26,48 +27,40 @@ from core.raices import (
 from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
-    render_banner_edicion_profesora,
+    muestrear_para_grafico,
     render_bloque_1_teoria_y_ejemplo,
+    render_controles_edicion_practica,
+    render_dataframe_acotado,
+    render_plotly_arandu,
+    render_practica_catedra_info,
     render_slider_paso_k,
 )
 
 
-def _muestrear_curva(fn, x_min: float, x_max: float, puntos: int = 240) -> tuple[list[float], list[float | None]]:
+def _muestrear_curva(comp: dict, fn_key: str, np_key: str, x_min: float, x_max: float, puntos: int = 220) -> tuple[list[float], list[float | None]]:
     xs = np.linspace(x_min, x_max, puntos)
-    ys: list[float | None] = []
-    for xv in xs:
-        try:
-            val = float(fn(float(xv)))
-            ys.append(val if np.isfinite(val) and abs(val) < 1e6 else None)
-        except Exception:
-            ys.append(None)
+    fn_np = comp.get(np_key)
+    if fn_np is not None:
+        ys = evaluar_fn_vectorizado(fn_np, xs, limite_abs=1e6)
+    else:
+        ys = evaluar_fn_vectorizado(np.vectorize(comp[fn_key]), xs, limite_abs=1e6)
     return xs.tolist(), ys
 
 
-def _tab_biseccion() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("biseccion")
-    practica = meta.get("practica_profesora", {})
-    defaults = practica.get(
-        "datos_iniciales",
-        {"f_str": "-2.75*x**3 + 18*x**2 - 21*x - 12", "a": 2.0, "b": 2.5, "tol": 0.01, "max_iter": 50},
-    )
-    st.divider()
-
-    modo = render_banner_edicion_profesora(
+@st.fragment
+def _frag_biseccion(defaults: dict) -> None:
+    modo = render_controles_edicion_practica(
         clave_state="raiz_bis",
         defaults_dict=defaults,
-        titulo_practica=practica.get("titulo"),
-        enunciado_practica=practica.get("enunciado"),
-        solucion_referencia=practica.get("solucion_referencia"),
-        mensaje_edicion="✏️ Ecuación e Intervalo Interactivos: Modifica f(x), extremos [a, b] o tolerancia en vivo.",
+        mensaje_edicion=r"✏️ Modifica la expresión $f(x)$, extremos $[a, b]$ o tolerancia en vivo.",
     )
     solo_lectura = modo == "catedra"
 
-    f_str = st.text_input("Ecuación f(x) = 0:", value=str(st.session_state["raiz_bis_f_str"]), disabled=solo_lectura, key="ui_bis_f")
+    f_str = st.text_input("Ecuación $f(x) = 0$:", value=str(st.session_state["raiz_bis_f_str"]), disabled=solo_lectura, key="ui_bis_f")
     c1, c2, c3, c4 = st.columns(4)
-    a_val = c1.number_input("Extremo a:", value=float(st.session_state["raiz_bis_a"]), format="%.4f", disabled=solo_lectura, key="ui_bis_a")
-    b_val = c2.number_input("Extremo b:", value=float(st.session_state["raiz_bis_b"]), format="%.4f", disabled=solo_lectura, key="ui_bis_b")
-    tol_val = c3.number_input("Tolerancia E:", value=float(st.session_state["raiz_bis_tol"]), min_value=1e-10, format="%.6f", disabled=solo_lectura, key="ui_bis_tol")
+    a_val = c1.number_input("Extremo $a$:", value=float(st.session_state["raiz_bis_a"]), format="%.4f", disabled=solo_lectura, key="ui_bis_a")
+    b_val = c2.number_input("Extremo $b$:", value=float(st.session_state["raiz_bis_b"]), format="%.4f", disabled=solo_lectura, key="ui_bis_b")
+    tol_val = c3.number_input("Tolerancia $E$:", value=float(st.session_state["raiz_bis_tol"]), min_value=1e-10, format="%.6f", disabled=solo_lectura, key="ui_bis_tol")
     max_it = c4.number_input("Iteraciones máx:", value=int(st.session_state["raiz_bis_max_iter"]), min_value=1, max_value=200, disabled=solo_lectura, key="ui_bis_max")
 
     if not solo_lectura:
@@ -83,17 +76,18 @@ def _tab_biseccion() -> None:
         st.error(str(exc))
         return
 
-    with st.expander("🔍 Análisis Previo: Regla de Descartes & Barrido por Tanteos"):
-        desc = analizar_descartes(comp["f_simb"], comp["x_sym"])
+    with st.expander("🔍 Análisis Previo: Conteo de Signos (Regla de Descartes) & Barrido por Tanteos"):
+        desc = comp.get("descartes") or analizar_descartes(f_str)
         if desc["es_polinomio"]:
-            st.write(
-                f"Grado: **{desc['grado']}** | Posibles raíces positivas: **{desc['posibles_raices_pos']}** | "
-                f"Posibles raíces negativas: **{desc['posibles_raices_neg']}**"
+            st.markdown(
+                f"Grado del polinomio: **{desc['grado']}** | Raíces reales positivas posibles: **{desc['posibles_raices_pos']}** | "
+                f"Raíces reales negativas posibles: **{desc['posibles_raices_neg']}** "
+                "(cota combinatoria contando variaciones de signo)."
             )
         else:
             st.info(desc["mensaje"])
         bt = barrido_tanteo(comp["fn"], x_ini=min(a_val, b_val) - 2.0, dx=0.5, max_pasos=16)
-        st.write(f"Intervalos detectados en barrido Δx=0.5: **{bt['intervalos']}**")
+        st.markdown(rf"Intervalos con cambio de signo detectados en barrido $\Delta x = 0.5$: **{bt['intervalos']}**")
 
     st.markdown("### ⚙️ Bloque 3 — Ejecución en Vivo (Bisección)")
     try:
@@ -108,56 +102,91 @@ def _tab_biseccion() -> None:
     m3.metric("Error final |Δx|", f"{res['error_final']:.3e}")
     m4.metric("f(raíz)", f"{res['f_raiz']:.3e}")
 
-    df = pd.DataFrame(res["historial"])
-    st.dataframe(df[["iteracion", "a", "b", "x_k", "f_a", "f_xk", "f_b", "error", "cumple_tol"]], use_container_width=True, hide_index=True)
+    hist = res["historial"]
+    cols_bis = ["iteracion", "a", "b", "x_k", "f_a", "f_xk", "f_b", "error", "cumple_tol"]
+    render_dataframe_acotado(
+        [{k: fila[k] for k in cols_bis} for fila in hist],
+        max_filas=300,
+        key_prefix="tbl_raiz_bis",
+    )
 
     st.markdown("### 📐 Bloque 4 — Geometría Paso a Paso (Encierro de Intervalos)")
-    k_vis = render_slider_paso_k("Ver hasta la iteración k:", len(df), key="vis_bis_k")
-    fila_k = res["historial"][k_vis - 1]
+    k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", len(hist), key="vis_bis_k")
+    fila_k = hist[k_vis - 1]
     pad = max(0.5, 0.35 * abs(b_val - a_val))
-    xs, ys = _muestrear_curva(comp["fn"], min(a_val, b_val) - pad, max(a_val, b_val) + pad)
+    xs, ys = _muestrear_curva(comp, "fn", "fn_np", min(a_val, b_val) - pad, max(a_val, b_val) + pad)
 
     fig = crear_figura_base_plotly(f"Bisección — Iteración {k_vis}: [{fila_k['a']:.4f}, {fila_k['b']:.4f}]", "x", "f(x)")
-    fig.add_vrect(x0=fila_k["a"], x1=fila_k["b"], fillcolor="rgba(122, 154, 101, 0.22)", line_color="#687D5B", line_width=1, annotation_text=f"Intervalo k={k_vis}")
+    fig.add_vrect(
+        x0=fila_k["a"],
+        x1=fila_k["b"],
+        fillcolor="rgba(122, 154, 101, 0.22)",
+        line_color="#687D5B",
+        line_width=1,
+        annotation_text=f"Intervalo k={k_vis}",
+    )
     fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
-    df_sub = df.iloc[:k_vis]
-    fig.add_trace(go.Scatter(x=df_sub["x_k"], y=df_sub["f_xk"], mode="markers", name="Puntos medios x_k", marker=dict(size=8, color="#7A9A65")))
-    fig.add_trace(go.Scatter(x=[fila_k["x_k"]], y=[fila_k["f_xk"]], mode="markers", name=f"Actual x_{k_vis}", marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8))))
-    st.plotly_chart(fig, use_container_width=True)
+    sub_hist = muestrear_para_grafico(hist[:k_vis], max_puntos=150)
+    fig.add_trace(
+        go.Scatter(
+            x=[r["x_k"] for r in sub_hist],
+            y=[r["f_xk"] for r in sub_hist],
+            mode="markers",
+            name="Puntos medios x_k",
+            marker=dict(size=8, color="#7A9A65"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[fila_k["x_k"]],
+            y=[fila_k["f_xk"]],
+            mode="markers",
+            name=f"Actual x_{k_vis}",
+            marker=dict(size=13, color="#FFFDF9", symbol="star", line=dict(color="#B5673F", width=1.8)),
+        )
+    )
+    render_plotly_arandu(fig, key="plot_raiz_bis")
 
 
-def _tab_interpolacion_lineal() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("interpolacion_lineal_raices")
+def _tab_biseccion() -> None:
+    meta = render_bloque_1_teoria_y_ejemplo("biseccion")
     practica = meta.get("practica_profesora", {})
-    defaults = {
-        "f_str": "2*x**4 - 6*x**2 + 7*x - 2",
-        "a": -2.5,
-        "b": -2.0,
-        "tol": 0.001,
-        "variante": "Cátedra (pivote fijo)",
-        **practica.get("datos_iniciales", {}),
-    }
+    defaults = practica.get(
+        "datos_iniciales",
+        {"f_str": "-2.75*x**3 + 18*x**2 - 21*x - 12", "a": 2.0, "b": 2.5, "tol": 0.01, "max_iter": 50},
+    )
     st.divider()
-
-    modo = render_banner_edicion_profesora(
-        clave_state="raiz_rf",
-        defaults_dict=defaults,
+    render_practica_catedra_info(
         titulo_practica=practica.get("titulo"),
         enunciado_practica=practica.get("enunciado"),
         solucion_referencia=practica.get("solucion_referencia"),
     )
+    _frag_biseccion(defaults)
+
+
+@st.fragment
+def _frag_interpolacion_lineal(defaults: dict) -> None:
+    modo = render_controles_edicion_practica(
+        clave_state="raiz_rf",
+        defaults_dict=defaults,
+        mensaje_edicion=r"✏️ Modifica $f(x)$, los extremos iniciales o la variante de actualización del intervalo.",
+    )
     solo_lectura = modo == "catedra"
 
-    f_str = st.text_input("Ecuación f(x) = 0:", value=str(st.session_state["raiz_rf_f_str"]), disabled=solo_lectura, key="ui_rf_f")
+    f_str = st.text_input("Ecuación $f(x) = 0$:", value=str(st.session_state["raiz_rf_f_str"]), disabled=solo_lectura, key="ui_rf_f")
     c1, c2, c3, c4 = st.columns(4)
-    a_val = c1.number_input("x0 / a:", value=float(st.session_state["raiz_rf_a"]), format="%.4f", disabled=solo_lectura, key="ui_rf_a")
-    b_val = c2.number_input("x1 / b:", value=float(st.session_state["raiz_rf_b"]), format="%.4f", disabled=solo_lectura, key="ui_rf_b")
-    tol_val = c3.number_input("Tolerancia E:", value=float(st.session_state["raiz_rf_tol"]), min_value=1e-10, format="%.6f", disabled=solo_lectura, key="ui_rf_tol")
+    a_val = c1.number_input("$x_0$ / extremo $a$:", value=float(st.session_state["raiz_rf_a"]), format="%.4f", disabled=solo_lectura, key="ui_rf_a")
+    b_val = c2.number_input("$x_1$ / extremo $b$:", value=float(st.session_state["raiz_rf_b"]), format="%.4f", disabled=solo_lectura, key="ui_rf_b")
+    tol_val = c3.number_input("Tolerancia $E$:", value=float(st.session_state["raiz_rf_tol"]), min_value=1e-10, format="%.6f", disabled=solo_lectura, key="ui_rf_tol")
     variante = c4.selectbox(
-        "Variante:",
+        "Variante de reemplazo:",
         ["Cátedra (pivote fijo)", "Regula Falsi (Bolzano)"],
-        index=0 if st.session_state["raiz_rf_variante"].startswith("Cátedra") else 1,
+        index=0 if str(st.session_state["raiz_rf_variante"]).startswith("Cátedra") else 1,
         key="ui_rf_var",
+    )
+    st.caption(
+        r"La variante estándar mantiene un cambio de signo permanente ($f(a)\cdot f(b) < 0$, criterio de Bolzano) "
+        r"al actualizar uno de los dos extremos según dónde caiga la cuerda."
     )
 
     if not solo_lectura:
@@ -183,17 +212,17 @@ def _tab_interpolacion_lineal() -> None:
     m2.metric("Iteraciones", res["iteraciones"])
     m3.metric("Error final", f"{res['error_final']:.3e}")
 
-    df = pd.DataFrame(res["historial"])
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    hist = res["historial"]
+    render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_rf")
 
     st.markdown("### 📐 Bloque 4 — Secantes / Cuerdas Paso a Paso")
-    k_vis = render_slider_paso_k("Ver hasta la iteración k:", len(df), key="vis_rf_k")
+    k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", len(hist), key="vis_rf_k")
     pad = max(0.4, 0.35 * abs(b_val - a_val))
-    xs, ys = _muestrear_curva(comp["fn"], min(a_val, b_val) - pad, max(a_val, b_val) + pad)
+    xs, ys = _muestrear_curva(comp, "fn", "fn_np", min(a_val, b_val) - pad, max(a_val, b_val) + pad)
     fig = crear_figura_base_plotly(f"Interpolación Lineal — Paso {k_vis}", "x", "f(x)")
     fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
 
-    fila_k = res["historial"][k_vis - 1]
+    fila_k = hist[k_vis - 1]
     if variante.startswith("Cátedra"):
         p0, f0 = fila_k["x0_fijo"], fila_k["f_x0"]
         p1, f1 = fila_k["x_i"], fila_k["f_xi"]
@@ -202,35 +231,63 @@ def _tab_interpolacion_lineal() -> None:
         p0, f0 = fila_k["a"], fila_k["f_a"]
         p1, f1 = fila_k["b"], fila_k["f_b"]
         xr = fila_k["x_k"]
-    fig.add_trace(go.Scatter(x=[p0, p1], y=[f0, f1], mode="lines+markers", name=f"Cuerda k={k_vis}", line=dict(color="#7A9A65", dash="dash", width=2.2), marker=dict(size=8, color="#7A9A65")))
-    fig.add_trace(go.Scatter(x=[xr], y=[0.0], mode="markers", name="Corte eje X", marker=dict(size=13, color="#FFFDF9", symbol="diamond", line=dict(color="#B5673F", width=1.8))))
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def _tab_newton_raphson() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("newton_raphson")
-    practica = meta.get("practica_profesora", {})
-    defaults = practica.get(
-        "datos_iniciales",
-        {"f_str": "x**3 - 2*x - 5", "a": 2.0, "b": 2.5, "x0": 2.5, "tol": 1e-4, "max_iter": 50},
+    fig.add_trace(
+        go.Scatter(
+            x=[p0, p1],
+            y=[f0, f1],
+            mode="lines+markers",
+            name=f"Cuerda k={k_vis}",
+            line=dict(color="#7A9A65", dash="dash", width=2.2),
+            marker=dict(size=8, color="#7A9A65"),
+        )
     )
-    st.divider()
+    fig.add_trace(
+        go.Scatter(
+            x=[xr],
+            y=[0.0],
+            mode="markers",
+            name="Corte eje X",
+            marker=dict(size=13, color="#FFFDF9", symbol="diamond", line=dict(color="#B5673F", width=1.8)),
+        )
+    )
+    render_plotly_arandu(fig, key="plot_raiz_rf")
 
-    modo = render_banner_edicion_profesora(
-        clave_state="raiz_nr",
-        defaults_dict=defaults,
+
+def _tab_interpolacion_lineal() -> None:
+    meta = render_bloque_1_teoria_y_ejemplo("interpolacion_lineal_raices")
+    practica = meta.get("practica_profesora", {})
+    defaults = {
+        "f_str": "2*x**4 - 6*x**2 + 7*x - 2",
+        "a": -2.5,
+        "b": -2.0,
+        "tol": 0.001,
+        "variante": "Cátedra (pivote fijo)",
+        **practica.get("datos_iniciales", {}),
+    }
+    st.divider()
+    render_practica_catedra_info(
         titulo_practica=practica.get("titulo"),
         enunciado_practica=practica.get("enunciado"),
         solucion_referencia=practica.get("solucion_referencia"),
     )
+    _frag_interpolacion_lineal(defaults)
+
+
+@st.fragment
+def _frag_newton_raphson(defaults: dict) -> None:
+    modo = render_controles_edicion_practica(
+        clave_state="raiz_nr",
+        defaults_dict=defaults,
+        mensaje_edicion=r"✏️ Modifica $f(x)$, los extremos de verificación de arranque $[a, b]$ o la semilla $x_0$.",
+    )
     solo_lectura = modo == "catedra"
 
-    f_str = st.text_input("Ecuación f(x) = 0:", value=str(st.session_state["raiz_nr_f_str"]), disabled=solo_lectura, key="ui_nr_f")
+    f_str = st.text_input("Ecuación $f(x) = 0$:", value=str(st.session_state["raiz_nr_f_str"]), disabled=solo_lectura, key="ui_nr_f")
     c1, c2, c3, c4 = st.columns(4)
-    a_val = c1.number_input("Fourier extremo a:", value=float(st.session_state["raiz_nr_a"]), format="%.4f", disabled=solo_lectura, key="ui_nr_a")
-    b_val = c2.number_input("Fourier extremo b:", value=float(st.session_state["raiz_nr_b"]), format="%.4f", disabled=solo_lectura, key="ui_nr_b")
-    x0_val = c3.number_input("Semilla x0:", value=float(st.session_state["raiz_nr_x0"]), format="%.4f", disabled=solo_lectura, key="ui_nr_x0")
-    tol_val = c4.number_input("Tolerancia E:", value=float(st.session_state["raiz_nr_tol"]), min_value=1e-12, format="%.6f", disabled=solo_lectura, key="ui_nr_tol")
+    a_val = c1.number_input("Extremo $a$ (validación):", value=float(st.session_state["raiz_nr_a"]), format="%.4f", disabled=solo_lectura, key="ui_nr_a")
+    b_val = c2.number_input("Extremo $b$ (validación):", value=float(st.session_state["raiz_nr_b"]), format="%.4f", disabled=solo_lectura, key="ui_nr_b")
+    x0_val = c3.number_input("Semilla $x_0$:", value=float(st.session_state["raiz_nr_x0"]), format="%.4f", disabled=solo_lectura, key="ui_nr_x0")
+    tol_val = c4.number_input("Tolerancia $E$:", value=float(st.session_state["raiz_nr_tol"]), min_value=1e-12, format="%.6f", disabled=solo_lectura, key="ui_nr_tol")
 
     if not solo_lectura:
         st.session_state["raiz_nr_f_str"] = f_str
@@ -248,9 +305,9 @@ def _tab_newton_raphson() -> None:
     st.latex(rf"f'(x) = {comp['d1_latex']}, \qquad f''(x) = {comp['d2_latex']}")
     fourier = verificar_condiciones_fourier(comp["fn"], comp["d1"], comp["d2"], min(a_val, b_val), max(a_val, b_val))
     st.info(
-        f"**Condiciones de Fourier en [{min(a_val, b_val):g}, {max(a_val, b_val):g}]:** "
-        f"{'✅ Sugerido x0 = ' + str(fourier['x0_sugerido']) if fourier['fourier_cumple'] else '⚠️ Sin sugerencia estricta en extremos'} "
-        f"({fourier['detalle_fourier']})"
+        rf"**Validación de arranque seguro en $[{min(a_val, b_val):g}, {max(a_val, b_val):g}]$ (Condiciones de Fourier):** "
+        f"{'✅ Sugerido $x_0 = ' + str(fourier['x0_sugerido']) + '$' if fourier['fourier_cumple'] else '⚠️ Sin garantía estricta en extremos (el salto inicial podría alejarse de la raíz)'} "
+        f"— {fourier['detalle_fourier']}"
     )
 
     st.markdown("### ⚙️ Bloque 3 — Iteraciones de Newton-Raphson en Vivo")
@@ -263,18 +320,18 @@ def _tab_newton_raphson() -> None:
     m2.metric("Iteraciones", res["iteraciones"])
     m3.metric("Error final", f"{res['error_final']:.3e}")
 
-    df = pd.DataFrame(res["historial"])
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    hist = res["historial"]
+    render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_nr")
 
     st.markdown("### 📐 Bloque 4 — Rectas Tangentes Paso a Paso")
-    k_vis = render_slider_paso_k("Ver hasta la iteración k:", max(1, len(df)), key="vis_nr_k")
-    puntos_x = [row["x_k"] for row in res["historial"][:k_vis]] + [row["x_sig"] for row in res["historial"][:k_vis] if row["x_sig"] is not None]
+    k_vis = render_slider_paso_k("Ver hasta la iteración $k$:", max(1, len(hist)), key="vis_nr_k")
+    puntos_x = [row["x_k"] for row in hist[:k_vis]] + [row["x_sig"] for row in hist[:k_vis] if row["x_sig"] is not None]
     xmin, xmax = min(puntos_x) - 0.5, max(puntos_x) + 0.5
-    xs, ys = _muestrear_curva(comp["fn"], xmin, xmax)
+    xs, ys = _muestrear_curva(comp, "fn", "fn_np", xmin, xmax)
 
     fig = crear_figura_base_plotly(f"Newton-Raphson — Tangentes hasta k = {k_vis}", "x", "f(x)")
     fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name="f(x)", line=dict(color="#D4A359", width=2.5)))
-    for idx, row in enumerate(res["historial"][:k_vis], start=1):
+    for idx, row in enumerate(hist[:k_vis], start=1):
         if row["x_sig"] is not None:
             fig.add_trace(
                 go.Scatter(
@@ -287,33 +344,40 @@ def _tab_newton_raphson() -> None:
                     opacity=1.0 if idx == k_vis else 0.45,
                 )
             )
-    st.plotly_chart(fig, use_container_width=True)
+    render_plotly_arandu(fig, key="plot_raiz_nr")
 
 
-def _tab_punto_fijo_aitken() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("punto_fijo_aitken")
+def _tab_newton_raphson() -> None:
+    meta = render_bloque_1_teoria_y_ejemplo("newton_raphson")
     practica = meta.get("practica_profesora", {})
     defaults = practica.get(
         "datos_iniciales",
-        {"f_str": "exp(x) - x**2 - 5", "g_str": "log(x**2 + 5)", "x0": 2.5, "tol": 1e-4, "max_iter": 50},
+        {"f_str": "x**3 - 2*x - 5", "a": 2.0, "b": 2.5, "x0": 2.5, "tol": 1e-4, "max_iter": 50},
     )
     st.divider()
-
-    modo = render_banner_edicion_profesora(
-        clave_state="raiz_pf",
-        defaults_dict=defaults,
+    render_practica_catedra_info(
         titulo_practica=practica.get("titulo"),
         enunciado_practica=practica.get("enunciado"),
         solucion_referencia=practica.get("solucion_referencia"),
     )
+    _frag_newton_raphson(defaults)
+
+
+@st.fragment
+def _frag_punto_fijo_aitken(defaults: dict) -> None:
+    modo = render_controles_edicion_practica(
+        clave_state="raiz_pf",
+        defaults_dict=defaults,
+        mensaje_edicion=r"✏️ Modifica $f(x)$, el despeje $x = g(x)$ o la semilla $x_0$ para evaluar estabilidad.",
+    )
     solo_lectura = modo == "catedra"
 
     c1, c2 = st.columns(2)
-    f_str = c1.text_input("Ecuación f(x) = 0:", value=str(st.session_state["raiz_pf_f_str"]), disabled=solo_lectura, key="ui_pf_f")
-    g_str = c2.text_input("Despeje x = g(x):", value=str(st.session_state["raiz_pf_g_str"]), disabled=solo_lectura, key="ui_pf_g")
+    f_str = c1.text_input("Ecuación $f(x) = 0$:", value=str(st.session_state["raiz_pf_f_str"]), disabled=solo_lectura, key="ui_pf_f")
+    g_str = c2.text_input("Despeje $x = g(x)$:", value=str(st.session_state["raiz_pf_g_str"]), disabled=solo_lectura, key="ui_pf_g")
     c3, c4 = st.columns(2)
-    x0_val = c3.number_input("Semilla x0:", value=float(st.session_state["raiz_pf_x0"]), format="%.4f", disabled=solo_lectura, key="ui_pf_x0")
-    tol_val = c4.number_input("Tolerancia E:", value=float(st.session_state["raiz_pf_tol"]), min_value=1e-12, format="%.6f", disabled=solo_lectura, key="ui_pf_tol")
+    x0_val = c3.number_input("Semilla $x_0$:", value=float(st.session_state["raiz_pf_x0"]), format="%.4f", disabled=solo_lectura, key="ui_pf_x0")
+    tol_val = c4.number_input("Tolerancia $E$:", value=float(st.session_state["raiz_pf_tol"]), min_value=1e-12, format="%.6f", disabled=solo_lectura, key="ui_pf_tol")
 
     if not solo_lectura:
         st.session_state["raiz_pf_f_str"] = f_str
@@ -330,11 +394,16 @@ def _tab_punto_fijo_aitken() -> None:
 
     st.latex(rf"g'(x) = {comp_g['dg_latex']}, \qquad |g'(x_0)| = {deriv_x0:.4f}")
     if deriv_x0 < 1.0:
-        st.success("✅ |g'(x₀)| < 1: El esquema es contractivo en el entorno de x₀.")
+        st.success(
+            r"✅ **$|g'(x_0)| < 1$:** La pendiente actúa como factor multiplicativo reductor en cada iteración "
+            r"del bucle (**esquema contractivo**), garantizando convergencia local hacia la raíz."
+        )
     else:
-        st.warning("⚠️ |g'(x₀)| ≥ 1: El Punto Fijo simple puede diverger.")
+        st.warning(
+            r"⚠️ **$|g'(x_0)| \ge 1$:** El factor amplifica el error en cada vuelta del bucle y la secuencia simple puede diverger."
+        )
 
-    st.markdown("### ⚙️ Bloque 3 — Punto Fijo vs Aceleración Δ² de Aitken")
+    st.markdown(r"### ⚙️ Bloque 3 — Punto Fijo vs Aceleración $\Delta^2$ de Aitken")
     res = metodo_punto_fijo_aitken(comp_g["gn"], x0_val, tol=tol_val, max_iter=int(st.session_state["raiz_pf_max_iter"]))
     pf, ait = res["punto_fijo"], res["aitken"]
     m1, m2 = st.columns(2)
@@ -343,17 +412,22 @@ def _tab_punto_fijo_aitken() -> None:
 
     t_pf, t_ait = st.tabs(["Tabla Punto Fijo", "Tabla Aitken Δ²"])
     with t_pf:
-        st.dataframe(pd.DataFrame(pf["historial"]), use_container_width=True, hide_index=True)
+        render_dataframe_acotado(pf["historial"], max_filas=300, key_prefix="tbl_raiz_pf")
     with t_ait:
-        st.dataframe(pd.DataFrame(ait["historial"]), use_container_width=True, hide_index=True)
+        render_dataframe_acotado(ait["historial"], max_filas=300, key_prefix="tbl_raiz_ait")
 
     if pf["historial"]:
         st.markdown("### 📐 Bloque 4 — Diagrama Telaraña (Cobweb) Paso a Paso")
-        k_vis = render_slider_paso_k("Ver hasta iteración de Punto Fijo k:", len(pf["historial"]), key="vis_pf_k", default_val=min(len(pf["historial"]), 8))
+        k_vis = render_slider_paso_k(
+            "Ver hasta iteración de Punto Fijo $k$:",
+            len(pf["historial"]),
+            key="vis_pf_k",
+            default_val=min(len(pf["historial"]), 8),
+        )
         sub = pf["historial"][:k_vis]
         pts = [r["x_ant"] for r in sub] + [r["x_sig"] for r in sub]
         xmin, xmax = min(pts) - 0.3, max(pts) + 0.3
-        xs, ys = _muestrear_curva(comp_g["gn"], xmin, xmax)
+        xs, ys = _muestrear_curva(comp_g, "gn", "gn_np", xmin, xmax)
 
         fig = crear_figura_base_plotly(f"Punto Fijo (y = g(x) vs y = x) hasta k = {k_vis}", "x", "y")
         fig.add_trace(go.Scatter(x=[xmin, xmax], y=[xmin, xmax], mode="lines", name="y = x", line=dict(color="#9E9585", dash="dash")))
@@ -363,14 +437,42 @@ def _tab_punto_fijo_aitken() -> None:
         for r in sub:
             cob_x.extend([r["x_ant"], r["x_sig"]])
             cob_y.extend([r["x_sig"], r["x_sig"]])
-        fig.add_trace(go.Scatter(x=cob_x, y=cob_y, mode="lines+markers", name="Trayectoria Telaraña", line=dict(color="#C86D44", width=2.2), marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.4))))
-        st.plotly_chart(fig, use_container_width=True)
+        fig.add_trace(
+            go.Scatter(
+                x=cob_x,
+                y=cob_y,
+                mode="lines+markers",
+                name="Trayectoria Telaraña",
+                line=dict(color="#C86D44", width=2.2),
+                marker=dict(size=7, color="#FFFDF9", line=dict(color="#B5673F", width=1.4)),
+            )
+        )
+        render_plotly_arandu(fig, key="plot_raiz_pf")
+
+
+def _tab_punto_fijo_aitken() -> None:
+    meta = render_bloque_1_teoria_y_ejemplo("punto_fijo_aitken")
+    practica = meta.get("practica_profesora", {})
+    defaults = practica.get(
+        "datos_iniciales",
+        {"f_str": "exp(x) - x**2 - 5", "g_str": "log(x**2 + 5)", "x0": 2.5, "tol": 1e-4, "max_iter": 50},
+    )
+    st.divider()
+    render_practica_catedra_info(
+        titulo_practica=practica.get("titulo"),
+        enunciado_practica=practica.get("enunciado"),
+        solucion_referencia=practica.get("solucion_referencia"),
+    )
+    _frag_punto_fijo_aitken(defaults)
 
 
 def vista_raices() -> None:
     inject_arandu_css()
     st.title("📉 Raíces de Ecuaciones No Lineales")
-    st.caption("Localización, encierro garantizado (Bolzano) y métodos abiertos de orden lineal a cuadrático.")
+    st.markdown(
+        r"Localización inicial, encierro con cambio de signo garantizado (**Bolzano**) y algoritmos abiertos "
+        r"desde convergencia lineal hasta orden cuadrático."
+    )
 
     tabs = st.tabs(
         [

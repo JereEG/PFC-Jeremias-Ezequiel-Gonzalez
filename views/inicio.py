@@ -1,12 +1,13 @@
 """
-Vista de Inicio - Arandú: Métodos Computacionales (v3.0).
-Portal estilo Refactoring.Guru + acceso destacado a Arena Versus.
+Vista de Inicio - Arandú: Métodos Computacionales.
+Portal estilo Refactoring.Guru + acceso destacado a Arena Versus y catálogo pedagógico.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
+from core.version import APP_VERSION, es_entorno_offline_wasm
 from views.theme import obtener_logo_arandu_src
 from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css
 
@@ -20,6 +21,9 @@ def vista_inicio() -> None:
         if logo_uri
         else ""
     )
+    badge_entorno = (
+        "PWA Offline (WebAssembly)" if es_entorno_offline_wasm() else "Cloud Server (Streamlit)"
+    )
 
     st.markdown(
         f"""
@@ -27,22 +31,22 @@ def vista_inicio() -> None:
             <div class="arandu-hero-grid">
                 {logo_html}
                 <div style="flex:1; min-width:260px;">
-                    <span class="arandu-badge">Arandú Org • v3.0</span>
+                    <span class="arandu-badge">Arandú Org • v{APP_VERSION}</span>
                     <span class="arandu-badge">FaCENA - UNNE</span>
-                    <span class="arandu-badge">Dark Botanical &amp; Golden Wisdom</span>
+                    <span class="arandu-badge">{badge_entorno}</span>
                     <h1>Arandú — Métodos Computacionales</h1>
                     <p style="margin:0; font-size:1.02rem; color:#EDE4D3;">
-                        Plataforma interactiva de la organización <b>Arandú</b> para comprender, editar y comparar métodos numéricos con rigor matemático y estética orgánica:
+                        Plataforma interactiva de <b>Arandú</b> para comprender, editar y comparar algoritmos numéricos con rigor académico y lectura enfocada en sistemas:
                     </p>
                     <div class="arandu-pillars">
                         <div class="arandu-pillar-item">
-                            <strong>🌱 Raíces:</strong> Fundamentos teóricos y análisis del error.
+                            <strong>🌱 Raíces:</strong> Intuición computacional, teoría en 3 niveles y análisis del error de máquina.
                         </div>
                         <div class="arandu-pillar-item">
-                            <strong>🪵 Tronco:</strong> Algoritmos interactivos paso a paso y prácticas de cátedra.
+                            <strong>🪵 Tronco:</strong> Simulación en vivo con fragmentos aislados y ejercicios editables de cátedra.
                         </div>
                         <div class="arandu-pillar-item">
-                            <strong>✨ Copa y Astros:</strong> Visualización geométrica y Arena Versus de convergencia.
+                            <strong>✨ Copa y Astros:</strong> Geometría interactiva y duelos de convergencia en Arena Versus.
                         </div>
                     </div>
                 </div>
@@ -55,11 +59,11 @@ def vista_inicio() -> None:
     with st.container(border=True):
         c_txt, c_btn = st.columns([3.2, 1.3])
         with c_txt:
-            st.markdown("### ⚔️ Arena Versus: Duelo Directo de Métodos (Versus.com)")
+            st.markdown("### ⚔️ Arena Versus: Duelo Directo de Métodos")
             st.write(
                 "Enfrenta dos algoritmos de la **misma familia matemática** sobre un mismo problema, "
-                "descubre qué esperamos ver teóricamente (incluyendo casos patológicos) y compara "
-                "convergencia, costo y error en gráficos superpuestos."
+                "anticipa qué comportamiento veremos en ejecución (incluyendo casos límite) y compara "
+                "convergencia, costo de iteraciones y error en gráficos superpuestos."
             )
         with c_btn:
             st.write("")
@@ -67,42 +71,45 @@ def vista_inicio() -> None:
                 st.switch_page("views/arena_versus.py")
 
     st.markdown("### 🧭 Catálogo de Métodos Matemáticos")
-    st.caption("Cada módulo sigue el esquema de 4 bloques: Teoría Guru + Ejemplo Oficial → Práctica Editable → Controles en Vivo → Geometría Paso a Paso.")
+    st.caption(
+        "Lectura progresiva en cada módulo: Resumen Ejecutivo → Intuición y Fórmulas (con desarrollo opcional) → "
+        "Criterio de Elección → Laboratorio Interactivo paso a paso."
+    )
 
     tarjetas = [
         (
             "🧮 Fundamentos y Errores",
-            "Series de Taylor (Scarborough & Leibniz), aritmética flotante de k dígitos, pérdida de asociatividad, cancelación catastrófica y algoritmo anidado de Horner.",
+            r"Series iterativas ($e^x$, $\ln(1+x)$, $\pi$) en la CPU, aritmética finita de $k$ dígitos, pérdida de asociatividad, cancelación catastrófica y algoritmo de Horner.",
             "views/view_fundamentos.py",
             "Abrir Fundamentos",
         ),
         (
             "📉 Raíces de Ecuaciones",
-            "Regla de Descartes, Barrido por Tanteos, Bisección, Regula Falsi (Cátedra y Bolzano), Newton-Raphson (Fourier) y Punto Fijo acelerado con Δ² de Aitken.",
+            r"Regla de Descartes, Barrido por Tanteos, Bisección, Regula Falsi (Cátedra y cambio de signo), Newton-Raphson y Punto Fijo acelerado con $\Delta^2$ de Aitken.",
             "views/view_raices.py",
             "Abrir Raíces",
         ),
         (
             "📐 Sistemas Lineales y Autovalores",
-            "Eliminación de Gauss, Gauss-Jordan, Factorización LU (Doolittle), Gauss-Seidel (dominancia diagonal), Método de Potencias y Faddeev-Leverrier.",
+            "Eliminación de Gauss, Gauss-Jordan, Factorización $LU$ (Doolittle), Gauss-Seidel (dominancia diagonal), Método de Potencias y Faddeev-Leverrier.",
             "views/view_sistemas.py",
             "Abrir Sistemas y Autovalores",
         ),
         (
             "📈 Interpolación Polinomial",
-            "Interpolación Lineal, Cuadrática Inversa, Polinomio de Lagrange y Newton-Gregory Ascendente/Descendente con detector de nodos no equidistantes.",
+            "Interpolación Lineal, Cuadrática Inversa, Polinomio de Lagrange y diferencias finitas de Newton-Gregory Ascendente y Descendente.",
             "views/view_interpolacion.py",
             "Abrir Interpolación",
         ),
         (
             "📊 Integración y Derivación",
-            "Diferenciación con Gregory (y punto libre) + Trapecio, Simpson 1/3, Simpson 3/8 y reglas combinadas automáticas al cambiar Δh o n en vivo.",
+            r"Derivación numérica con Gregory y reglas de Trapecio, Simpson $1/3$, Simpson $3/8$ y combinaciones adaptativas al ajustar $\Delta h$ o $n$ en vivo.",
             "views/view_integracion.py",
             "Abrir Integración y Derivación",
         ),
         (
             "⏱️ Ecuaciones Diferenciales (EDO)",
-            "Problemas de Valor Inicial: Euler, Heun (corrector iterativo), RK2, RK4 y Predictor-Corrector de Milne con malla Δh interactiva y solución exacta.",
+            r"Problemas de Valor Inicial (PVI): Euler, Heun (Euler Modificado), RK2, RK4 y Predictor-Corrector de Milne con paso $\Delta h$ ajustable y solución exacta.",
             "views/view_edo.py",
             "Abrir EDO / PVI",
         ),
@@ -115,7 +122,7 @@ def vista_inicio() -> None:
             with col:
                 with st.container(border=True):
                     st.markdown(f"#### {titulo}")
-                    st.write(desc)
+                    st.markdown(desc)
                     if st.button(texto_btn, key=f"card_{ruta}", use_container_width=True):
                         st.switch_page(ruta)
 
@@ -123,9 +130,9 @@ def vista_inicio() -> None:
         c1, c2 = st.columns([3.2, 1.3])
         with c1:
             st.markdown("#### 📚 Histórico de Cursada (Laboratorios 1 al 7)")
-            st.write(
-                "Anexo curricular con los experimentos clásicos de los Trabajos Prácticos "
-                "(Fibonacci N=200, razón áurea φ, tiempos y comparativas integradas por laboratorio)."
+            st.markdown(
+                r"Anexo curricular con los experimentos clásicos de los Trabajos Prácticos "
+                r"(Fibonacci con $N = 200$, razón áurea $\varphi$, sumatorias y mapa completo de la cursada)."
             )
         with c2:
             if st.button("📚 Ver Laboratorios", use_container_width=True):
@@ -146,7 +153,7 @@ def vista_inicio() -> None:
                 "📝 Enviar Feedback",
                 FEEDBACK_FORMS_URL,
                 type="primary",
-                width="stretch",
+                use_container_width=True,
             )
 
 
