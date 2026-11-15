@@ -6,6 +6,7 @@ Navegación moderna con st.navigation + st.Page agrupada por metodología y Aren
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -14,6 +15,36 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import streamlit as st
+
+
+def _sincronizar_modulos_locales() -> None:
+    """Recarga módulos locales si el código en disco cambió tras un git pull en caliente."""
+    firmas_actuales: dict[str, tuple[int, int]] = {}
+    for carpeta in ("core", "views"):
+        ruta_carpeta = ROOT_DIR / carpeta
+        if ruta_carpeta.is_dir():
+            for archivo in ruta_carpeta.glob("*.py"):
+                stat = archivo.stat()
+                firmas_actuales[f"{carpeta}/{archivo.name}"] = (stat.st_mtime_ns, stat.st_size)
+
+    modulo_tema = sys.modules.get("views.theme")
+    falta_simbolo = modulo_tema is not None and any(
+        not hasattr(modulo_tema, simbolo)
+        for simbolo in ("construir_html_tarjeta_catalogo", "PALETA_ARANDU", "hex_a_rgba")
+    )
+    if getattr(sys, "_arandu_firmas_modulos", None) != firmas_actuales or falta_simbolo:
+        importlib.invalidate_caches()
+        for nombre_mod in list(sys.modules):
+            if nombre_mod in ("core", "views") or nombre_mod.startswith(("core.", "views.")):
+                del sys.modules[nombre_mod]
+        try:
+            st.cache_data.clear()
+        except Exception:
+            pass
+        setattr(sys, "_arandu_firmas_modulos", firmas_actuales)
+
+
+_sincronizar_modulos_locales()
 
 from core.version import APP_VERSION, OFFLINE_PWA_URL, es_entorno_offline_wasm
 from views.theme import (
