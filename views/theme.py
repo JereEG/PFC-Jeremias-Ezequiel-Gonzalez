@@ -2085,6 +2085,61 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             color: var(--arandu-muted);
             line-height: 1.45;
         }}
+        div[data-testid="stHorizontalBlock"]:has(.arandu-theme-corner-badge) {{
+            justify-content: flex-end !important;
+            align-items: center !important;
+            margin-top: -0.6rem;
+            margin-bottom: 0.35rem;
+        }}
+        div[data-testid="stColumn"]:has(.arandu-theme-corner-badge) > div[data-testid="stVerticalBlock"] {{
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: flex-end !important;
+            align-items: center !important;
+            gap: 0.65rem !important;
+            flex-wrap: wrap;
+            width: fit-content !important;
+            margin-left: auto !important;
+            padding: 0.3rem 0.85rem !important;
+            border-radius: 999px;
+            background-color: var(--arandu-surface);
+            border: 1px solid var(--arandu-border);
+            border-left: 3px solid var(--arandu-gold);
+            box-shadow: 0 4px 12px var(--arandu-shadow-30);
+        }}
+        div[data-testid="stColumn"]:has(.arandu-theme-corner-badge) [data-testid="stElementContainer"] {{
+            width: auto !important;
+            margin-bottom: 0 !important;
+        }}
+        .arandu-theme-corner-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--arandu-muted);
+        }}
+        .arandu-theme-pill-item {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            padding: 0.16rem 0.48rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            color: var(--arandu-muted);
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }}
+        .arandu-theme-pill-item.is-active {{
+            color: var(--arandu-gold);
+            background-color: var(--arandu-gold-15);
+            border-color: var(--arandu-gold-45);
+        }}
+        .arandu-theme-icon {{
+            display: inline-block;
+            flex-shrink: 0;
+            vertical-align: middle;
+        }}
         @media (max-width: 900px) {{
             .arandu-ng-summary-grid {{
                 grid-template-columns: 1fr;
@@ -2662,6 +2717,35 @@ def construir_html_ficha_metodo(
         activa=activa,
         firma_asset=firma_asset,
         modo=obtener_modo_tema(),
+    )
+
+
+def construir_html_control_tema_esquina(modo: str = "oscuro") -> str:
+    """Construye el indicador visual de tema (Luna/Sol SVG inline) para la esquina superior derecha."""
+    es_claro = modo == "claro"
+    clase_osc = "arandu-theme-pill-item" + ("" if es_claro else " is-active")
+    clase_clr = "arandu-theme-pill-item" + (" is-active" if es_claro else "")
+    icono_luna = (
+        '<svg class="arandu-theme-icon" viewBox="0 0 24 24" width="15" height="15" '
+        'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round" aria-hidden="true">'
+        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+        "</svg>"
+    )
+    icono_sol = (
+        '<svg class="arandu-theme-icon" viewBox="0 0 24 24" width="15" height="15" '
+        'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round" aria-hidden="true">'
+        '<circle cx="12" cy="12" r="4"/>'
+        '<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41'
+        'M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>'
+        "</svg>"
+    )
+    return (
+        '<div class="arandu-theme-corner-badge" role="status" aria-label="Indicador visual de tema">'
+        f'<span class="{clase_osc}">{icono_luna}<span>Oscuro</span></span>'
+        f'<span class="{clase_clr}">{icono_sol}<span>Claro</span></span>'
+        "</div>"
     )
 
 

@@ -2121,3 +2121,536 @@ def obtener_expectativa_versus(familia: str, m_a: str, m_b: str) -> dict[str, st
         "que_esperamos": "Se comparan dos algoritmos de la misma familia matemática contrastando orden de convergencia, costo computacional y estabilidad numérica.",
         "excepciones": "Verificá los requisitos de cada algoritmo (derivadas no nulas, dominancia diagonal, equidistancia de nodos o tamaño de paso $\\Delta h$) para detectar posibles fallos.",
     }
+
+
+# ==============================================================================
+# DEDUCCIONES COMPLETAS PASO A PASO (TEÓRICO, EJEMPLO Y PRÁCTICA DE CÁTEDRA)
+# ==============================================================================
+
+DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
+    "series_taylor": {
+        "deduccion_teorica": [
+            r"**Planteo polinómico alrededor de $x_0$:** Buscamos aproximar una función derivable $f(x)$ cerca de un centro $x_0$ mediante un polinomio $P_n(x) = \sum_{k=0}^{n} c_k (x - x_0)^k$ de modo que la función y sus primeras $n$ derivadas coincidan en $x_0$.",
+            r"**Cálculo de los coeficientes $c_k$:** Evaluando la derivada $k$-ésima $P_n^{(k)}(x_0) = k!\,c_k$ e igualándola a $f^{(k)}(x_0)$, despejamos directamente $c_k = \frac{f^{(k)}(x_0)}{k!}$.",
+            r"**Caso Maclaurin ($x_0 = 0$) para $e^x$, $\ln(1+x)$ y $\arctan(x)$:** Para $f(x)=e^x$, todas las derivadas cumplen $f^{(k)}(0)=1$, obteniendo $e^x = \sum_{k=0}^{\infty}\frac{x^k}{k!}$. Integrando $\frac{1}{1+t}$ sale $\ln(1+x)$ y evaluando $\arctan(1) = \frac{\pi}{4} = \sum_{k=0}^{\infty}\frac{(-1)^k}{2k+1}$ se deduce la serie alternante de Gregory-Leibniz.",
+            r"**Relación de recurrencia para el código:** Para no recalcular potencias y factoriales desde cero, cada término cumple $T_k = T_{k-1}\cdot \frac{x}{k}$, lo que reduce el costo de cada iteración a una multiplicación y una división.",
+            r"**Deducción del resto y criterio de corte (Scarborough):** Por el Teorema del Resto de Lagrange, el error al truncar en $n$ términos es $R_n(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}(x-x_0)^{n+1}$. En la práctica no conocemos el valor exacto, por lo que garantizamos $m$ cifras significativas exigiendo que la corrección relativa entre pasos cumpla $E_{rp} = \left|\frac{S_k - S_{k-1}}{S_k}\right| \times 100\% < E_s = 0.5 \times 10^{2-m}\%$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Definir función e hipótesis de trabajo:** En $e^x$ con $x = 1$ y $N = 8$ términos de truncamiento ($k = 0 \dots 7$), cada término vale $T_k = \frac{1^k}{k!}$ y el acumulador inicia en $S_0 = 1$.",
+            r"**Acumulación iterativa término a término:** Calculamos $T_1 = 1$, $T_2 = \frac{1}{2} = 0.5$, $T_3 = \frac{1}{6} \approx 0.166667$, $T_4 = \frac{1}{24} \approx 0.041667$, $T_5 = \frac{1}{120}$, $T_6 = \frac{1}{720}$, $T_7 = \frac{1}{5040}$ y $T_8 = \frac{1}{40320}$.",
+            r"**Verificación de parada por Scarborough ($n = 3$ cifras):** Calculamos $E_s = 0.5 \times 10^{2-3}\% = 0.05\%$. Hasta $k = 5$ ($E_{rp} \approx 0.306\%$) el bucle continúa; al incluir $k = 6$ se verifica $E_{rp} \approx 0.051\%$, y en $k = 7$ cae a $0.0073\% < 0.05\%$, asegurando ya $3$ cifras exactas.",
+            r"**Evaluación final para $e^1$ y serie alternante de $\pi$:** Con $N = 8$ términos alcanzamos $S_8 \approx 2.71827877$ ($E_a = 3.0586 \times 10^{-6}$ frente a $e = 2.71828183$). Para $\pi = 4\sum \frac{(-1)^k}{2k+1}$, acotando por el primer término omitido $\frac{4}{2N+1} < 0.0005$ se deduce $2N + 1 > 8000$, es decir $N \ge 2000$ iteraciones.",
+        ],
+    },
+    "aritmetica_maquina": {
+        "deduccion_teorica": [
+            r"**Representación normalizada de $k$ dígitos:** Todo real $y \ne 0$ se escribe en base $10$ como $y = \pm 0.d_1 d_2 \dots d_k d_{k+1}\dots \times 10^n$ con $1 \le d_1 \le 9$, desplazando la coma decimal mediante el exponente $n$.",
+            r"**Reglas de truncamiento y redondeo simétrico:** Al recortar a $k$ dígitos, el truncamiento descarta $d_{k+1}\dots$ directamente; el redondeo suma $\frac{1}{2}\cdot 10^{n-k}$ al valor absoluto antes de truncar (o incrementa $d_k$ en $1$ si $d_{k+1} \ge 5$).",
+            r"**Deducción de la cota del error relativo (épsilon de máquina):** Como $|y| \ge 0.1 \times 10^n$, en truncamiento $|y - fl(y)| < 10^{n-k} \implies \frac{|y - fl(y)|}{|y|} < \frac{10^{n-k}}{10^{n-1}} = 10^{1-k}$. En redondeo el error absoluto no supera $0.5 \times 10^{n-k}$, dando cota $\frac{|y - fl(y)|}{|y|} \le 0.5 \times 10^{1-k}$.",
+            r"**Ruptura de la asociatividad en operaciones finitas:** En máquina cada operación binaria ejecuta $a \oplus b = fl(fl(a) + fl(b))$. Cuando dos números grandes cercanos se restan primero ($u - v$), su diferencia libera posiciones en la mantisa para el número chico $w$; en cambio, operar $u - w$ primero desplaza los dígitos menos significativos de $w$ fuera de los $k$ dígitos disponibles (absorción).",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Normalización inicial a $k = 5$ dígitos (truncamiento):** $x = 1/3 = 0.333333\dots \implies fl(x) = 0.33333 \times 10^0$; $y = 5/7 = 0.7142857\dots \implies fl(y) = 0.71428 \times 10^0$.",
+            r"**Suma en aritmética finita $fl(fl(x) + fl(y))$:** Sumamos las mantisas alineadas: $0.33333 + 0.71428 = 1.04761 = 0.104761 \times 10^1$. Al truncar a $5$ dígitos se descarta el último $1$, quedando $0.10476 \times 10^1 = 1.0476$.",
+            r"**Resta en aritmética finita $fl(fl(y) - fl(x))$:** Restamos $0.71428 - 0.33333 = 0.38095 = 0.38095 \times 10^0$, que ya posee $5$ dígitos exactos en mantisa normalizada.",
+            r"**Comparación frente al valor exacto:** El valor exacto es $\frac{1}{3} + \frac{5}{7} = \frac{22}{21} \approx 1.047619$, dando error relativo $E_r = 1.82 \times 10^{-5} < 10^{-4}$, confirmando la cota teórica de truncamiento $10^{1-5}$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Normalización de los operandos a $k = 3$ dígitos:** $fl(121) = 0.121 \times 10^3$, $fl(119) = 0.119 \times 10^3$ y $fl(0.327) = 0.327 \times 10^0$. El valor exacto de referencia es $(121 - 119) - 0.327 = 1.673$.",
+            r"**Camino 1 $(u \ominus v) \ominus w$ (términos cercanos primero):** Primero operamos $121 - 119 = 2.00 = 0.200 \times 10^1$ (sin pérdida de información). Luego restamos $2.00 - 0.327 = 1.673 = 0.1673 \times 10^1$, que a $k = 3$ dígitos da $0.167 \times 10^1$ tanto en redondeo como en truncamiento ($E_r = 0.18\%$).",
+            r"**Camino 2 $(u \ominus w) \ominus v$ (absorción del término pequeño):** Alineamos exponentes para restar $121 - 0.327 = 120.673 = 0.120673 \times 10^3$. Al ajustar a $3$ dígitos: en redondeo queda $0.121 \times 10^3 = 121$ (el $0.327$ fue absorbido por completo); en truncamiento queda $0.120 \times 10^3 = 120$.",
+            r"**Segundo paso del Camino 2 y conclusión:** Al restar $119$, el redondeo entrega $121 - 119 = 2.00$ ($E_r = 19.55\%$) y el truncamiento entrega $120 - 119 = 1.00$ ($E_r = 40.23\%$). Queda demostrado por qué conviene operar primero los términos de magnitud similar.",
+        ],
+    },
+    "cancelacion_cuadratica": {
+        "deduccion_teorica": [
+            r"**Origen de la fórmula cuadrática clásica:** Dividiendo $ax^2 + bx + c = 0$ por $a \ne 0$ y completando cuadrados $\left(x + \frac{b}{2a}\right)^2 = \frac{b^2 - 4ac}{4a^2}$, se despeja $x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.",
+            r"**Detección del peligro cuando $b^2 \gg |4ac|$:** Si $b > 0$, la raíz $\sqrt{b^2 - 4ac}$ resulta muy próxima a $b$. En $x_1 = \frac{-b + \sqrt{b^2 - 4ac}}{2a}$, restar dos números casi iguales anula sus primeros dígitos significativos y deja solo ruido de redondeo (**cancelación catastrófica**), mientras que $x_2 = \frac{-b - \sqrt{b^2 - 4ac}}{2a}$ suma dos negativos con igual signo y es estable.",
+            r"**Racionalización por el conjugado:** Multiplicando numerador y denominador de $x_1$ por el conjugado $(-b - \sqrt{b^2 - 4ac})$: $x_1 = \frac{(-b + \sqrt{b^2 - 4ac})(-b - \sqrt{b^2 - 4ac})}{2a(-b - \sqrt{b^2 - 4ac})} = \frac{b^2 - (b^2 - 4ac)}{-2a(b + \sqrt{b^2 - 4ac})}$.",
+            r"**Simplificación algebraica estable (Vieta):** Cancelando $b^2 - b^2$ y simplificando $2a$, obtenemos $x_1 = \frac{-2c}{b + \sqrt{b^2 - 4ac}}$, donde todos los términos del denominador comparten signo positivo (cuando $b > 0$), eliminando por completo la resta peligrosa.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Evaluación del discriminante para $x^2 + 3000.001x + 3 = 0$:** Aquí $a = 1$, $b = 3000.001$, $c = 3$, por lo que $b^2 \approx 9 \times 10^6 \gg 4ac = 12$.",
+            r"**Cálculo del radical:** $\sqrt{b^2 - 4ac} = \sqrt{9000006.000001 - 12} = 2999.999$, prácticamente indistinguible de $b = 3000.001$ si trabajamos con mantisa de pocos dígitos.",
+            r"**Falla de la resolvente tradicional en $x_1$:** Con $6$ dígitos significativos, $b$ se redondea a $3000.00$ y $\sqrt{\Delta}$ también a $3000.00$, haciendo $-b + \sqrt{\Delta} = 0$, o produciendo errores relativos enormes en $x_1 = -0.001$.",
+            r"**Corrección mediante la forma racionalizada:** Evaluamos $x_1 = \frac{-2(3)}{3000.001 + 2999.999} = \frac{-6}{6000} = -0.001$ exacto sin cancelar ni un solo dígito significativo, y $x_2 = \frac{-3000.001 - 2999.999}{2} = -3000$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Representación a $k = 4$ dígitos de $x^2 + 62.10x + 1 = 0$:** Guardamos $fl(a)=1.000$, $fl(b)=62.10$ y $fl(c)=1.000$. Las raíces exactas son $x_1 \approx -0.01610723$ y $x_2 \approx -62.08389$.",
+            r"**Cálculo del discriminante en máquina ($k = 4$):** $b^2 = 62.10^2 = 3856.41 \xrightarrow{k=4} 3856$; luego $\Delta = fl(3856 - 4) = 3852$, y $\sqrt{\Delta} = \sqrt{3852} \approx 62.06448 \xrightarrow{k=4} 62.06$.",
+            r"**Resolvente tradicional (resta catastrófica):** Al calcular $x_1 = fl\left(\frac{-62.10 + 62.06}{2}\right) = \frac{-0.04}{2} = -0.02000$, perdimos casi todas las cifras significativas y el error relativo salta al $24.17\%$.",
+            r"**Resolvente racionalizada estable:** Aplicamos $x_1 = fl\left(\frac{-2c}{b + \sqrt{\Delta}}\right) = fl\left(\frac{-2.000}{62.10 + 62.06}\right) = fl\left(\frac{-2.000}{124.2}\right) = -0.01610$, reduciendo el error relativo a apenas $0.045\%$ (más de $500$ veces más exacto).",
+        ],
+    },
+    "horner": {
+        "deduccion_teorica": [
+            r"**Partida desde la forma estándar de un polinomio de grado $n$:** $P_n(x) = a_n x^n + a_{n-1} x^{n-1} + \dots + a_1 x + a_0$. Evaluar cada potencia $x^k$ por separado exige $1 + 2 + \dots + n = \frac{n(n+1)}{2}$ multiplicaciones.",
+            r"**Factorización recursiva de $x$ desde los términos superiores:** Sacando factor común $x$ en los primeros $n$ términos: $P_n(x) = (a_n x^{n-1} + a_{n-1} x^{n-2} + \dots + a_1)x + a_0$. Repitiendo la factorización dentro del paréntesis se llega a la forma completamente anidada $P_n(x) = (\dots((a_n x + a_{n-1})x + a_{n-2})\dots)x + a_0$.",
+            r"**Definición de la recurrencia lineal ($b_k$):** Definimos $b_n = a_n$ y, para $k = n-1, n-2, \dots, 0$, calculamos $b_k = b_{k+1} x + a_k$. Al finalizar el ciclo en $k = 0$, se cumple exactamente $b_0 = P_n(x)$.",
+            r"**Análisis de complejidad y propagación de error:** Se requieren exactamente $n$ multiplicaciones y $n$ sumas ($\mathcal{O}(n)$ en vez de $\mathcal{O}(n^2)$). Como los intermedios son más uniformes y hay menos redondeos por paso, el error de máquina acumulado disminuye notablemente.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Polinomio cúbico en forma expandida:** Sea $P_3(x) = a_3 x^3 + a_2 x^2 + a_1 x + a_0$. En cálculo directo primero computamos $x^2 = x\cdot x$ y $x^3 = x^2 \cdot x$ ($2$ productos).",
+            r"**Multiplicaciones y sumas en evaluación directa:** Luego calculamos $a_3 x^3$, $a_2 x^2$ y $a_1 x$ ($3$ productos más, sumando $5$ multiplicaciones y $3$ sumas en total, con redondeo en cada potencia elevada).",
+            r"**Transformación al esquema anidado de Horner:** Factorizando $x$ dos veces escribimos $P_3(x) = ((a_3 x + a_2)x + a_1)x + a_0$.",
+            r"**Conteo de pasos e instrucciones:** Inicializamos $b_3 = a_3$, luego $b_2 = b_3 x + a_2$, $b_1 = b_2 x + a_1$ y $b_0 = b_1 x + a_0$: apenas $3$ multiplicaciones ($2$ si $a_3 = 1$) y $3$ sumas, eliminando el cálculo de potencias grandes.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Factorización del polinomio del TP2:** Reescribimos $f(x) = x^3 - 6x^2 + 3x - 0.149$ como $f(x) = ((x - 6)x + 3)x - 0.149$ y normalizamos $x = 4.71 = 0.471 \times 10^1$ a $k = 3$ dígitos.",
+            r"**Forma directa (redondeo $k = 3$):** Calculamos $x^2 \approx 22.2$, $x^3 \approx 105$; luego $6x^2 \approx 133$, $3x \approx 14.1$; sumando de izquierda a derecha $105 - 133 = -28.0$, $-28.0 + 14.1 = -13.9$, $-13.9 - 0.149 = -14.0$ ($E_r = 4.35\%$).",
+            r"**Esquema de Horner paso a paso (redondeo $k = 3$):** 1) $b_3 = 1$; 2) $b_2 = fl(1 \times 4.71 - 6) = -1.29$; 3) $b_1 = fl(fl(-1.29 \times 4.71) + 3) = fl(-6.08 + 3) = -3.08$; 4) $b_0 = fl(fl(-3.08 \times 4.71) - 0.149) = fl(-14.5 - 0.149) = -14.6$.",
+            r"**Comparación frente al exacto ($-14.636489$):** Con exactamente la misma aritmética de $3$ dígitos, Horner reduce el error relativo de $4.35\%$ a $0.25\%$ (redondeo) y $0.93\%$ (truncamiento, $-14.5$).",
+        ],
+    },
+    "biseccion": {
+        "deduccion_teorica": [
+            r"**Condición de existencia (Teorema de Bolzano):** Si $f$ es continua en $[a, b]$ y cumple $f(a)\cdot f(b) < 0$ (signos opuestos en los extremos), por continuidad existe al menos una raíz real $r \in (a, b)$ tal que $f(r) = 0$.",
+            r"**Partición binaria e invariante de encierro:** Tomamos el punto medio $x_k = \frac{a_k + b_k}{2}$ dividiendo $[a_k, b_k]$ en dos mitades de longitud $\frac{b_k - a_k}{2}$. Si $f(a_k)\cdot f(x_k) < 0$, el cruce está en $[a_k, x_k]$; de lo contrario, está en $[x_k, b_k]$. En ambos casos se preserva $f(a_{k+1})\cdot f(b_{k+1}) < 0$.",
+            r"**Deducción de la cota de error tras $n$ pasos:** Al inicio la longitud es $L_0 = b - a$. Después de $1$ bisección es $L_1 = \frac{b-a}{2}$, y por inducción tras $n$ pasos $L_n = |b_n - a_n| = \frac{b - a}{2^n}$. Como tanto $r$ como la aproximación viven dentro de ese intervalo, el error queda acotado por $\frac{b - a}{2^n}$.",
+            r"**Fórmula a priori del número de iteraciones:** Para garantizar error menor o igual que $E$, pedimos $\frac{b-a}{2^n} \le E \implies 2^n \ge \frac{b-a}{E}$. Aplicando logaritmo despejamos $n \ge \frac{\ln(b-a) - \ln E}{\ln 2}$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Análisis previo (Descartes y tanteo) sobre $f(x) = -2.75x^3 + 18x^2 - 21x - 12$:** Los signos en $f(x)$ son `[-, +, -, -]` ($2$ cambios $\implies 2$ o $0$ raíces positivas) y en $f(-x)$ son `[+, +, +, -]` ($1$ cambio $\implies 1$ raíz negativa exacta). El barrido $\Delta x = 0.5$ detecta cambio de signo en $[2.0, 2.5]$ pues $f(2) = 2.0 > 0$ y $f(2.5) = -3.46875 < 0$.",
+            r"**Cota teórica de iteraciones para $E < 0.01$:** Sustituyendo $a=2.0$, $b=2.5$ y $E=0.01$: $n \ge \frac{\ln(0.5) - \ln(0.01)}{\ln 2} = \frac{\ln(50)}{\ln 2} \approx 5.6439 \implies$ se requieren exactamente $n = 6$ iteraciones.",
+            r"**Primeras bisecciones paso a paso:** 1) $x_1 = 2.25$, $f(2.25) = -0.3242 < 0 \implies [2.0, 2.25]$; 2) $x_2 = 2.125$, $f(2.125) = 1.1519 > 0 \implies [2.125, 2.25]$; 3) $x_3 = 2.1875$, $f(2.1875) = 0.5067 > 0 \implies [2.1875, 2.25]$.",
+            r"**Cierre por tolerancia en $k = 6$:** Continuando con $x_4 = 2.21875$, $x_5 = 2.234375$ y finalmente $x_6 = \frac{2.21875 + 2.234375}{2} = 2.2265625$, obtenemos $|x_6 - x_5| = 0.0078125 < 0.01$, coincidiendo con la cota predicha.",
+        ],
+    },
+    "interpolacion_lineal_raices": {
+        "deduccion_teorica": [
+            r"**Planteo geométrico de la cuerda (secante):** Dados $(x_0, f(x_0))$ y $(x_1, f(x_1))$ con signos opuestos ($f(x_0)\cdot f(x_1) < 0$), aproximamos la curva en $[x_0, x_1]$ por la recta que une ambos puntos.",
+            r"**Igualdad de pendientes por semejanza de triángulos:** La recta secante corta al eje $X$ en $(x_{\text{nuevo}}, 0)$. Comparando los triángulos rectángulos formados entre la pendiente total y el segmento hasta el corte: $\frac{0 - f(x_n)}{x_{n+1} - x_n} = \frac{f(x_n) - f(x_{n-1})}{x_n - x_{n-1}}$.",
+            r"**Despeje algebraico en forma de Newton-secante:** Multiplicando cruzado obtenemos $x_{n+1} = x_n - f(x_n)\frac{x_n - x_{n-1}}{f(x_n) - f(x_{n-1})}$.",
+            r"**Forma simétrica compacta y criterio de reemplazo:** Llevando a denominador común $f(x_n) - f(x_{n-1})$, resulta $x_{n+1} = \frac{x_{n-1} f(x_n) - x_n f(x_{n-1})}{f(x_n) - f(x_{n-1})}$. Si $f''$ mantiene signo constante en $[a, b]$, el esquema de cátedra deja fijo como pivote al extremo que comparte signo con $f''$; en Regula Falsi general se reemplaza el extremo con mismo signo que $f(x_{n+1})$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Verificación de Bolzano y curvatura en $[x_1, x_2]$:** Confirmamos $f(x_1)\cdot f(x_2) < 0$ y comprobamos que $f''(x)$ no cambia de signo en el tramo (concavidad uniforme).",
+            r"**Trazado de la primera cuerda:** Calculamos $x_3 = \frac{x_1 f(x_2) - x_2 f(x_1)}{f(x_2) - f(x_1)}$, ubicado en la intersección de la recta entre $(x_1, y_1)$ y $(x_2, y_2)$ con el eje $y = 0$.",
+            r"**Elección del pivote fijo $P_1(x_1, y_1)$:** Si $f(x_1)$ y $f''$ tienen igual signo, toda cuerda que sale de $P_1$ cruza el eje $X$ siempre del mismo lado respecto a la raíz verdadera.",
+            r"**Recurrencia monótona hacia la raíz:** Por eso cada nueva secante conecta el ancla fija $(x_1, f(x_1))$ con $(x_k, f(x_k))$, formando una sucesión monótona $x_2, x_3, x_4, \dots$ que converge a la raíz hasta cumplir $|x_{k+1} - x_k| < E$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Verificación inicial en $[-2.5, -2.0]$ para $f(x) = 2x^4 - 6x^2 + 7x - 2$:** Evaluamos los extremos: $f(-2.5) = 2(39.0625) - 6(6.25) - 17.5 - 2 = +21.125 > 0$ y $f(-2.0) = 32 - 24 - 14 - 2 = -8.0 < 0$ (cumple Bolzano). Además $f''(x) = 24x^2 - 12 > 0$ en todo $[-2.5, -2.0]$, por lo que el pivote fijo es $x_0 = -2.5$ ($f(x_0)f''(x_0) > 0$).",
+            r"**Primera iteración ($x_2$):** Aplicamos $x_2 = \frac{x_0 f(x_1) - x_1 f(x_0)}{f(x_1) - f(x_0)} = \frac{(-2.5)(-8.0) - (-2.0)(21.125)}{-8.0 - 21.125} = \frac{62.25}{-29.125} \approx -2.137339$, con $f(x_2) \approx -2.2389 < 0$.",
+            r"**Avance de cuerdas hacia la raíz:** Manteniendo $x_0 = -2.5$, iteración 2 da $x_3 = \frac{(-2.5)(-2.2389) - (-2.137339)(21.125)}{-2.2389 - 21.125} \approx -2.172074$, luego $x_4 \approx -2.185231$, $x_5 \approx -2.190025$.",
+            r"**Parada por tolerancia $E < 0.001$:** En el paso $6$ obtenemos $x_6 = -2.191747$ (de hecho $|x_6 - x_5| \approx 0.0017$ y al paso siguiente $|x_7 - x_6| < 0.001$, logrando convergencia a $-2.1926$). Nótese cómo el pivote fijo retrasa ligeramente el avance frente a Newton.",
+        ],
+    },
+    "newton_raphson": {
+        "deduccion_teorica": [
+            r"**Linealización mediante Serie de Taylor:** Desarrollamos $f(x)$ alrededor de la iteración actual $x_n$ hasta primer orden: $f(x) \approx f(x_n) + f'(x_n)(x - x_n)$ (ecuación de la recta tangente en $(x_n, f(x_n))$).",
+            r"**Despeje de la raíz de la recta tangente:** Igualamos la aproximación lineal a cero buscando $x = x_{n+1}$: $f(x_n) + f'(x_n)(x_{n+1} - x_n) = 0 \implies x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}$ siempre que $f'(x_n) \ne 0$.",
+            r"**Deducción de las Condiciones de Fourier para arranque seguro:** En $[a, b]$ con $f(a)f(b) < 0$, $f' \ne 0$ y $f''$ de signo constante, la curva es monótona y convexa o cóncava. Para que la tangente trazada desde el extremo $x_0$ corte al eje $X$ *dentro* de $[a, b]$ del mismo lado que $x_0$ sin saltar fuera del intervalo, el punto inicial debe compartir signo con la curvatura: $f(x_0)\cdot f''(x_0) > 0$.",
+            r"**Deducción del orden de convergencia cuadrático:** Restando $r$ en ambos miembros y usando Taylor de orden $2$ de $f(r)=0$: $e_{n+1} = e_n - \frac{f'(r)e_n + \frac{1}{2}f''(\xi)e_n^2 + \dots}{f'(x_n)} \approx \frac{f''(r)}{2f'(r)} e_n^2$. Al depender de $e_n^2$, la cantidad de decimales exactos aproximadamente se duplica en cada iteración.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Cálculo simbólico de derivadas para $f(x) = x^3 - 2x - 5$:** Derivando término a término obtenemos $f'(x) = 3x^2 - 2$ y $f''(x) = 6x$. En $[2, 2.5]$ se cumple $f(2) = -1 < 0$, $f(2.5) = 5.625 > 0$ (Bolzano), $f'(x) \ge 10 > 0$ y $f''(x) \ge 12 > 0$.",
+            r"**Verificación de Fourier para elegir $x_0$:** Probamos $x = 2$: $f(2)\cdot f''(2) = (-1)(12) = -12 < 0$ (NO cumple). Probamos $x = 2.5$: $f(2.5)\cdot f''(2.5) = (5.625)(15) = +84.375 > 0$ (SÍ cumple), por lo tanto elegimos $x_0 = 2.5$.",
+            r"**Sustitución paso a paso en la fórmula de tangentes:** $x_1 = 2.5 - \frac{5.625}{3(2.5)^2 - 2} = 2.5 - \frac{5.625}{16.75} \approx 2.164179$; luego $x_2 = 2.164179 - \frac{0.807789}{12.05101} \approx 2.097135$; luego $x_3 \approx 2.094555$.",
+            r"**Cierre con tolerancia $E < 0.0001$:** En $k = 4$, $x_4 = 2.09455148$, con $|x_4 - x_3| \approx 3.8 \times 10^{-6} < 10^{-4}$ (y en $k=5$ alcanza precisión de máquina $2.0945514815$).",
+        ],
+    },
+    "punto_fijo_aitken": {
+        "deduccion_teorica": [
+            r"**Transformación de raíces en punto fijo:** Reescribimos $f(x) = 0$ de forma equivalente como $x = g(x)$. La solución $r$ es el punto donde la curva $y = g(x)$ intersecta la recta identidad $y = x$, sugiriendo la iteración $x_{n+1} = g(x_n)$.",
+            r"**Teorema del Punto Fijo y condición contractiva:** Aplicando el Teorema del Valor Medio entre $x_n$ y la raíz $r = g(r)$: $e_{n+1} = |x_{n+1} - r| = |g(x_n) - g(r)| = |g'(\xi_n)|\,|x_n - r|$. Si existe $L = \max|g'(x)| < 1$ en un entorno de $r$, entonces $e_n \le L^n e_0 \to 0$ (**convergencia lineal garantizada**).",
+            r"**Deducción de la aceleración $\Delta^2$ de Aitken:** Para $x_n$ cercanos a $r$, el error decae como progresión geométrica $x_{n+1} - r \approx K(x_n - r)$ con $K \approx g'(r)$. Formando dos pasos consecutivos $\frac{x_{n+2} - r}{x_{n+1} - r} \approx \frac{x_{n+1} - r}{x_n - r}$, eliminamos $K$ igualando razones.",
+            r"**Despeje de la fórmula extrapolada $S$:** Multiplicando cruzado $(x_{n+2}-r)(x_n-r) = (x_{n+1}-r)^2$, los términos $r^2$ se cancelan y despejando $r = S$ queda $S = x_{n+2} - \frac{(x_{n+2} - x_{n+1})^2}{x_{n+2} - 2x_{n+1} + x_n}$ (análogo en notación de diferencias $\Delta^2$: $S = x_n - \frac{(\Delta x_n)^2}{\Delta^2 x_n}$), logrando saltos mucho más veloces.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Despeje iterativo de $e^x - x^2 - 3 = 0$ en $(1, 2)$:** Pasando $x^2 + 3$ al segundo miembro y aplicando logaritmo natural obtenemos $x = g(x) = \ln(x^2 + 3)$, cuya derivada es $g'(x) = \frac{2x}{x^2+3} \in [0.46, 0.54] < 1$ (contractiva).",
+            r"**Primer bloque de dos iteraciones simples desde $x_0 = 1$:** Calculamos $x_1 = \ln(1^2 + 3) = \ln(4) \approx 1.386294$ y luego $x_2 = \ln(1.386294^2 + 3) \approx 1.593678$.",
+            r"**Primer salto $\Delta^2$ de Aitken:** Sustituimos $(x_0, x_1, x_2)$ en $S_1 = x_2 - \frac{(x_2 - x_1)^2}{x_2 - 2x_1 + x_0} = 1.593678 - \frac{(0.207384)^2}{-0.178910} \approx 1.83405$ (saltando cerca de $r \approx 1.8731$).",
+            r"**Segundo ciclo acelerado hasta convergencia:** Reiniciando desde $S_1 = 1.83405$, evaluamos $x_4 = 1.85062$, $x_5 = 1.86016$ y la nueva extrapolación da $x_6 = 1.87311$, alcanzando la raíz en apenas $2$ ciclos.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Verificación de contractividad para $g(x) = \ln(x^2 + 5)$ en $x_0 = 2.5$:** Derivando obtenemos $g'(x) = \frac{2x}{x^2 + 5}$. Evaluado en $x_0 = 2.5$: $|g'(2.5)| = \frac{5}{6.25 + 5} = \frac{5}{11.25} \approx 0.4444 < 1$, por lo que el esquema es contractivo y convergente.",
+            r"**Comparación inicial por Punto Fijo simple:** $x_1 = \ln(2.5^2 + 5) = \ln(11.25) \approx 2.420368$, $x_2 = \ln(2.420368^2 + 5) \approx 2.384919$; al avanzar a paso lineal necesita $10$ iteraciones para bajar de $E = 0.0001$ (llegando a $2.3563986$).",
+            r"**Cálculo del primer salto de Aitken con $(x_0, x_1, x_2)$:** $\Delta x_0 = 2.420368 - 2.5 = -0.079632$, $\Delta x_1 = 2.384919 - 2.420368 = -0.035449$, y $\Delta^2 x_0 = x_2 - 2x_1 + x_0 = 0.044183$. Sustituyendo: $S_1 = 2.384919 - \frac{(-0.035449)^2}{0.044183} \approx 2.356476$.",
+            r"**Cierre acelerado en pocos ciclos:** Desde $2.356476$ se recalculan dos pasos simples y en el ciclo $4$ Aitken converge a $2.356408$ con error inferior a $10^{-4}$, ahorrando más de la mitad de iteraciones.",
+        ],
+    },
+    "eliminacion_gauss": {
+        "deduccion_teorica": [
+            r"**Invariancia bajo operaciones elementales de fila:** El sistema $Ax = b$ no altera su conjunto solución al intercambiar filas ($F_i \leftrightarrow F_j$) ni al reemplazar una fila por sí misma menos un múltiplo escalar de otra fila ($F_i \leftarrow F_i - m_{ik}F_k$).",
+            r"**Triangulación progresiva con pivoteo parcial:** En la columna $k$, elegimos la fila $p \ge k$ que maximiza $|a_{pk}|$ y la subimos a la diagonal ($F_k \leftrightarrow F_p$) para evitar dividir por cero o por pivotes diminutos. Luego anulamos todo $a_{ik}$ ($i > k$) definiendo el multiplicador $m_{ik} = \frac{a_{ik}}{a_{kk}}$ y actualizando toda la fila aumentada $[A \mid b]$.",
+            r"**Despeje mediante sustitución regresiva:** Al terminar los $n-1$ pasos, la matriz queda triangular superior $Ux = c$. La última ecuación es directa ($u_{nn}x_n = c_n \implies x_n = c_n / u_{nn}$), y subiendo para $i = n-1 \dots 1$ despejamos $x_i = \frac{c_i - \sum_{j=i+1}^n u_{ij}x_j}{u_{ii}}$.",
+            r"**Conteo exacto de operaciones:** Eliminar debajo de la diagonal consume $\frac{2}{3}n^3 + \mathcal{O}(n^2)$ operaciones aritméticas y la sustitución regresiva apenas $n^2$ operaciones.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Matriz aumentada inicial:** $[2, -2, 5 \mid 13]$, $[2, 3, 4 \mid 20]$, $[3, -1, 3 \mid 10]$.",
+            r"**Eliminación columna 1 ($a_{11} = 2$):** Con $m_{21} = 1$ y $m_{31} = 1.5$, restamos múltiplos de $F_1$ a $F_2$ y $F_3$ obteniendo $[0, 5, -1 \mid 7]$ y $[0, 2, -4.5 \mid -9.5]$.",
+            r"**Eliminación columna 2 ($a'_{22} = 5$):** Aplicando $m_{32} = \frac{2}{5} = 0.4$ sobre $F_3$ queda la matriz triangular superior con última ecuación $-4.1 x_3 = -12.3$.",
+            r"**Sustitución regresiva completa:** De la última fila $x_3 = \frac{-12.3}{-4.1} = 3$; subiendo a $F_2$, $5x_2 - 3 = 7 \implies x_2 = 2$; en $F_1$, $2x_1 - 2(2) + 5(3) = 13 \implies x_1 = 1$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Matriz aumentada inicial $[A \mid b]$:** Partimos con las ecuaciones de cátedra: Fila 1 $[18.72,\, 8.2,\, 8.76 \mid 121.280]$, Fila 2 $[6.4,\, 15.9,\, 7.18 \mid 126.321]$ y Fila 3 $[5.22,\, 6.4,\, 14.31 \mid 118.522]$. Como $|18.72|$ es el mayor de la columna 1, no hace falta permutar.",
+            r"**Eliminación columna 1:** Multiplicadores $m_{21} = \frac{6.4}{18.72} \approx 0.341880$ y $m_{31} = \frac{5.22}{18.72} \approx 0.278846$. Restando a $F_2$ y $F_3$ obtenemos en $F_2'$ $[0,\, 13.09658,\, 4.18513 \mid 84.85778]$ y en $F_3'$ $[0,\, 4.11346,\, 11.86731 \mid 84.70354]$.",
+            r"**Eliminación columna 2:** El pivote es $13.09658$ y $m_{32} = \frac{4.11346}{13.09658} \approx 0.314087$. Actualizando $F_3$ resulta la ecuación escalonada final $10.55282\,z = 58.05490$.",
+            r"**Sustitución regresiva de abajo hacia arriba:** 1) $z = \frac{58.05490}{10.55282} \approx 5.50136$; 2) $y = \frac{84.85778 - 4.18513(5.50136)}{13.09658} \approx 4.72137$; 3) $x = \frac{121.280 - 8.2(4.72137) - 8.76(5.50136)}{18.72} \approx 1.83584$.",
+        ],
+    },
+    "gauss_jordan": {
+        "deduccion_teorica": [
+            r"**De matriz triangular a matriz identidad:** Mientras Gauss anula solo por debajo de la diagonal y luego despeja hacia atrás, Gauss-Jordan convierte cada pivote en $1$ y anula *tanto por encima como por debajo* de la diagonal en cada columna $k$.",
+            r"**Bloque ampliado doble $[A \mid b \mid I]$:** Si $A$ es invertible, aplicar la secuencia de operaciones elementales equivale a premultiplicar todo el bloque por $A^{-1}$: $A^{-1}[A \mid b \mid I] = [I \mid A^{-1}b \mid A^{-1}] = [I \mid x \mid A^{-1}]$.",
+            r"**Pasos por columna $i = 1 \dots n$:** 1) Pivoteo parcial ($F_i \leftrightarrow F_p$); 2) Normalización de la fila pivote $F_i \leftarrow F_i / M_{ii}$ para dejar $1$ en la diagonal; 3) Para todo $k \ne i$, anular la columna con $F_k \leftarrow F_k - M_{ki}F_i$.",
+            r"**Costo computacional:** Al eliminar también los ceros superiores en cada columna, realiza aproximadamente $n^3$ operaciones (un $50\%$ más que Gauss para un sistema único $Ax = b$, pero compensa si necesitamos explícitamente $A^{-1}$ o varios vectores $b$).",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Armado del bloque ampliado inicial:** Colocamos la matriz $A$ seguida de la columna $b = [13, 20, 10]^T$ (y opcionalmente $I_3$ si también se desea $A^{-1}$).",
+            r"**Columna 1:** Dividimos la fila $1$ por el pivote $2$ para obtener $[1, -1, 2.5 \mid 6.5]$; luego restamos $2F_1$ a $F_2$ y $3F_1$ a $F_3$ dejando ceros en el resto de la columna $1$.",
+            r"**Columna 2:** Normalizamos $F_2$ dividiendo por $5$ para fijar el pivote $1$, y anulamos la posición $(1,2)$ hacia arriba y la $(3,2)$ hacia abajo.",
+            r"**Columna 3 y lectura directa:** Al normalizar el último pivote diagonal y eliminar las entradas superiores en $(1,3)$ y $(2,3)$, el bloque izquierdo queda convertido en $I_3$ y la columna aumentada entrega directamente $[1, 2, 3]^T$ sin sustitución trasera.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Bloque inicial $[A \mid b \mid I_3]$:** Cargamos las filas de $A$ ($18.72, 8.2, 8.76$, etc.), el vector $b = [121.280, 126.321, 118.522]^T$ y la identidad $I_3$ a la derecha.",
+            r"**Pivote 1 ($18.72$):** Dividimos $F_1 \leftarrow F_1 / 18.72 \implies [1, 0.43803, 0.46795 \mid 6.47863]$. Anulamos la columna 1 en $F_2$ ($F_2 - 6.4 F_1$) y en $F_3$ ($F_3 - 5.22 F_1$).",
+            r"**Pivote 2 ($\approx 13.09658$):** Normalizamos $F_2$ a pivote $1$ y eliminamos tanto hacia arriba (entrada $(1,2)$ de $F_1$) como hacia abajo (entrada $(3,2)$ de $F_3$).",
+            r"**Pivote 3 ($\approx 10.55282$) y lectura simultánea de $x$ y $A^{-1}$:** Normalizamos $F_3$ y anulamos $(1,3)$ y $(2,3)$. En la columna derecha de $b$ aparece directamente $x = [1.8358, 4.7214, 5.5014]^T$ (con $2$ decimales en apunte: $[1.82, 4.72, 5.50]$), y en el bloque derecho queda formada $A^{-1}$.",
+        ],
+    },
+    "factorizacion_lu": {
+        "deduccion_teorica": [
+            r"**Relación entre Eliminación de Gauss y matrices elementales:** Cada operación de resta $F_i \leftarrow F_i - m_{ik}F_k$ debajo de la diagonal equivale a multiplicar a izquierda por una matriz elemental triangular inferior $E_{ik}$. La matriz escalonada final es $U = E \cdot A$, por lo que $A = E^{-1}U = L \cdot U$.",
+            r"**Estructura del factor $L$ en Doolittle:** El inverso del producto de matrices elementales tiene una propiedad notable: la matriz $L$ conserva unos en su diagonal ($l_{ii} = 1$) y en cada entrada $(i, k)$ debajo de la diagonal guarda directamente el multiplicador $l_{ik} = m_{ik}$ calculado durante la eliminación de Gauss.",
+            r"**Desacoplamiento del sistema $Ax = b$:** Reemplazando $A = LU$ en $LUx = b$ y definiendo el vector auxiliar $y = Ux$, el problema original de orden $\mathcal{O}(n^3)$ se divide en dos sistemas triangulares inmediatos.",
+            r"**Doble barrido triangular $\mathcal{O}(n^2)$:** 1) **Sustitución progresiva** en $Ly = b$: $y_i = b_i - \sum_{j=1}^{i-1} l_{ij} y_j$; 2) **Sustitución regresiva** en $Ux = y$: $x_i = \frac{y_i - \sum_{j=i+1}^n u_{ij} x_j}{u_{ii}}$. Si cambia $b$, solo repetimos estos dos pasos baratos.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Cálculo de multiplicadores de $L$ en columnas 1 y 2:** $l_{21} = 20/4 = 5$, $l_{31} = -8/4 = -2$, y tras actualizar fila 3 a $[0, 9, 19]$, $l_{32} = 9/3 = 3$.",
+            r"**Ensamblado de factores $L$ y $U$:** $L = [[1,0,0],[5,1,0],[-2,3,1]]$ y $U = [[4,-2,1],[0,3,7],[0,0,-2]]$, cumpliendo $L\cdot U = A$.",
+            r"**Barrido progresivo $Ly = b$:** $y_1 = 11$; $y_2 = 70 - 5(11) = 15$; $y_3 = 17 - (-2)(11) - 3(15) = -6$.",
+            r"**Barrido regresivo $Ux = y$:** $x_3 = -6/(-2) = 3$; $x_2 = (15 - 7(3))/3 = -2$; $x_1 = (11 + 2(-2) - 3)/4 = 1$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Eliminación columna 1 sobre $A$:** Con pivote $u_{11} = 4$, calculamos los multiplicadores $l_{21} = \frac{20}{4} = 5$ y $l_{31} = \frac{-8}{4} = -2$. Al actualizar filas $2$ y $3$ de $U$ quedan $[0, 3, 7]$ y $[0, 9, 19]$.",
+            r"**Eliminación columna 2 y obtención de $L, U$:** Con pivote $u_{22} = 3$, resulta $l_{32} = \frac{9}{3} = 3$, anulando la entrada $(3,2)$ y dejando $u_{33} = 19 - 3(7) = -2$. Así $L = [[1,0,0],[5,1,0],[-2,3,1]]$ y $U = [[4,-2,1],[0,3,7],[0,0,-2]]$, verificando $L \cdot U = A$.",
+            r"**Sustitución progresiva $Ly = b$ (de arriba hacia abajo):** $y_1 = 11$; $y_2 = 70 - 5(11) = 15$; $y_3 = 17 - (-2)(11) - 3(15) = 17 + 22 - 45 = -6$.",
+            r"**Sustitución regresiva $Ux = y$ (de abajo hacia arriba):** $x_3 = \frac{-6}{-2} = 3$; $x_2 = \frac{15 - 7(3)}{3} = \frac{-6}{3} = -2$; $x_1 = \frac{11 - (-2)(-2) - 1(3)}{4} = \frac{4}{4} = 1$.",
+        ],
+    },
+    "gauss_seidel": {
+        "deduccion_teorica": [
+            r"**Descomposición aditiva de $A$ y despeje coordenada a coordenada:** Escribimos la $i$-ésima ecuación $\sum_{j=1}^n a_{ij} x_j = b_i$ despejando $x_i$ (con $a_{ii} \ne 0$): $x_i = \frac{1}{a_{ii}}\left(b_i - \sum_{j < i} a_{ij} x_j - \sum_{j > i} a_{ij} x_j\right)$.",
+            r"**Actualización inmediata (in-place) frente a Jacobi:** A diferencia de Jacobi (que usa solo valores del paso anterior $k$), Gauss-Seidel sustituye en la primera sumatoria ($j < i$) las variables $x_j^{(k+1)}$ que ya fueron recién actualizadas en la misma vuelta, reduciendo memoria y duplicando habitualmente la velocidad de convergencia.",
+            r"**Forma matricial del operador de iteración:** Descomponiendo $A = D - E - F$ (diagonal, triangular inferior y superior cambiadas de signo), la iteración equivale a $(D - E)x^{(k+1)} = Fx^{(k)} + b$, es decir $x^{(k+1)} = T_{GS}x^{(k)} + c$ con $T_{GS} = (D-E)^{-1}F$.",
+            r"**Deducción de la condición suficiente de Dominancia Diagonal:** La sucesión converge para cualquier semilla $x^{(0)}$ si la norma de $T_{GS}$ es $< 1$ (equivalente por Teorema del Punto Fijo a $\rho(T_{GS}) < 1$). Se demuestra que si $|a_{ii}| > \sum_{j \ne i} |a_{ij}|$ en todas las filas, $\|T_{GS}\|_{\infty} < 1$, garantizando convergencia sin calcular autovalores.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Reordenamiento de filas para asegurar dominancia diagonal:** Colocamos la ecuación de mayor $|a_{ii}|$ en cada fila: $10x_1 + x_2 + 2x_3 = 44$, $2x_1 + 10x_2 + x_3 = 51$, $x_1 + 2x_2 + 10x_3 = 61$.",
+            r"**Despeje iterativo in-place:** $x_1 = (44 - x_2 - 2x_3)/10$, $x_2 = (51 - 2x_1 - x_3)/10$, $x_3 = (61 - x_1 - 2x_2)/10$.",
+            r"**Iteración 1 desde $(0, 0, 0)$:** $x_1^{(1)} = 4.4$, luego $x_2^{(1)} = (51 - 2(4.4))/10 = 4.22$, luego $x_3^{(1)} = (61 - 4.4 - 2(4.22))/10 = 4.816$.",
+            r"**Iteraciones 2 y 3 hasta $E \le 0.02$:** Los valores actualizados al instante contraen el error rápidamente hasta $[2.9999, 3.9998, 5.0004] \to [3, 4, 5]^T$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Chequeo de dominancia diagonal en las $3$ filas:** Fila 1: $|18.72| > 8.2 + 8.76 = 16.96$ (sí); Fila 2: $|15.9| > 6.4 + 7.18 = 13.58$ (sí); Fila 3: $|14.31| > 5.22 + 6.4 = 11.62$ (sí). La convergencia está garantizada desde cualquier $X_0$.",
+            r"**Fórmulas de recurrencia despejadas:** $x^{(k+1)} = \frac{121.280 - 8.2 y^{(k)} - 8.76 z^{(k)}}{18.72}$, $y^{(k+1)} = \frac{126.321 - 6.4 x^{(k+1)} - 7.18 z^{(k)}}{15.9}$, $z^{(k+1)} = \frac{118.522 - 5.22 x^{(k+1)} - 6.4 y^{(k+1)}}{14.31}$.",
+            r"**Primera vuelta desde $X_0 = [1, 1, 1]$:** 1) $x^{(1)} = \frac{121.280 - 8.2 - 8.76}{18.72} \approx 5.57265$; 2) usando $x^{(1)}$ al instante, $y^{(1)} = \frac{126.321 - 6.4(5.57265) - 7.18(1)}{15.9} \approx 5.25007$; 3) usando ambos, $z^{(1)} = \frac{118.522 - 5.22(5.57265) - 6.4(5.25007)}{14.31} \approx 3.90163$.",
+            r"**Evolución hacia la convergencia ($E = 0.01$):** Cada vuelta contrae el error aproximadamente por un factor cercano a $0.4$; en la iteración $6$ se alcanza $[1.835, 4.721, 5.502]$ con máximo cambio entre pasos menor a $0.005 < 0.01$.",
+        ],
+    },
+    "potencias": {
+        "deduccion_teorica": [
+            r"**Descomposición espectral del vector semilla $X_0$:** Si $A$ tiene una base de autovectores $\{v_1, v_2, \dots, v_n\}$ asociados a $|\lambda_1| > |\lambda_2| \ge \dots \ge |\lambda_n|$, cualquier vector $X_0$ no ortogonal a $v_1$ se escribe como $X_0 = c_1 v_1 + c_2 v_2 + \dots + c_n v_n$ con $c_1 \ne 0$.",
+            r"**Multiplicación iterativa $A^k X_0$:** Como $A^k v_i = \lambda_i^k v_i$, obtenemos $A^k X_0 = \lambda_1^k \left[c_1 v_1 + c_2\left(\frac{\lambda_2}{\lambda_1}\right)^k v_2 + \dots + c_n\left(\frac{\lambda_n}{\lambda_1}\right)^k v_n\right]$. Como $|\lambda_i / \lambda_1| < 1$ para $i \ge 2$, todas las componentes secundarias tienden a cero exponencialmente.",
+            r"**Reescalado para evitar desborde y extraer $\lambda_1$:** Para impedir `Overflow` o `Underflow` de $\lambda_1^k$, en cada paso evaluamos $Y_k = A X_{k-1}$, tomamos $m_k$ igual al componente de mayor magnitud (norma infinito) y normalizamos $X_k = Y_k / m_k$. Cuando $X_{k-1} \to v_1$, $A v_1 = \lambda_1 v_1$ implica $m_k \to \lambda_{\max}$.",
+            r"**Extensión al menor autovalor ($\lambda_{\min}$) por Potencia Inversa:** Los autovalores de $A^{-1}$ son los recíprocos $1/\lambda_i$. Por tanto, el mayor autovalor en módulo de $A^{-1}$ corresponde a $1/\lambda_{\min}$, y aplicando el mismo algoritmo con $Y_k = A^{-1}X_{k-1}$ se obtiene $\lambda_{\min} = 1 / m_k$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Inicialización:** Se fija una semilla no nula $X_0$ (habitualmente $[1, 1, \dots, 1]^T$) y tolerancia relativa porcentual $E$.",
+            r"**Multiplicación matricial $Y_k = A X_{k-1}$:** Proyecta al vector actual sobre el dominio lineal de $A$ amplificando su componente a lo largo de $v_1$ en razón $\lambda_1$.",
+            r"**Normalización por norma infinito:** Hallamos la entrada de $Y_k$ con máximo valor absoluto $m_k = Y_k[idx_{\max}]$ y construimos el nuevo vector unitario $X_k = Y_k / m_k$, cuya componente máxima vale exactamente $1$.",
+            r"**Criterio de corte:** Se mide $\varepsilon_k = \frac{|m_k - m_{k-1}|}{|m_k|}\times 100\%$ y al bajar de $E$ concluimos que $\lambda_{\max} \approx m_k$ y su autovector asociado es $X_k$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Potencias Directas ($\lambda_{\max}$) en $A$ simétrica con $X_0 = [1, 1, 1]^T$:** Paso 1: $Y_1 = A X_0 = [1.778, 0.000, 1.778]^T$; máximo módulo $m_1 = 1.778 \implies X_1 = [1, 0, 1]^T$.",
+            r"**Siguientes iteraciones directas:** Paso 2: $Y_2 = A X_1 = [3.556, -3.556, 3.556]^T \implies m_2 = 3.556$, $X_2 = [1, -1, 1]^T$. Paso 3: $Y_3 = [5.334, -7.112, 5.334]^T \implies m_3 = -7.112$ (con signo en norma infinito) o reescalando a componente máxima positiva $7.112$, oscila hasta $m_5 \approx 6.095$ con autovector $[-0.708, 1, -0.708]^T$.",
+            r"**Potencias Inversas ($\lambda_{\min}$) sobre $A^{-1}$:** Invertimos $A$ obteniendo $A^{-1}$ simétrica de filas positivas; aplicamos $Y_1 = A^{-1}X_0$, obteniendo en el paso 1 $m_1^{-1} = 1/\mu_1$ y vector normalizado positivo.",
+            r"**Convergencia rápida de $\lambda_{\min}$:** Al tercer ciclo ($k=3$), $\mu_k$ estabiliza en $0.964$, cuyo recíproco es $\lambda_{\min} = \frac{1}{\mu_3} \approx 1.037$ con autovector $[0.709, 1, 0.709]^T$ (razón teórica $|\lambda_2^{-1}/\lambda_{\min}^{-1}| = |\lambda_{\min}/\lambda_2|$ muy favorable).",
+        ],
+    },
+    "faddeev_leverrier": {
+        "deduccion_teorica": [
+            r"**Teorema de Cayley-Hamilton y Newton-Girard:** Toda matriz $A \in \mathbb{R}^{n\times n}$ anula su propio polinomio característico $P(\lambda) = (-1)^n(\lambda^n - b_1 \lambda^{n-1} - b_2\lambda^{n-2} - \dots - b_n) = 0$, cuyos coeficientes se conectan con las sumas de potencias de los autovalores $s_k = \sum_{i=1}^n \lambda_i^k = \operatorname{tr}(A^k)$ mediante las identidades de Newton.",
+            r"**Recurrencia matricial de Faddeev:** Al definir $B_1 = A$, $b_1 = \operatorname{tr}(B_1)$ y para $k = 2 \dots n$ generar $B_k = A(B_{k-1} - b_{k-1}I)$ junto con $b_k = \frac{1}{k}\operatorname{tr}(B_k)$, se demuestra por inducción que el término final cumple $B_n = b_n I$ porque $B_n - b_n I = A^n - b_1 A^{n-1} - \dots - b_n I = P(A) = 0$ por Cayley-Hamilton.",
+            r"**Deducción gratuita de $\det(A)$ y $A^{-1}$:** Al evaluar $P(0) = \det(A)$, resulta $\det(A) = (-1)^{n-1} b_n$. Además, de $A(B_{n-1} - b_{n-1}I) = B_n = b_n I$, dividiendo ambos lados por $b_n \ne 0$ y $A$ se deduce directamente $A^{-1} = \frac{1}{b_n}(B_{n-1} - b_{n-1}I)$.",
+            r"**Obtención del espectro completo:** Hallando las raíces del polinomio característico construido $[-1]^n(\lambda^n - \sum_{k=1}^n b_k \lambda^{n-k}) = 0$ se recuperan *todos* los autovalores (reales o complejos), de costo $\mathcal{O}(n^4)$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Paso $k = 1$ sobre $A = [[3,2,4],[2,0,2],[4,2,3]]$:** $B_1 = A$. Su diagonal es $[3, 0, 3]$, por lo que $b_1 = \operatorname{tr}(B_1) = 3 + 0 + 3 = 6$. Formamos $B_1 - 6I = [[-3,2,4],[2,-6,2],[4,2,-3]]$.",
+            r"**Paso $k = 2$:** Multiplicamos $B_2 = A(B_1 - 6I) = [[11, 2, 4], [2, 8, 2], [4, 2, 11]]$. Su traza vale $11 + 8 + 11 = 30$, luego $b_2 = \frac{30}{2} = 15$. Restando $15I$: $B_2 - 15I = [[-4,2,4],[2,-7,2],[4,2,-4]]$.",
+            r"**Paso $k = 3$ y verificación de identidad:** Calculamos $B_3 = A(B_2 - 15I) = [[8, 0, 0], [0, 8, 0], [0, 0, 8]] = 8I$! Su traza es $24 \implies b_3 = \frac{24}{3} = 8$, $\det(A) = (-1)^2 b_3 = 8$, y $A^{-1} = \frac{1}{8}(B_2 - 15I) = [[-0.5, 0.25, 0.5], [0.25, -0.875, 0.25], [0.5, 0.25, -0.5]]$.",
+            r"**Factorización del polinomio y espectro:** $P(\lambda) = -\lambda^3 + 6\lambda^2 + 15\lambda + 8 = 0$. Probando raíces enteras $(\lambda - 8)(\lambda + 1)^2 = 0$, obtenemos $\lambda_1 = 8$, $\lambda_2 = \lambda_3 = -1$, con autovector normalizado $[-1, -0.5, -1]^T$ (o unitario paralelo) para $\lambda = 8$.",
+        ],
+    },
+    "interpolacion_lineal": {
+        "deduccion_teorica": [
+            r"**Ecuación de la recta por dos puntos consecutivos:** Dados $(x_0, y_0)$ y $(x_1, y_1)$ con $h = x_1 - x_0 \ne 0$ y $\Delta y_0 = y_1 - y_0$, la razón de cambio constante iguala las pendientes entre $(x_0, y_0)$, el punto intermedio $(x, y)$ y $(x_1, y_1)$: $\frac{y - y_0}{x - x_0} = \frac{y_1 - y_0}{x_1 - x_0}$.",
+            r"**Fórmula de interpolación lineal directa:** Despejando $y$ como función de $x$ obtenemos el polinomio de grado $1$: $P_1(x) = y_0 + \frac{\Delta y_0}{h}(x - x_0)$.",
+            r"**Fórmula de interpolación lineal inversa:** Si en vez de conocer $x$ disponemos de una ordenada objetivo $y^*$, invertimos algebraicamente la ecuación anterior multiplicando por $\frac{h}{\Delta y_0}$: $x = x_0 + \frac{(y^* - y_0)\,h}{\Delta y_0}$.",
+            r"**Cota del error por truncamiento lineal:** Expandiendo $f(x) - P_1(x)$ mediante el teorema de Rolle reiterado se obtiene $E(x) = \frac{f''(\xi)}{2}(x - x_0)(x - x_1)$, cuyo módulo alcanza su máximo en el punto medio $x_0 + \frac{h}{2}$ con valor $\frac{h^2}{8}\max|f''|$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Selección del par de nodos vecinos:** Dada la curva $\ln(x)$ en $x_0 = 1$ ($y_0 = 0$) y $x_1 = 4$ ($y_1 = \ln 4 \approx 1.38629$), el paso vale $h = 4 - 1 = 3$ y $\Delta y_0 = 1.38629$.",
+            r"**Armado de la recta secante $P_1(x)$:** Sustituyendo obtenemos $P_1(x) = 0 + \frac{1.38629}{3}(x - 1) = 0.46210(x - 1)$.",
+            r"**Evaluación intermedia y comparación:** En $x = 2$, $P_1(2) = 0.46210$ frente al exacto $\ln(2) = 0.69315$ ($E_a = 0.231$, debido a la fuerte concavidad $\Delta^2 y$ en el tramo ancho $h = 3$).",
+            r"**Efecto de reducir $h$:** Si el intervalo se reduce a $[1, 2]$ ($h = 1$), por depender de $h^2$ el error cae aproximadamente $9$ veces, validando el uso lineal en tablas densas.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Localización del intervalo que contiene $y^* = 1.702$:** En la tabla $[x, y]$, $y_0 = 1.792$ (a $x_0 = 0\ ^\circ\text{C}$) y $y_1 = 1.519$ (a $x_1 = 5\ ^\circ\text{C}$). Como $1.519 < 1.702 < 1.792$, el objetivo está entre $0$ y $5$.",
+            r"**Cálculo del paso y primera diferencia:** $h = x_1 - x_0 = 5 - 0 = 5$, $\Delta y_0 = y_1 - y_0 = 1.519 - 1.792 = -0.273$, y la brecha buscada es $y^* - y_0 = 1.702 - 1.792 = -0.090$.",
+            r"**Sustitución en la ecuación inversa:** $x = x_0 + \frac{(y^* - y_0)\,h}{\Delta y_0} = 0 + \frac{(-0.090)(5)}{-0.273} = \frac{0.45}{0.273}$.",
+            r"**Resultado e interpretación:** Efectuando la división resulta $x \approx 1.64835\ ^\circ\text{C}$ (reportado truncado en el apunte como $1.64\ ^\circ\text{C}$); la pendiente negativa refleja que la viscosidad disminuye al subir la temperatura.",
+        ],
+    },
+    "cuadratica_inversa": {
+        "deduccion_teorica": [
+            r"**Polinomio de Newton-Gregory de grado $2$ con paso uniforme $h$:** Considerando tres nodos equidistantes $x_0, x_1 = x_0+h, x_2 = x_0+2h$, el polinomio interpolante cuadrático es $P_2(x) = y_0 + \frac{\Delta y_0}{h}(x - x_0) + \frac{\Delta^2 y_0}{2!h^2}(x - x_0)(x - x_1)$.",
+            r"**Cambio de variable $u = x - x_0$:** Como $x - x_1 = (x - x_0) - h = u - h$, reescribimos $(x - x_0)(x - x_1) = u^2 - h u$ e igualamos $P_2(x) = y^*$.",
+            r"**Agrupamiento en ecuación cuadrática estándar $au^2 + bu + c = 0$:** Expandiendo y ordenando potencias de $u$: $\left(\frac{\Delta^2 y_0}{2h^2}\right)u^2 + \left(\frac{\Delta y_0}{h} - \frac{\Delta^2 y_0}{2h}\right)u + (y_0 - y^*) = 0$.",
+            r"**Resolución y criterio de selección de raíz:** Aplicando la resolvente $u_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$ obtenemos dos candidatos $x_{1,2} = x_0 + u_{1,2}$: una sola raíz pertenece físicamente al intervalo tabular $[x_0, x_2]$, mientras la otra es una rama parabólica externa que debe descartarse.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Cálculo de diferencias finitas sobre tres nodos equidistantes:** Calculamos $\Delta y_0 = y_1 - y_0$, $\Delta y_1 = y_2 - y_1$ y la diferencia segunda $\Delta^2 y_0 = \Delta y_1 - \Delta y_0$ que mide la curvatura.",
+            r"**Construcción de coeficientes $(a, b, c)$:** Evaluamos $a = \frac{\Delta^2 y_0}{2h^2}$, $b = \frac{\Delta y_0}{h} - \frac{\Delta^2 y_0}{2h}$ y $c = y_0 - y^*$ sobre el parámetro desplazado $u = x - x_0$.",
+            r"**Cálculo del discriminante $\Delta = b^2 - 4ac$:** Verificamos $\Delta \ge 0$ (si $\Delta < 0$, el valor $y^*$ no es cortado por la parábola real ajustada).",
+            r"**Filtrado al dominio del tramo:** De las dos raíces $x_0 + u_1$ y $x_0 + u_2$, seleccionamos únicamente la que satisface $x_0 \le x \le x_2$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Diferencias en los $3$ primeros nodos ($x = 0, 5, 10$, $h = 5$):** $\Delta y_0 = 1.519 - 1.792 = -0.273$; $\Delta y_1 = 1.308 - 1.519 = -0.211$; diferencia segunda $\Delta^2 y_0 = -0.211 - (-0.273) = +0.062$.",
+            r"**Sustitución en el polinomio cuadrático igualado a $y^* = 1.702$:** Como $x_0 = 0$, $u = x$. Así $a = \frac{0.062}{2(25)} = 0.00124$, $b = \frac{-0.273}{5} - \frac{0.062}{10} = -0.0546 - 0.0062 = -0.0608$, y $c = 1.792 - 1.702 = +0.090$. Queda $0.00124 x^2 - 0.0608 x + 0.09 = 0$.",
+            r"**Resolvente cuadrática:** Discriminante $\Delta = (-0.0608)^2 - 4(0.00124)(0.09) = 0.00369664 - 0.0004464 = 0.00325024 \implies \sqrt{\Delta} \approx 0.057011$. Obtenemos $x_1 = \frac{0.0608 + 0.057011}{0.00248} \approx 47.50$ y $x_2 = \frac{0.0608 - 0.057011}{0.00248} \approx 1.5278\ ^\circ\text{C}$ (apunte: $1.52\ ^\circ\text{C}$).",
+            r"**Selección y mejora frente a lineal:** Descartamos $47.50$ (muy fuera de $[0, 10]$) y elegimos $x \approx 1.53\ ^\circ\text{C}$, que corrige la concavidad respecto al $1.65\ ^\circ\text{C}$ lineal.",
+        ],
+    },
+    "lagrange": {
+        "deduccion_teorica": [
+            r"**Objetivo de interpolación sobre $n+1$ nodos cualesquiera $(x_k, y_k)$:** Buscamos el único polinomio $P_n(x)$ de grado $\le n$ tal que $P_n(x_i) = y_i$ para todo $i = 0 \dots n$, incluso cuando los pasos $x_{i+1} - x_i$ son variables.",
+            r"**Construcción de funciones base delta de Kronecker $L_k(x)$:** Descomponemos $P_n(x) = \sum_{k=0}^n y_k L_k(x)$ exigiendo que cada polinomio de grado $n$ cumpla $L_k(x_j) = 0$ si $j \ne k$ y $L_k(x_k) = 1$.",
+            r"**Raíces forzadas y normalización del denominador:** Para anularse en todos los nodos $j \ne k$, el numerador de $L_k(x)$ debe ser $\prod_{j \ne k}(x - x_j)$. Al evaluar ese producto en $x = x_k$ vale $\prod_{j \ne k}(x_k - x_j) \ne 0$, por lo que dividiendo por esa constante garantizamos $L_k(x_k) = 1$: $L_k(x) = \prod_{\substack{j=0\\ j \ne k}}^n \frac{x - x_j}{x_k - x_j}$.",
+            r"**Unicidad y error del polinomio interpolante:** Si existieran dos polinomios $P_n, Q_n$ que pasan por los mismos $n+1$ puntos, su diferencia $P_n - Q_n$ tendría grado $\le n$ con $n+1$ raíces, obligándola a ser idénticamente nula ($P_n \equiv Q_n$). El error cumple $E(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}\prod_{i=0}^n (x - x_i)$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Nodos desiguales de $\ln(x)$:** $x = [1, 4, 6]$ (pasos $3$ y $2$, no equidistante) con $y = [0, 1.386294, 1.791759]$ y objetivo $x^* = 2$.",
+            r"**Evaluación de los $3$ pesos base $L_k(2)$:** $L_0(2) = \frac{(2-4)(2-6)}{(1-4)(1-6)} = \frac{8}{15} \approx 0.533333$; $L_1(2) = \frac{(2-1)(2-6)}{(4-1)(4-6)} = \frac{-4}{-6} \approx 0.666667$; $L_2(2) = \frac{(2-1)(2-4)}{(6-1)(6-4)} = \frac{-2}{10} = -0.200000$ (nótese que suman exactamente $1$).",
+            r"**Combinación lineal ponderada:** $P_2(2) = 0 \cdot L_0(2) + 1.386294 \cdot (0.666667) + 1.791759 \cdot (-0.2) = 0.924196 - 0.358352$.",
+            r"**Resultado final:** $P_2(2) = 0.565844$, obteniendo el único polinomio de grado $2$ que interpola esos tres puntos.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Verificación de nodos no equidistantes:** Las temperaturas son $T = [100, 120, 200, 220]$ (pasos $20, 80, 20$), luego no aplican fórmulas de paso constante y es obligatorio usar Lagrange para $T^* = 180$.",
+            r"**Producto global $\Pi(x) = \prod (180 - T_j)$:** $(180-100)(180-120)(180-200)(180-220) = (80)(60)(-20)(-40) = 3\,840\,000$.",
+            r"**Bases y aportes $P_k L_k(180)$ término a término:** $k=0$: $\frac{3840000}{80(-20)(-100)(-120)} = -0.2 \implies 1.01(-0.2) = -0.202$; $k=1$: $\frac{3840000}{60(20)(-80)(-100)} = 0.4 \implies 3.61(0.4) = 1.444$; $k=2$: $\frac{3840000}{-20(100)(80)(-20)} = 1.2 \implies 15.5(1.2) = 18.6$; $k=3$: $\frac{3840000}{-40(120)(100)(20)} = -0.4 \implies 23.2(-0.4) = -9.28$.",
+            r"**Suma total:** $P(180) = -0.202 + 1.444 + 18.600 - 9.280 = 10.562\ \text{Pa}$ (exactamente la presión interpolada de grado $3$).",
+        ],
+    },
+    "newton_gregory_asc": {
+        "deduccion_teorica": [
+            r"**Base polinomial incremental de Newton en nodos equidistantes $x_k = x_0 + kh$:** Planteamos $P_n(x) = a_0 + a_1(x - x_0) + a_2(x - x_0)(x - x_1) + \dots + a_n \prod_{j=0}^{n-1}(x - x_j)$, de modo que agregar un punto solo añade un término nuevo sin alterar los coeficientes anteriores.",
+            r"**Identificación de $a_k$ mediante diferencias finitas progresivas $\Delta^k y_0$:** Evaluando sucesivamente en $x_0, x_1, x_2$: $a_0 = y_0$; $a_1 = \frac{y_1 - y_0}{h} = \frac{\Delta y_0}{h}$; $a_2 = \frac{y_2 - 2y_1 + y_0}{2!h^2} = \frac{\Delta^2 y_0}{2!h^2}$, y por inducción $a_k = \frac{\Delta^k y_0}{k!\,h^k}$ donde $\Delta^{k}y_i = \Delta^{k-1}y_{i+1} - \Delta^{k-1}y_i$.",
+            r"**Adimensionalización mediante $u = \frac{x - x_0}{h}$:** Sustituyendo $x - x_j = (x - x_0) - jh = h(u - j)$ en cada producto $\prod_{j=0}^{k-1}(x - x_j) = h^k \prod_{j=0}^{k-1}(u - j)$, los factores $h^k$ del numerador y denominador se cancelan.",
+            r"**Fórmula final de Newton-Gregory Ascendente y error:** Queda $P_n(x) = y_0 + \sum_{k=1}^n \binom{u}{k} \Delta^k y_0 = y_0 + u\Delta y_0 + \frac{u(u-1)}{2!}\Delta^2 y_0 + \dots$, usando la diagonal superior de la tabla de diferencias; el error al truncar en grado $k$ es $E_k \approx \binom{u}{k+1} h^{k+1} f^{(k+1)}(\xi)$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Tabla de muestra para $y = x^2$ en $x = [0, 1, 2, 3, 4]$ ($h = 1$):** Las ordenadas iniciales son $y = [0, 1, 4, 9, 16]$.",
+            r"**Columna 1 ($\Delta y_i = y_{i+1} - y_i$):** $[1-0, 4-1, 9-4, 16-9] = [1, 3, 5, 7]$.",
+            r"**Columna 2 ($\Delta^2 y_i = \Delta y_{i+1} - \Delta y_i$):** $[3-1, 5-3, 7-5] = [2, 2, 2]$ (constante no nula).",
+            r"**Columna 3 ($\Delta^3 y$) y conclusión:** $[2-2, 2-2] = [0, 0]$. Que $\Delta^{k+1}y = 0$ demuestra que los datos provienen exactamente de un polinomio de grado $k = 2$ (sirve además en la práctica para detectar errores de tipeo en una fila).",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Validación de equidistancia y parámetro $u$:** Los nodos $x = [0.2, 0.5, 0.8, 1.1, 1.4]$ tienen paso constante $h = 0.3$. Al anclar en $x_0 = 0.2$ para $x^* = 0.35$, obtenemos $u = \frac{0.35 - 0.2}{0.3} = 0.5$.",
+            r"**Tabla de diferencias progresivas $\Delta^k y_0$ (diagonal superior):** $y_0 = 0.258$; $\Delta y_0 = 2.535 - 0.258 = 2.277$; $\Delta^2 y_0 = 2.367 - 2.277 = 0.090$; $\Delta^3 y_0 = -0.547 - 0.090 = -0.637$; $\Delta^4 y_0 = 2.709 - (-0.637) = 3.346$.",
+            r"**Cálculo de coeficientes binomiales en $u = 0.5$:** $k=1$: $0.5$; $k=2$: $\frac{0.5(-0.5)}{2} = -0.125$; $k=3$: $\frac{-0.125(-1.5)}{3} = 0.0625$; $k=4$: $\frac{0.0625(-2.5)}{4} = -0.0390625$.",
+            r"**Suma término a término:** $P_4(0.35) = 0.258 + (0.5)(2.277) + (-0.125)(0.090) + (0.0625)(-0.637) + (-0.0390625)(3.346) = 0.258 + 1.1385 - 0.01125 - 0.0398125 - 0.130703125 = 1.214734375$.",
+        ],
+    },
+    "newton_gregory_desc": {
+        "deduccion_teorica": [
+            r"**Reordenamiento desde el extremo final $x_n$:** Cuando $x^*$ está próximo al final de una tabla equidistante $x_n = x_0 + nh$, planteamos el polinomio incremental retrocediendo hacia atrás: $P_n(x) = b_0 + b_1(x - x_n) + b_2(x - x_n)(x - x_{n-1}) + \dots + b_n \prod_{j=0}^{n-1}(x - x_{n-j})$.",
+            r"**Operador de diferencias regresivas (retrógradas) $\nabla$:** Definido como $\nabla y_i = y_i - y_{i-1}$ y en orden superior $\nabla^k y_i = \nabla^{k-1} y_i - \nabla^{k-1} y_{i-1}$. Coincide numéricamente con la diagonal inferior de la misma tabla triangular $\Delta$. Evaluando en $x_n, x_{n-1}, \dots$ resulta $b_k = \frac{\nabla^k y_n}{k!\,h^k}$.",
+            r"**Parámetro adimensional $v = \frac{x - x_n}{h}$:** Como $x_{n-j} = x_n - jh$, cada factor cumple $x - x_{n-j} = (x - x_n) + jh = h(v + j)$, cancelando nuevamente $h^k$ entre numerador y denominador.",
+            r"**Fórmula final y Teorema de Unicidad:** Obtenemos $P_n(x) = y_n + v\nabla y_n + \frac{v(v+1)}{2!}\nabla^2 y_n + \frac{v(v+1)(v+2)}{3!}\nabla^3 y_n + \dots$. En grado completo produce algebraicamente el *mismo* polinomio que Newton-Gregory Ascendente y Lagrange, pero al truncar concentra la precisión en la cola de la tabla.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Elección de ancla en el borde superior de la serie:** Tomamos $x_n$ como referencia de modo que el punto objetivo $x^* \le x_n$ mantenga $|v| = \left|\frac{x^* - x_n}{h}\right| < 1$.",
+            r"**Lectura de la diagonal inferior de diferencias:** Tomamos la última entrada no nula de cada columna ($\nabla y_n, \nabla^2 y_n, \nabla^3 y_n, \dots$), que involucra únicamente los últimos nodos de la tabla.",
+            r"**Evaluación con signos positivos en los factores de $v$:** Aunque $v$ suele ser negativo ($x^* < x_n$), los desplazamientos dentro de los productos son $+1, +2, \dots$: $v(v+1)(v+2)/3!$.",
+            r"**Truncamiento y equivalencia global:** Si sumamos todos los términos hasta grado $n$, coincidimos con la variante Ascendente; si truncamos a grado $2$ o $3$ cerca de $x_n$, el error residual $\binom{v+k}{k+1}h^{k+1}f^{(k+1)}(\xi)$ es mínimo por ser $|v|$ pequeño.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Parámetro $v$ para $x^* = 1.37$ ($x_n = 1.4$, $h = 0.3$):** Calculamos $v = \frac{1.37 - 1.4}{0.3} = \frac{-0.03}{0.3} = -0.1$ (muy pequeño, ideal para anclar al final).",
+            r"**Diagonal inferior retrógrada $\nabla^k y_n$:** $y_4 = 10.704$; $\nabla y_4 = 10.704 - 6.722 = 3.982$; $\nabla^2 y_4 = 3.982 - 1.820 = 2.162$; $\nabla^3 y_4 = 2.162 - (-0.547) = 2.709$; $\nabla^4 y_4 = 2.709 - (-0.637) = 3.346$.",
+            r"**Factores combinatorios en $v = -0.1$:** $k=1$: $-0.1$; $k=2$: $\frac{(-0.1)(0.9)}{2} = -0.045$; $k=3$: $\frac{-0.045(1.9)}{3} = -0.0285$; $k=4$: $\frac{-0.0285(2.9)}{4} = -0.0206625$.",
+            r"**Suma progresiva hacia el valor final:** $P_4(1.37) = 10.704 - 0.3982 - 0.09729 - 0.0772065 - 0.069136725 = 10.06216678$.",
+        ],
+    },
+    "formula_gauss": {
+        "deduccion_teorica": [
+            r"**Anclaje central para minimizar $|u|$:** Para un $x^*$ en el centro de una tabla equidistante, anclarse en $x_0$ o $x_n$ hace $|u|$ o $|v|$ grande ($\ge 1.5$), amplificando el error al truncar. Si reindexamos los nodos alrededor de un nodo central $x_0^{\mathrm{c}}$ ($\dots, x_{-1}, x_0, x_1, \dots$) y definimos $u = \frac{x - x_0^{\mathrm{c}}}{h}$, logramos $|u| \le 0.5$.",
+            r"**Criterio de recorrido en zig-zag (Gauss Progresiva vs Regresiva):** Por Unicidad de Newton podemos elegir en cada grado qué nodo nuevo incorporar: **Gauss Progresiva** ($u \ge 0$) agrega alternadamente hacia la derecha e izquierda ($x_0, x_1, x_{-1}, x_2, x_{-2}, \dots$), haciendo que en la tabla escalonada $\Delta$ baje primero ($\Delta f(x_0)$) y luego suba/baje en zig-zag. **Gauss Regresiva** ($u < 0$) incorpora ($x_0, x_{-1}, x_1, x_{-2}, x_2, \dots$), subiendo primero ($\Delta f(x_0 - h)$).",
+            r"**Deducción de los coeficientes polinomiales por unicidad nodal:** Al agregar secuencialmente $x_0, x_1, x_{-1}, x_2, x_{-2}$, los factores de Newton en $x$ son $(x-x_0)$, $(x-x_0)(x-x_1)$, $(x-x_0)(x-x_1)(x-x_{-1})$, etc. En función de $u$ quedan $u$, $u(u-1)$, $(u-1)u(u+1)$, $(u-2)(u-1)u(u+1)$, correspondiendo respectivamente a $\Delta f(x_0)$, $\Delta^2 f(x_0-h)$, $\Delta^3 f(x_0-h)$ y $\Delta^4 f(x_0-2h)$.",
+            r"**Ventaja decisiva al truncar antes del grado máximo:** Porque la sucesión de diferencias centrales rodea simétricamente a $x^*$, el resto $|R_k| \propto \prod_{j=0}^{k} |u - j_{\text{zig-zag}}|$ resulta muchísimo menor que el de Gregory Ascendente o Descendente para igual grado $k < n - 1$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Tabla de 5 nodos reindexados alrededor del centro:** Con $5$ puntos ($i = 0, 1, 2, 3, 4$), el ancla central de Gauss Progresiva es $x_0^{\mathrm{c}} = x_2$.",
+            r"**Ruta en zig-zag de Gauss Progresiva ($0 \le u \le 0.5$):** Toma $f(x_2)$ en fila $2$, baja a $\Delta f(x_2)$ en fila $2$, sube a $\Delta^2 f(x_1)$ en fila $1$, permanece en $\Delta^3 f(x_1)$ en fila $1$ y cierra en $\Delta^4 f(x_0)$ en fila $0$ (trayectoria de filas $2, 2, 1, 1, 0$).",
+            r"**Ruta simétrica de Gauss Regresiva ($-0.5 \le u < 0$):** Parte de $f(x_2)$ en fila $2$, sube inmediatamente a $\Delta f(x_1)$ en fila $1$, sigue horizontal en $\Delta^2 f(x_1)$ (fila $1$), sube a $\Delta^3 f(x_0)$ (fila $0$) y cierra en $\Delta^4 f(x_0)$ (filas $2, 1, 1, 0, 0$).",
+            r"**Unicidad completa vs ventaja truncada:** Al evaluar los $5$ términos ($k=4$) ambas coinciden con Lagrange y Newton-Gregory; al cortar en $k=2$ o $k=3$, el truncamiento central logra el mínimo residuo.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Elección del ancla central y cálculo de $u$:** Para $x = [0.2, 0.5, 0.8, 1.1, 1.4]$ ($h = 0.3$) y $x^* = 0.90$, el nodo central es $x_2 = 0.8$ ($y_2 = 4.902$). Calculamos $u = \frac{0.90 - 0.8}{0.3} = \frac{1}{3} \approx +0.333333 \in [0, 0.5]$, indicando **Gauss Progresiva**.",
+            r"**Extracción del camino zig-zag $[2, 2, 1, 1, 0]$ en la tabla $\Delta$:** $f(0.8) = 4.902$; $\Delta f(0.8) = 6.722 - 4.902 = 1.820$; $\Delta^2 f(0.5) = 1.820 - 2.367 = -0.547$; $\Delta^3 f(0.5) = 2.162 - (-0.547) = 2.709$; $\Delta^4 f(0.2) = 3.346$.",
+            r"**Factores polinomiales en $u = 1/3$:** $k=1$: $u = 1/3$; $k=2$: $\frac{u(u-1)}{2!} = \frac{(1/3)(-2/3)}{2} = -\frac{1}{9}$; $k=3$: $\frac{(u-1)u(u+1)}{3!} = \frac{(-2/3)(1/3)(4/3)}{6} = -\frac{4}{81}$; $k=4$: $\frac{(u-2)(u-1)u(u+1)}{4!} = \frac{(-5/3)(-2/3)(1/3)(4/3)}{24} = +\frac{5}{243}$.",
+            r"**Suma acumulada término a término:** $4.902 + \frac{1.820}{3} - \frac{-0.547}{9} - \frac{4(2.709)}{81} + \frac{5(3.346)}{243} = 4.902 + 0.606667 + 0.060778 - 0.133778 + 0.068848 = 5.50451440$, idéntico en grado $4$ a las demás fórmulas.",
+        ],
+    },
+    "diferenciacion_numerica": {
+        "deduccion_teorica": [
+            r"**Derivación directa del polinomio interpolante:** Dado que no poseemos $f(x)$ analítica sino una tabla equidistante, derivamos el polinomio de Newton-Gregory $P_n(u) = y_0 + u\Delta y_0 + \frac{u^2-u}{2}\Delta^2 y_0 + \frac{u^3-3u^2+2u}{6}\Delta^3 y_0 + \frac{u^4-6u^3+11u^2-6u}{24}\Delta^4 y_0 + \dots$ respecto a $x$.",
+            r"**Aplicación de la regla de la cadena ($\frac{du}{dx} = \frac{1}{h}$):** Como $u = \frac{x - x_0}{h}$, obtenemos $\frac{dP}{dx} = \frac{1}{h}\frac{dP}{du}$ y $\frac{d^2P}{dx^2} = \frac{1}{h^2}\frac{d^2P}{du^2}$.",
+            r"**Derivadas generales en función de $u$ (y especialización en el nodo $u = 0$):** Derivando término a término sale $f'(x) \approx \frac{1}{h}\left[\Delta y_0 + \frac{2u-1}{2}\Delta^2 y_0 + \frac{3u^2-6u+2}{6}\Delta^3 y_0 + \frac{4u^3-18u^2+22u-6}{24}\Delta^4 y_0\right]$; evaluando en $u = 0$ recuperamos los coeficientes $(1, -\frac{1}{2}, \frac{1}{3}, -\frac{1}{4})$. Análogamente para $v = \frac{x-x_n}{h}$ con diferencias retrógradas $\nabla^k y_n$.",
+            r"**Compromiso entre error de truncamiento y cancelación numérica:** Reducir $h$ disminuye el error analítico ($\mathcal{O}(h^k)$), pero como la resta $y_{i+1}-y_i$ cancela dígitos significativos al acercar nodos y luego dividimos por $h$ o $h^2$, el error de redondeo escala como $\mathcal{O}(\varepsilon_{\text{maq}}/h)$, causando divergencia si $h$ es demasiado pequeño.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Planteo del experimento $\frac{e^{1+h} - e^1}{h}$ frente al exacto $e \approx 2.718281828$:** Aproximamos la derivada por cociente incremental progresivo variando el paso $h$ desde $10^{-1}$ hasta $10^{-14}$.",
+            r"**Régimen dominado por truncamiento ($h \in [10^{-1}, 10^{-8}]$):** Al achicar $h$, el error cae linealmente en $\mathcal{O}(h)$ pasando de $0.14$ (en $h=0.1$) hasta alcanzar su mínimo en $h \approx 10^{-8}$ con error $5.10 \times 10^{-9}$.",
+            r"**Aparición de la cancelación catastrófica ($h \le 10^{-9}$):** Con `float64` (~16 dígitos), $e^{1+10^{-14}}$ coincide en $14$ dígitos con $e^1$: al restarlos quedan apenas $2$ dígitos válidos de ruido.",
+            r"**Amplificación al dividir por $h$:** Dividir ese ruido residual por $10^{-14}$ dispara el error a $0.0537$, ilustrando la barrera física del punto flotante.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Construcción de diferencias en la tabla $x = [12 \dots 17]$ ($h = 1$):** Para $x_0 = 12$ ($y_0 = 0.96262$), $\Delta y_0 = -0.01544$, $\Delta^2 y_0 = -0.00066$, $\Delta^3 y_0 = 0.00789$, $\Delta^4 y_0 = -0.01494$, $\Delta^5 y_0 = 0.02116$.",
+            r"**Primera derivada en el nodo inicial $x = 12$ ($u = 0$):** Aplicando $f'(12) = \frac{1}{1}\left[-0.01544 - \frac{1}{2}(-0.00066) + \frac{1}{3}(0.00789) - \frac{1}{4}(-0.01494) + \frac{1}{5}(0.02116)\right] = -0.0083175$ (con las diferencias hasta orden $4$ o $5$).",
+            r"**Derivada en punto no tabular $x^* = 12.4$ ($u = 0.4$):** Sustituimos $u = 0.4$ en la fórmula general: coefs $(1, \frac{0.8-1}{2}=-0.1, \frac{0.48-2.4+2}{6}=0.01333, \frac{0.256-2.88+8.8-6}{24}=0.00733, \dots)$, resultando $f'(12.4) \approx -0.0153909$.",
+            r"**Segunda derivada descendente en $x = 17$ ($v = 0$):** Usando la diagonal inferior retrógrada $\nabla^2 y_5 = -0.00010, \nabla^3 y_5 = -0.00163, \nabla^4 y_5 = 0.00024, \nabla^5 y_5 = 0.02116$ en $\frac{1}{1^2}[\nabla^2 y_5 + \nabla^3 y_5 + \frac{11}{12}\nabla^4 y_5 + \dots]$ se deduce $f''(17) \approx 0.011254$ (según orden truncado de cátedra).",
+        ],
+    },
+    "trapecio": {
+        "deduccion_teorica": [
+            r"**Aproximación lineal en cada subintervalo $[x_i, x_{i+1}]$:** Reemplazando $f(x)$ por la recta secante $P_1(x) = y_i + \frac{y_{i+1}-y_i}{h}(x - x_i)$ e integrando en $[x_i, x_{i+1}]$ de longitud $h$: $\int_{x_i}^{x_{i+1}} P_1(x)\,dx = \frac{h}{2}(y_i + y_{i+1})$ (fórmula geométrica del área de un trapecio).",
+            r"**Regla compuesta sumando $n$ trapecios adyacentes:** $A \approx \sum_{i=0}^{n-1} \frac{h}{2}(y_i + y_{i+1}) = \frac{h}{2}\left[(y_0 + y_1) + (y_1 + y_2) + \dots + (y_{n-1} + y_n)\right]$.",
+            r"**Agrupación en notación de cátedra ($E, P, I$):** Cada nodo interior aparece dos veces (como techo derecho de un trapecio y techo izquierdo del siguiente), mientras los extremos aparecen una vez: $A = \frac{h}{2}[E + 2P + 2I]$, donde $E = y_0 + y_n$, $P = \sum y_{\text{pares int.}}$ e $I = \sum y_{\text{impares int.}}$.",
+            r"**Deducción de la cota del error global $\mathcal{O}(h^2)$:** Integrando el error lineal $-\frac{1}{2}f''(\xi)(x-x_i)(x_{i+1}-x)$ sobre cada subintervalo da error local $-\frac{h^3}{12}f''(\xi_i)$. Sumando $n = \frac{b-a}{h}$ tramos se obtiene $E_{\text{global}} = -\frac{(b-a)h^2}{12}f''(\bar{\xi}) \implies |E_a| \le \frac{(b-a)^3}{12n^2}\max|f''(x)|$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Evaluación en los $n + 1 = 3$ nodos ($h = 0.4$):** $f(0) = 0.2$, $f(0.4) = 2.456$ y $f(0.8) = 0.232$.",
+            r"**Agrupamiento de extremos y nodo interior:** $E = 0.2 + 0.232 = 0.432$ y término interior duplicado $2(2.456) = 4.912$.",
+            r"**Aplicación con $n = 2$:** $A = \frac{0.4}{2}(0.432 + 4.912) = 0.2(5.344) = 1.0688$ (error relativo $34.9\%$ frente a $1.640533$).",
+            r"**Efecto de refinar a $n = 10$ ($h$ dividido por $5$):** Por la dependencia $\mathcal{O}(1/n^2)$, el error se divide aproximadamente por $25$, bajando a menos del $1.5\%$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Identificación de parámetros y partición de nodos:** Con $x = [0.5, 5.5, 10.5, 15.5, 20.5, 25.5]$ e $y = [0.05, 6.05, 22.05, 48.05, 84.05, 130.05]$, hay $n = 5$ subintervalos de ancho constante $h = 5$.",
+            r"**Clasificación de ordenadas en $E, P, I$:** Extremos $E = y_0 + y_5 = 0.05 + 130.05 = 130.10$; nodos interiores pares $P = y_2 + y_4 = 22.05 + 84.05 = 106.10$ (o según índice $1..n-1$ con $I = y_1 + y_3 = 6.05 + 48.05 = 54.10$, sumando $P+I = 160.20$).",
+            r"**Sustitución en la fórmula compuesta del Trapecio:** $A = \frac{5}{2}[130.10 + 2(160.20)] = 2.5 \times [130.10 + 320.40] = 2.5 \times 450.50 = 1126.25$.",
+            r"**Análisis del error frente a la integral exacta $\int_{0.5}^{25.5} \frac{x^2}{5}\,dx = \left[\frac{x^3}{15}\right]_{0.5}^{25.5} = 1105.4167$:** El desvío es $+20.8333$, coincidiendo exactamente con la fórmula teórica pues $f''(x) = \frac{2}{5}$ constante da $-\frac{(25)(5^2)}{12}(-2/5)$ con signo cambiado: $\frac{25 \cdot 25 \cdot 0.4}{12} = 20.8333$.",
+        ],
+    },
+    "simpson_1_3": {
+        "deduccion_teorica": [
+            r"**Polinomio cuadrático sobre $3$ puntos equidistantes $[-h, 0, h]$:** Tomamos $P_2(x) = y_1 + \frac{y_2 - y_0}{2h}x + \frac{y_0 - 2y_1 + y_2}{2h^2}x^2$ (trasladando el origen al nodo medio $x_1 = 0$) para aprovechar la simetría de potencias impares.",
+            r"**Integración simétrica exacta:** $\int_{-h}^{h} P_2(x)\,dx = \left[y_1 x + 0 + \frac{y_0 - 2y_1 + y_2}{6h^2}x^3\right]_{-h}^{h} = 2h y_1 + \frac{h}{3}(y_0 - 2y_1 + y_2) = \frac{h}{3}(y_0 + 4y_1 + y_2)$.",
+            r"**Extensión compuesta ($n$ par) en notación $E, I, P$:** Encadenando $n/2$ parejas parabólicas, los extremos ($y_0, y_n$) aparecen $1$ vez, los nodos centrales impares ($y_1, y_3, \dots$) tienen peso $4$, y los nodos pares compartidos ($y_2, y_4, \dots$) suman $1+1 = 2$: $A = \frac{h}{3}[E + 4I + 2P]$.",
+            r"**Por qué alcanza orden cuarto $\mathcal{O}(h^4)$:** Al integrar un término cúbico $x^3$ sobre el intervalo simétrico $[-h, h]$ su integral se anula idénticamente! Por ello el primer término de resto no nulo proviene de $f^{(4)}$, dando error local $-\frac{h^5}{90}f^{(4)}(\xi)$ y cota global $|E_a| \le \frac{(b-a)^5}{180\,n^4}\max|f^{(4)}|$ (exacta para cualquier polinomio hasta grado $3$).",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Evaluación sobre un par de intervalos $[0, h, 2h]$:** Centrando el eje en el nodo medio $x_1$ entre $[-h, h]$, integramos directamente una parábola por los tres puntos obteniendo los pesos $\frac{h}{3}(1, 4, 1)$.",
+            r"**Prueba de grado de exactitud con $f(x) = x^3$ en $[-h, h]$:** La integral exacta de $x^3$ en $[-h, h]$ es $0$. Evaluando la fórmula de Simpson: $\frac{h}{3}[(-h)^3 + 4(0)^3 + h^3] = 0$, coincidiendo exactamente.",
+            r"**Escalado de error ante refinamiento $\mathcal{O}(h^4)$:** Si dividimos el paso $h$ a la mitad (duplicando $n$), el denominador $n^4$ aumenta $2^4 = 16$ veces.",
+            r"**Conclusión práctica:** Con el mismo costo de nodos que Trapecio, Simpson 1/3 gana dos órdenes extra de precisión sobre funciones suaves con $n$ par.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Verificación de condiciones sobre $[0.5, 20.5]$:** Tenemos $5$ puntos ($x = [0.5, 5.5, 10.5, 15.5, 20.5]$), lo cual define $n = 4$ subintervalos (número **par**, habilita Simpson 1/3 puro) de paso constante $h = 5$.",
+            r"**Cálculo de grupos $E, I, P$:** Extremos $E = y_0 + y_4 = 0.05 + 84.05 = 84.10$; posiciones impares interiores $I = y_1 + y_3 = 6.05 + 48.05 = 54.10$; posiciones pares interiores $P = y_2 = 22.05$.",
+            r"**Sustitución en $A = \frac{h}{3}[E + 4I + 2P]$:** $A = \frac{5}{3}[84.10 + 4(54.10) + 2(22.05)] = \frac{5}{3}[84.10 + 216.40 + 44.10] = \frac{5}{3}(344.60) = 574.3333\dots$",
+            r"**Confirmación de exactitud:** La integral analítica $\int_{0.5}^{20.5} \frac{x^2}{5}\,dx = \frac{20.5^3 - 0.5^3}{15} = \frac{8615.125 - 0.125}{15} = \frac{8615}{15} = 574.3333\dots$, con error $0$ pues $f^{(4)}(x) \equiv 0$.",
+        ],
+    },
+    "simpson_3_8_combinado": {
+        "deduccion_teorica": [
+            r"**Polinomio cúbico de Lagrange/Gregory sobre $4$ nodos ($3$ subintervalos):** Tomamos $[x_0, x_1, x_2, x_3]$ con paso $h$ e integramos el polinomio de Newton-Gregory Ascendente $P_3(u) = y_0 + u\Delta y_0 + \frac{u^2-u}{2}\Delta^2 y_0 + \frac{u^3-3u^2+2u}{6}\Delta^3 y_0$ desde $u = 0$ hasta $u = 3$ (usando $dx = h\,du$).",
+            r"**Integración de cada término en $[0, 3]$:** $\int_0^3 du = 3$; $\int_0^3 u\,du = \frac{9}{2}$; $\int_0^3 \frac{u^2-u}{2}\,du = \frac{9}{4}$; $\int_0^3 \frac{u^3-3u^2+2u}{6}\,du = \frac{3}{8}$.",
+            r"**Expansión en términos de $y_0, y_1, y_2, y_3$:** Reemplazando $\Delta y_0 = y_1-y_0$, $\Delta^2 y_0 = y_2 - 2y_1 + y_0$ y $\Delta^3 y_0 = y_3 - 3y_2 + 3y_1 - y_0$ y simplificando coeficientes se obtiene directamente $A_{3/8} = \frac{3h}{8}(y_0 + 3y_1 + 3y_2 + y_3)$.",
+            r"**Estrategia combinada para $n$ impar manteniendo orden $\mathcal{O}(h^4)$:** Su error local es $-\frac{3h^5}{80}f^{(4)}(\xi)$ (mismo orden $\mathcal{O}(h^4)$ que Simpson 1/3!). Cuando $n \ge 5$ es impar y no múltiplo de $3$, asignar $3$ intervalos a Simpson $3/8$ deja un resto $n - 3$ **par**, que se resuelve con Simpson $1/3$ sin degradar la precisión global al $\mathcal{O}(h^2)$ de Trapecio.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Diagnóstico de paridad cuando $n = 5$:** $n = 5$ no es par (falla Simpson $1/3$ puro) ni múltiplo de $3$ (falla Simpson $3/8$ puro).",
+            r"**Partición en sub-bloques compatibles:** Separamos los primeros $3$ intervalos $[x_0, x_3]$ (donde $n_1 = 3$ sí cumple $3/8$) y los últimos $2$ intervalos $[x_3, x_5]$ (donde $n_2 = 2$ es par y aplica $1/3$).",
+            r"**Cálculo independiente y continuidad en el nodo empalme $x_3$:** El valor $y_3$ actúa simultáneamente como límite derecho del bloque $3/8$ y límite izquierdo del bloque $1/3$.",
+            r"**Aditividad integral y preservación de orden:** Sumando $A_{\text{total}} = A_{3/8} + A_{1/3}$, todo el dominio se integra con polinomios de grado $\ge 2$ y orden global $\mathcal{O}(h^4)$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Análisis de la tabla completa TP6 ($6$ puntos, $n = 5$, $h = 5$):** $[0.5, 5.5, 10.5, 15.5, 20.5, 25.5]$ posee $n = 5$ intervalos (impar), por lo que combinamos $3$ intervalos con Simpson 3/8 más $2$ intervalos con Simpson 1/3.",
+            r"**Primer tramo $[0.5, 15.5]$ por Simpson 3/8:** Con $y_0 = 0.05, y_1 = 6.05, y_2 = 22.05, y_3 = 48.05$: $A_1 = \frac{3(5)}{8}[0.05 + 3(6.05) + 3(22.05) + 48.05] = 1.875 \times 132.40 = 248.25$.",
+            r"**Segundo tramo $[15.5, 25.5]$ por Simpson 1/3:** Con $y_3 = 48.05, y_4 = 84.05, y_5 = 130.05$: $A_2 = \frac{5}{3}[48.05 + 4(84.05) + 130.05] = \frac{5}{3}(514.30) = 857.16667$.",
+            r"**Suma total y contraste exacto:** $A_{\text{total}} = 248.25 + 857.16667 = 1105.41667$, coincidiendo al decimal con la integral exacta $\int_{0.5}^{25.5}\frac{x^2}{5}\,dx = 1105.41667$ (a diferencia de Trapecio que daba $1126.25$).",
+        ],
+    },
+    "euler_heun": {
+        "deduccion_teorica": [
+            r"**Deducción de Euler mediante Taylor de primer orden:** Expandiendo la solución real $y(x_{i+1}) = y(x_i + h) = y_i + h\,y'(x_i) + \frac{h^2}{2}y''(\xi)$ y truncando en el término lineal ($y'(x_i) = f(x_i, y_i)$) se obtiene $y_{i+1} = y_i + h f(x_i, y_i)$, con error local $\mathcal{O}(h^2)$ y global $\mathcal{O}(h)$.",
+            r"**Deducción geométrica de Heun (Regla Trapezoidal Implícita):** Integrando exactamente $y' = f(x, y)$ entre $x_i$ y $x_{i+1}$ resulta $y(x_{i+1}) - y(x_i) = \int_{x_i}^{x_{i+1}} f(x, y(x))\,dx$. Aproximando la integral mediante la regla del Trapecio obtenemos $y_{i+1} = y_i + \frac{h}{2}[f(x_i, y_i) + f(x_{i+1}, y_{i+1})]$.",
+            r"**Esquema Predictor-Corrector iterado:** Como $y_{i+1}$ aparece también dentro de $f(x_{i+1}, y_{i+1})$, **predecimos** un valor inicial con Euler: $P(y_{i+1}) = y_i + h f(x_i, y_i)$, evaluamos la pendiente derecha en ese punto y la sustituimos en el **Corrector** $C^{(m)} = y_i + \frac{h}{2}[f(x_i, y_i) + f(x_{i+1}, C^{(m-1)})]$.",
+            r"**Convergencia del corrector y orden global:** Cada nueva iteración del corrector reduce el error de punto fijo mientras $\frac{h}{2}|\partial f / \partial y| < 1$, deteniéndose al verificar $|C^{(m)} - C^{(m-1)}| < E$, logrando orden global $\mathcal{O}(h^2)$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Planteo de la EDO discreta $\frac{dv}{dt} = f(t, v) = g - \frac{c}{m}v$:** Dado el estado actual $v(t_i)$ y paso temporal $\Delta t = h$, calculamos la aceleración inicial $k_1 = f(t_i, v_i)$.",
+            r"**Paso Predictor de Euler:** Proyectamos una velocidad tentativa lineal $P(v_{i+1}) = v_i + h\,k_1$, suponiendo aceleración constante en todo el intervalo.",
+            r"**Evaluación en el destino y promedio trapezoidal (Corrector):** Medimos la nueva aceleración en el punto predicho $k_2 = f(t_i + h, P(v_{i+1}))$ y actualizamos $C^{(1)} = v_i + \frac{h}{2}(k_1 + k_2)$.",
+            r"**Refinamiento iterativo hasta tolerancia:** Si $|C^{(1)} - P| \ge E$, recalculamos $k_2 = f(t_{i+1}, C^{(1)})$ y $C^{(2)}$ hasta estabilizar, eliminando el sesgo unilateral de Euler.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Datos iniciales TP7 Ej. 1 ($y' = \frac{6x^2}{y}$, $y(4) = 16$, $h = 0.1$):** Pendiente inicial en $(4.0, 16.0)$: $k_1 = \frac{6(16)}{16} = 6.0$. Exacta analítica: $y(x) = 2x^{3/2}$.",
+            r"**Primer paso ($x_1 = 4.1$) — Predictor de Euler:** $y_{\text{Euler}}(4.1) = P(y_1) = 16 + 0.1(6.0) = 16.600000$ (frente al exacto $2(4.1)^{1.5} \approx 16.603614$).",
+            r"**Corrección iterada de Heun en $x_1 = 4.1$:** Pendiente predicha $k_2^{(0)} = \frac{6(4.1)^2}{16.6} \approx 6.075904 \implies C^{(1)} = 16 + \frac{0.1}{2}(6.0 + 6.075904) = 16.603795$. Recalculando con $C^{(1)}$: $k_2^{(1)} = \frac{6(4.1)^2}{16.603795} \approx 6.074515 \implies C^{(2)} = 16.603726$ (ya difiere menos de $0.0001$, error de solo $0.00011$).",
+            r"**Avance hasta $x_f = 4.4$ (4 pasos):** Euler acumula deriva lineal terminando en $18.44514$ (error $0.01390$), mientras Heun se pega a la curva exacta concluyendo en $18.45901$ frente al exacto $18.459036$ (error de apenas $2.6 \times 10^{-5}$).",
+        ],
+    },
+    "runge_kutta": {
+        "deduccion_teorica": [
+            r"**Idea de los métodos Runge-Kutta:** En lugar de derivar analíticamente $f(x, y)$ para usar series de Taylor de orden superior, los métodos RK logran el mismo orden evaluando $f$ en múltiples puntos intermedios dentro $[x_i, x_i + h]$ y combinándolos con pesos adecuados.",
+            r"**Deducción de RK2 haciendo coincidir con Taylor de orden 2:** Planteamos $y_{i+1} = y_i + a k_1 + b k_2$ con $k_1 = h f(x_i, y_i)$ y $k_2 = h f(x_i + \alpha h, y_i + \beta k_1)$. Expandiendo $k_2$ en Taylor multivariable $f(x_i + \alpha h, y_i + \beta h f) \approx f + \alpha h f_x + \beta h f_y f$ e igualando término a término con $y(x_i + h) = y_i + h f + \frac{h^2}{2}(f_x + f_y f)$ resultan $a + b = 1$, $b\alpha = \frac{1}{2}$ y $b\beta = \frac{1}{2}$ (eligiendo $a=b=\frac{1}{2}, \alpha=\beta=1$ surge Heun/RK2).",
+            r"**Construcción de RK4 Clásico (matching hasta Taylor de grado 4):** Usando cuatro pendientes exploratorias ($k_1$ al inicio, $k_2$ y $k_3$ en el punto medio $x_i + h/2$, $k_4$ al final $x_i + h$), la combinación simétrica $y_{i+1} = y_i + \frac{1}{6}(k_1 + 2k_2 + 2k_3 + k_4)$ satisface algebraicamente todas las ecuaciones de orden hasta $h^4$.",
+            r"**Conexión exacta con Simpson 1/3 y orden de error:** Cuando $f(x, y)$ depende solo de $x$, $k_2 = k_3 = h f(x_i + h/2)$, reduciéndose RK4 a $\frac{h}{6}[f(x_i) + 4f(x_i + h/2) + f(x_i+h)]$ (Simpson $1/3$ sobre $[x_i, x_i+h]$!). Su error local es $\mathcal{O}(h^5)$ y el error acumulado global es $\mathcal{O}(h^4)$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Planteo de independencia en $y$:** Tomamos la EDO integrable directa $y' = g(x)$, donde la solución exacta cumple $y_{i+1} - y_i = \int_{x_i}^{x_i+h} g(x)\,dx$.",
+            r"**Evaluación de las $4$ pendientes $k_i$:** $k_1 = h g(x_i)$, $k_2 = h g(x_i + h/2)$, $k_3 = h g(x_i + h/2)$ (igual a $k_2$) y $k_4 = h g(x_i + h)$.",
+            r"**Reemplazo en la combinación ponderada de RK4:** $y_{i+1} = y_i + \frac{1}{6}(k_1 + 2k_2 + 2k_2 + k_4) = y_i + \frac{h/2}{3}\left[g(x_i) + 4g\!\left(x_i + \frac{h}{2}\right) + g(x_i + h)\right]$.",
+            r"**Identidad demostrada:** La expresión resultante es idéntica a la Regla de Simpson 1/3 con paso $\tilde{h} = h/2$, heredando inmediatamente su precisión de cuarto orden global $\mathcal{O}(h^4)$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Paso 1 ($x_0 = 4.0 \to x_1 = 4.1$, $h = 0.1$) para $RK2$:** $k_1 = 0.1 \cdot \frac{6(4)^2}{16} = 0.600000$; $k_2 = 0.1 \cdot \frac{6(4.1)^2}{16.6} = 0.60759036 \implies y_{\text{RK2}}(4.1) = 16 + \frac{0.6 + 0.60759036}{2} = 16.603795$.",
+            r"**Cálculo de las $4$ sondas de $RK4$ en el paso 1:** $k_1 = 0.600000$; $k_2 = 0.1 \cdot f(4.05, 16.3) = 0.1 \cdot \frac{98.415}{16.3} = 0.60377301$; $k_3 = 0.1 \cdot f(4.05, 16.3018865) = 0.60370312$; $k_4 = 0.1 \cdot f(4.1, 16.60370312) = 0.60745484$.",
+            r"**Promedio ponderado de $RK4$:** $y_{\text{RK4}}(4.1) = 16 + \frac{0.6 + 2(0.60377301) + 2(0.60370312) + 0.60745484}{6} = 16.60373452$ (error frente al exacto $16.603614$ menor a $1.3 \times 10^{-4}$ — de hecho $2(4.1)^{1.5} = 16.60373452$, error $2.4 \times 10^{-9}$!).",
+            r"**Evolución hasta $x = 4.3$ ($3$ pasos):** En $x = 4.3$ ($y_{\text{exacto}} = 17.83333956$), $RK2$ entrega $17.83352$ y $RK4$ logra $17.8333395$ con coincidencia de $6$ cifras exactas.",
+        ],
+    },
+    "milne": {
+        "deduccion_teorica": [
+            r"**Necesidad de arranque previo ($4$ puntos):** Un método multipaso usa valores ya calculados en el historial para ahorrar evaluaciones de $f(x, y)$. Milne necesita $(x_{i-3}, y_{i-3}) \dots (x_i, y_i)$ para avanzar a $x_{i+1}$, por eso los primeros $4$ puntos ($k = 0, 1, 2, 3$) deben generarse con un método autoiniciable de orden $4$ como $RK4$.",
+            r"**Deducción del Predictor abierto ($4$ pasos — Fórmula de Milne):** Integrando exactamente $y' = f$ sobre $4$ subintervalos $[x_{i-3}, x_{i+1}]$: $y_{i+1} - y_{i-3} = \int_{x_{i-3}}^{x_{i+1}} y'(x)\,dx$. Reemplazando $y'(x)$ por el polinomio interpolante cuadrático que pasa únicamente por los tres nodos interiores $\{x_{i-2}, x_{i-1}, x_i\}$ (sin usar el nodo extremo $x_{i+1}$ desconocido), al integrar resulta exactamente $P(y_{i+1}) = y_{i-3} + \frac{4h}{3}(2y'_i - y'_{i-1} + 2y'_{i-2})$ (error local $+\frac{14}{45}h^5 y^{(5)}$).",
+            r"**Deducción del Corrector cerrado ($2$ pasos — Simpson 1/3):** Integrando ahora sobre $[x_{i-1}, x_{i+1}]$ e interpolando $y'$ por la parábola que atraviesa $x_{i-1}, x_i$ y el propio destino $x_{i+1}$ (usando $y'_{i+1} = f(x_{i+1}, P(y_{i+1}))$), la integral cerrada coincide exactamente con Simpson $1/3$: $C(y_{i+1}) = y_{i-1} + \frac{h}{3}(y'_{i-1} + 4y'_i + y'_{i+1})$ (error local $-\frac{1}{90}h^5 y^{(5)}$).",
+            r"**Estimación gratuita del error local y doble corrección:** Restando los términos de error principal del Predictor ($+\frac{28}{90}h^5 y^{(5)}$) y del Corrector ($-\frac{1}{90}h^5 y^{(5)}$), resulta $|y_{\text{exacto}} - C| \approx \frac{1}{29}|C - P|$, permitiendo monitorear la precisión en cada paso y refinar en $C^1$.",
+        ],
+        "ejemplo_teorico_pasos": [
+            r"**Verificación de malla mínima ($n \ge 4$):** Confirmamos que $\frac{x_f - x_0}{h} \ge 4$ para disponer de la ventana completa de cuatro nodos iniciales.",
+            r"**Arranque con $RK4$ ($k = 0, 1, 2, 3$):** Calculamos $(x_0, y_0) \dots (x_3, y_3)$ y sus pendientes $y'_k = f(x_k, y_k)$ con orden $\mathcal{O}(h^4)$.",
+            r"**Predicción abierta de $P(y_{i+1})$:** Usamos la combinación $(2y'_i - y'_{i-1} + 2y'_{i-2})$ desde $y_{i-3}$ y evaluamos $f(x_{i+1}, P(y_{i+1}))$.",
+            r"**Doble pasada Correctora $C$ y $C^1$:** Aplicamos Simpson $1/3$ sobre $[x_{i-1}, x_{i+1}]$ dos veces seguidas para estabilizar $y_{i+1}$ usando la mitad de evaluaciones de $f$ que $RK4$.",
+        ],
+        "practica_pasos_deduccion": [
+            r"**Fase de arranque con $RK4$ para $y' = \frac{6x^2}{y}$, $y(4) = 16$, $h = 0.1$:** Generamos los $4$ puntos de base ($k = 0 \dots 3$): $y_0(4.0) = 16.00000$ ($y'_0 = 6.00000$), $y_1(4.1) = 16.6037345$ ($y'_1 = 6.074537$), $y_2(4.2) = 17.2148773$ ($y'_2 = 6.148171$), $y_3(4.3) = 17.8333395$ ($y'_3 = 6.220933$).",
+            r"**Fase Predictor para $x_4 = 4.4$:** Sustituimos $(y_0, y'_1, y'_2, y'_3)$ en $P(y_4) = 16 + \frac{4(0.1)}{3}[2(6.220933) - 6.148171 + 2(6.074537)] = 16 + \frac{0.4}{3}(18.442769) = 18.459036$.",
+            r"**Primera pasada del Corrector $C(y_4)$:** Evaluamos la pendiente en el punto predicho: $f(4.4, 18.459036) = \frac{6(4.4)^2}{18.459036} = 6.292853$. Luego $C(y_4) = 17.2148773 + \frac{0.1}{3}[6.148171 + 4(6.220933) + 6.292853] = 17.2148773 + 1.2441585 = 18.4590358$.",
+            r"**Segunda corrección $C^1(y_4)$ y diagnóstico $|P - C|$:** Recalculando la pendiente con $C(y_4)$ resulta $C^1(y_4) \approx 18.4590358$ (apunte redondeado a $5$ decimales: $P = 18.45903, C = C^1 = 18.45902$), prácticamente idéntico al exacto $2(4.4)^{1.5} = 18.45903573$ usando solo $2$ evaluaciones de $f$ por avance.",
+        ],
+    },
+}
+
+for _clave_m, _enriq in DEDUCCIONES_PASO_A_PASO_METODOS.items():
+    if _clave_m in CATALOGO_METODOS:
+        CATALOGO_METODOS[_clave_m]["deduccion_teorica"] = list(_enriq["deduccion_teorica"])
+        if "ejemplo_teorico_pasos" in _enriq and "ejemplo_teorico" in CATALOGO_METODOS[_clave_m]:
+            CATALOGO_METODOS[_clave_m]["ejemplo_teorico"]["pasos"] = list(_enriq["ejemplo_teorico_pasos"])
+        if "practica_pasos_deduccion" in _enriq and "practica_profesora" in CATALOGO_METODOS[_clave_m]:
+            CATALOGO_METODOS[_clave_m]["practica_profesora"]["pasos_deduccion"] = list(_enriq["practica_pasos_deduccion"])

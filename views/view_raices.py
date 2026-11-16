@@ -33,6 +33,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -129,6 +130,29 @@ def _frag_biseccion(defaults: dict) -> None:
     )
 
     hist = res["historial"]
+    pasos_bis_vivos = [
+        (
+            f"**Verificación de Bolzano y cota teórica:** En $[{min(a_val, b_val):g}, {max(a_val, b_val):g}]$, "
+            f"$f(a)\\cdot f(b) = ({hist[0]['f_a']:.5g})\\cdot({hist[0]['f_b']:.5g}) < 0$. "
+            f"La cota a priori exige $n \\ge \\frac{{\\ln({abs(b_val - a_val):g}) - \\ln({tol_val:g})}}{{\\ln 2}} = {res['n_teorico_exacto']:.4f} "
+            f"\\implies \\lceil n \\rceil = {res['n_teorico_entero']}$ bisecciones."
+        )
+    ]
+    for r_b in hist[:6]:
+        err_t = f" | $|\\Delta x| = {r_b['error']:.3e}$" if r_b["error"] is not None else ""
+        pasos_bis_vivos.append(
+            f"**Iteración $k = {r_b['iteracion']}$:** Punto medio $x_{{{r_b['iteracion']}}} = \\frac{{{r_b['a']:.6g} + {r_b['b']:.6g}}}{{2}} = {r_b['x_k']:.6f}$, "
+            f"$f(x_k) = {r_b['f_xk']:.5g} \\implies$ `{r_b['decision']}`{err_t}."
+        )
+    if len(hist) > 6:
+        pasos_bis_vivos.append(
+            f"**Cierre en $k = {res['iteraciones']}$:** Se alcanza $x^* = {res['raiz']:.6f}$ con $|\\Delta x| = {res['error_final']:.3e} < {tol_val:g}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Bisección en [{min(a_val, b_val):g}, {max(a_val, b_val):g}]",
+        pasos_bis_vivos,
+        clave_ia="raiz_bis_viva",
+    )
     cols_bis = ["iteracion", "a", "b", "x_k", "f_a", "f_xk", "f_b", "error", "cumple_tol"]
     render_dataframe_acotado(
         [{k: fila[k] for k in cols_bis} for fila in hist],
@@ -249,6 +273,29 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
     )
 
     hist = res["historial"]
+    pasos_rf_vivos = [
+        f"**Planteo de la cuerda ({variante}):** Partimos desde $x_0 = {a_val:g}$ y $x_1 = {b_val:g}$ buscando intersecciones secantes hasta $|x_{{k+1}} - x_k| < {tol_val:g}$."
+    ]
+    for r_rf in hist[:6]:
+        if variante.startswith("Cátedra"):
+            pasos_rf_vivos.append(
+                f"**Paso $k = {r_rf['iteracion']}$:** Cuerda entre $(x_0={r_rf['x0_fijo']:g}, {r_rf['f_x0']:.5g})$ y $(x_i={r_rf['x_i']:.6f}, {r_rf['f_xi']:.5g}) \\implies "
+                f"x_{{\\text{{sig}}}} = \\frac{{({r_rf['x0_fijo']:g})({r_rf['f_xi']:.5g}) - ({r_rf['x_i']:.6f})({r_rf['f_x0']:.5g})}}{{{r_rf['f_xi']:.5g} - ({r_rf['f_x0']:.5g})}} = {r_rf['x_sig']:.6f}$ ($f = {r_rf['f_xsig']:.5g}$)."
+            )
+        else:
+            pasos_rf_vivos.append(
+                f"**Paso $k = {r_rf['iteracion']}$:** Intervalo $[{r_rf['a']:.6f}, {r_rf['b']:.6f}] \\implies x_k = {r_rf['x_k']:.6f}$ ($f(x_k) = {r_rf['f_xk']:.5g}$); "
+                "se conserva el subintervalo con cambio de signo."
+            )
+    if len(hist) > 6:
+        pasos_rf_vivos.append(
+            f"**Cierre en iteración $k = {res['iteraciones']}$:** Raíz estimada $r = {res['raiz']:.6f}$ con error final `{res['error_final']:.3e}`."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Interpolación Lineal ({variante})",
+        pasos_rf_vivos,
+        clave_ia="raiz_rf_viva",
+    )
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_rf")
 
     st.markdown("### Bloque 4 — Secantes / Cuerdas Paso a Paso")
@@ -369,6 +416,31 @@ def _frag_newton_raphson(defaults: dict) -> None:
     )
 
     hist = res["historial"]
+    pasos_nr_vivos = [
+        (
+            f"**Derivadas analíticas y chequeo de Fourier:** $f'(x) = {comp['d1_latex']}$ y $f''(x) = {comp['d2_latex']}$. "
+            f"{fourier['detalle_fourier']}. Iniciamos con semilla $x_0 = {x0_val:g}$."
+        )
+    ]
+    for r_nr in hist[:6]:
+        if r_nr["x_sig"] is not None:
+            pasos_nr_vivos.append(
+                f"**Iteración $k = {r_nr['iteracion']}$:** $x_{{{r_nr['iteracion']}}} = {r_nr['x_k']:.6g} - \\frac{{{r_nr['f_xk']:.6g}}}{{{r_nr['df_xk']:.6g}}} = {r_nr['x_sig']:.7f}$ "
+                f"($|\\Delta x| = {r_nr['error']:.3e}$)."
+            )
+        else:
+            pasos_nr_vivos.append(
+                f"**Iteración $k = {r_nr['iteracion']}$:** Detenido por tangente casi horizontal ($f'(x_k) = {r_nr['df_xk']:.3e}$)."
+            )
+    if len(hist) > 6:
+        pasos_nr_vivos.append(
+            f"**Cierre en $k = {res['iteraciones']}$:** Raíz final $x^* = {res['raiz']:.7f}$ con error `{res['error_final']:.3e}`."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Newton-Raphson (x0={x0_val:g})",
+        pasos_nr_vivos,
+        clave_ia="raiz_nr_viva",
+    )
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_nr")
 
     st.markdown("### Bloque 4 — Rectas Tangentes Paso a Paso")
@@ -468,6 +540,29 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
         f"- **Punto Fijo simple:** raíz `{pf['raiz']:.6f}` (`{pf['iteraciones']}` iters, error `{pf['error_final']:.2e}`)\n"
         f"- **Aitken $\\Delta^2$:** raíz `{ait['raiz']:.6f}` (`{ait['ciclos']}` ciclos, error `{ait['error_final']:.2e}`)",
         clave="raiz_pf_res",
+    )
+
+    pasos_pf_vivos = [
+        (
+            f"**Chequeo de condición contractiva en $x_0 = {x0_val:g}$:** Derivando $g(x)$ obtenemos $g'(x) = {comp_g['dg_latex']}$, "
+            f"con $|g'(x_0)| = {deriv_x0:.4f}$ ({'menor que 1: esquema contractivo convergente' if deriv_x0 < 1.0 else 'mayor o igual a 1: riesgo de divergencia'})."
+        )
+    ]
+    for r_ait in ait["historial"][:5]:
+        pasos_pf_vivos.append(
+            f"**Ciclo Aitken $k = {r_ait['ciclo']}$:** Partiendo de $x_0 = {r_ait['x0']:.6f}$, dos pasos simples dan "
+            f"$x_1 = {r_ait['x1']:.6f}$ y $x_2 = {r_ait['x2']:.6f}$. El salto extrapolado vale "
+            f"$S = {r_ait['x2']:.6f} - \\frac{{({r_ait['x2']:.6f} - {r_ait['x1']:.6f})^2}}{{{r_ait['denominador']:.6g}}} = {r_ait['s_acelerado']:.6f}$ "
+            f"($|g(S) - S| = {r_ait['error']:.3e}$)."
+        )
+    pasos_pf_vivos.append(
+        f"**Comparación de eficiencia:** Punto Fijo simple necesitó `{pf['iteraciones']}` iteraciones (raíz `{pf['raiz']:.6f}`), "
+        f"mientras Aceleración $\\Delta^2$ de Aitken cerró en `{ait['ciclos']}` ciclos (raíz `{ait['raiz']:.6f}`)."
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Punto Fijo y Aceleración Δ² de Aitken (x0={x0_val:g})",
+        pasos_pf_vivos,
+        clave_ia="raiz_pf_viva",
     )
 
     t_pf, t_ait = st.tabs(["Tabla Punto Fijo", "Tabla Aitken Δ²"])

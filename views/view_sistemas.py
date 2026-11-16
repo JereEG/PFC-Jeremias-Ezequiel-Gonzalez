@@ -31,6 +31,7 @@ from views.ui_shared import (
     render_controles_edicion_practica,
     render_data_editor_arandu,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -103,6 +104,21 @@ def _frag_gauss(defaults: dict) -> None:
     )
 
     pasos = res["pasos_escalonamiento"]
+    pasos_gauss_vivos = [
+        "**Armado del sistema aumentado $[A \\mid b]$:** Aplicamos eliminación progresiva con pivoteo parcial columna por columna para triangular la matriz sin cambiar la solución."
+    ]
+    for p_e in pasos[1:]:
+        ops = "; ".join(f"`{op}`" for op in p_e.get("operaciones", [])) or "Sin intercambio ni eliminación requerida."
+        pasos_gauss_vivos.append(f"**{p_e['descripcion']}:** {ops}")
+    for p_s in reversed(res.get("pasos_sustitucion", [])):
+        pasos_gauss_vivos.append(
+            f"**Sustitución regresiva (`{p_s['variable']}`):** `{p_s['ecuacion']}` $= {p_s['valor']:.6f}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        "Eliminación Gaussiana y Sustitución Regresiva",
+        pasos_gauss_vivos,
+        clave_ia="sis_gauss_viva",
+    )
     if pasos:
         st.markdown("### Bloque 4 — Matriz Aumentada Paso a Paso")
         k_vis = render_slider_paso_k("Ver paso de escalonamiento $k$:", len(pasos), key="vis_gauss_k")
@@ -192,6 +208,25 @@ def _frag_gauss_jordan(defaults: dict) -> None:
         render_dataframe_acotado(res["inversa"], max_filas=300, key_prefix="tbl_sis_gj_inv", hide_index=False)
 
     pasos = res["pasos"]
+    pasos_gj_vivos = [
+        f"**Objetivo activo (`{modo_gj}`):** Reducimos el bloque ampliado hasta llevar la submatriz izquierda a la matriz identidad $I$ mediante pivoteo, normalización y eliminación superior e inferior."
+    ]
+    for p_j in pasos[1:]:
+        ops = "; ".join(f"`{op}`" for op in p_j.get("operaciones", [])) or "Columna ya diagonalizada."
+        pasos_gj_vivos.append(f"**{p_j['descripcion']}:** {ops}")
+    if res["modo"] == "sistema":
+        pasos_gj_vivos.append(
+            f"**Lectura directa de $x$:** `[{', '.join(f'{v:.6f}' for v in res['solucion'])}]` con residuo $\\|Ax - b\\|_2 = {res['norma_error']:.3e}$."
+        )
+    else:
+        pasos_gj_vivos.append(
+            f"**Verificación de $A^{{-1}}$:** $\\|A\\cdot A^{{-1}} - I\\|_2 = {res['norma_error']:.3e}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Gauss-Jordan ({modo_gj})",
+        pasos_gj_vivos,
+        clave_ia="sis_gj_viva",
+    )
     if pasos:
         st.markdown("### Bloque 4 — Transformación a Identidad Paso a Paso")
         k_vis = render_slider_paso_k("Ver paso de pivoteo $k$:", len(pasos), key="vis_gj_k")
@@ -261,6 +296,25 @@ def _frag_lu(defaults: dict) -> None:
     )
 
     pasos = res["pasos_eliminacion"]
+    pasos_lu_vivos = [
+        "**Factorización $A = L \\cdot U$ (Doolittle):** Almacenamos los multiplicadores $L_{ik}$ debajo de la diagonal de $L$ (con $1$ en su diagonal) y el escalonamiento resultante en $U$."
+    ]
+    for p_el in pasos:
+        facts = "; ".join(f"`{f['formula']}`" for f in p_el.get("factores", [])) or "Sin eliminaciones en esta columna."
+        pasos_lu_vivos.append(f"**Columna $k = {p_el['columna']}$:** {facts}.")
+    for py in res.get("pasos_y", []):
+        pasos_lu_vivos.append(
+            f"**Sustitución progresiva $Ly = b$ (`{py['variable']}`):** `{py['ecuacion']}` $= {py['valor']:.6f}$."
+        )
+    for px in reversed(res.get("pasos_x", [])):
+        pasos_lu_vivos.append(
+            f"**Sustitución regresiva $Ux = y$ (`{px['variable']}`):** `{px['ecuacion']}` $= {px['valor']:.6f}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        "Factorización LU (Doolittle)",
+        pasos_lu_vivos,
+        clave_ia="sis_lu_viva",
+    )
     if pasos:
         st.markdown("### Bloque 4 — Construcción Paso a Paso de $L$ y $U$")
         k_vis = render_slider_paso_k("Ver columna eliminada $k$:", len(pasos), key="vis_lu_k")
@@ -345,6 +399,31 @@ def _frag_gauss_seidel(defaults: dict) -> None:
     )
 
     hist = res["historial"]
+    pasos_gs_vivos = []
+    diag_filas = "; ".join(
+        f"Fila {f['fila']}: $|{f['diagonal']:g}|$ {'>' if f['cumple'] else '<='} ${f['suma_otros']:g}$"
+        for f in dom.get("filas", [])
+    )
+    pasos_gs_vivos.append(
+        f"**Chequeo de dominancia diagonal:** {dom['diagnostico']} ({diag_filas})."
+    )
+    pasos_gs_vivos.append(
+        f"**Semilla y regla de actualización in-place:** Partimos de $x^{{(0)}} = {x0}$; en cada vuelta despejamos $x_i^{{(k+1)}} = \\frac{{b_i - \\sum_{{j<i}} a_{{ij}}x_j^{{(k+1)}} - \\sum_{{j>i}} a_{{ij}}x_j^{{(k)}}}}{{a_{{ii}}}}$. "
+    )
+    for r_gs in hist[:5]:
+        vec_txt = ", ".join(f"{k}={v:.5f}" for k, v in r_gs["x_dict"].items())
+        pasos_gs_vivos.append(
+            f"**Iteración $k = {r_gs['iteracion']}$:** `[{vec_txt}]` | $\\max|\\Delta x| = {r_gs['error_max']:.3e}$ | Residuo $= {r_gs['norma_residuo']:.3e}$."
+        )
+    if len(hist) > 5:
+        pasos_gs_vivos.append(
+            f"**Cierre en iteración $k = {res['iteraciones']}$:** Vector final `[{sol_gs}]` con error `{res['error_final']:.3e}`."
+        )
+    render_deduccion_paso_a_paso_viva(
+        "Método Iterativo de Gauss-Seidel",
+        pasos_gs_vivos,
+        clave_ia="sis_gs_viva",
+    )
     filas_hist = [
         {"iteracion": h["iteracion"], **h["x_dict"], "error_max": h["error_max"], "residuo": h["norma_residuo"]}
         for h in hist
@@ -447,6 +526,30 @@ def _frag_potencias(defaults: dict) -> None:
     )
 
     hist = res["historial"]
+    es_dir = tipo.startswith("Mayor")
+    pasos_pot_vivos = [
+        f"**Planteo ({tipo}):** Partiendo de $x^{{(0)}} = {x0}$, en cada paso multiplicamos $Y_k = {'A' if es_dir else 'A^{-1}'} X_{{k-1}}$ y normalizamos por el componente de mayor módulo para aislar la dirección propia dominante."
+    ]
+    for r_pt in hist[:5]:
+        err_p = f", error $\\varepsilon = {r_pt['error_pct']:.4f}\\%$" if r_pt["error_pct"] is not None else ""
+        vec_n = ", ".join(f"{v:.4f}" for v in r_pt["x_norm"])
+        if es_dir:
+            pasos_pot_vivos.append(
+                f"**Iteración $k = {r_pt['iteracion']}$:** Escala máxima $\\lambda_{{{r_pt['iteracion']}}} = {r_pt['lambda']:.6f}$, vector normalizado `[{vec_n}]`{err_p}."
+            )
+        else:
+            pasos_pot_vivos.append(
+                f"**Iteración $k = {r_pt['iteracion']}$:** $\\lambda_{{A^{{-1}}}} = {r_pt['lambda_inversa']:.6f} \\implies \\lambda_{{\\min}} = 1/\\lambda_{{A^{{-1}}}} = {r_pt['lambda']:.6f}$, $X_k = [{vec_n}]$`{err_p}."
+            )
+    if len(hist) > 5:
+        pasos_pot_vivos.append(
+            f"**Convergencia en $k = {res['iteraciones']}$:** $\\lambda \\approx {lam_final:.6f}$ (error residual del autovector $= {res['error_autovector']:.3e}$)."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Método de las Potencias ({'Directo' if es_dir else 'Inverso'})",
+        pasos_pot_vivos,
+        clave_ia="sis_pot_viva",
+    )
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_sis_pot")
 
     if hist:
@@ -525,6 +628,27 @@ def _frag_faddeev(defaults: dict) -> None:
         f"- **Polinomio:** `{res['polinomio_texto']}`\n- **det(A):** `{res['determinante']:.6f}`\n"
         f"- **Autovalores:** `{res['autovalores']}`",
         clave="sis_fad_res",
+    )
+    pasos_fad_vivos = [
+        "**Algoritmo matricial en $n$ pasos:** Para $k = 1 \\dots n$ computamos la matriz auxiliar $B_k$ y extraemos $b_k = \\frac{1}{k}\\operatorname{tr}(B_k)$ para armar los coeficientes del polinomio característico."
+    ]
+    for hp in res.get("historial_pasos", []):
+        pasos_fad_vivos.append(
+            f"**Paso $k = {hp['k']}$:** `{hp['formula']}` $\\implies \\operatorname{{tr}}(B_{{{hp['k']}}}) = {hp['traza']:.6g}$, "
+            f"$b_{{{hp['k']}}} = \\frac{{{hp['traza']:.6g}}}{{{hp['k']}}} = {hp['b_k']:.6g}$."
+        )
+    inv_txt = (
+        f"$A^{{-1}} = \\frac{{1}}{{b_n}}(B_{{n-1}} - b_{{n-1}}I)$ calculada con error `{res['error_inversa']:.2e}`"
+        if res["inversa"] is not None
+        else "Matriz singular ($b_n = 0$), no existe inversa."
+    )
+    pasos_fad_vivos.append(
+        f"**Polinomio característico y espectro:** `{res['polinomio_texto']}`, $\\det(A) = {res['determinante']:.6f}$, autovalores `{res['autovalores']}`. {inv_txt}."
+    )
+    render_deduccion_paso_a_paso_viva(
+        "Faddeev-Leverrier (Trazas y Polinomio)",
+        pasos_fad_vivos,
+        clave_ia="sis_fad_viva",
     )
 
     if res["inversa"] is not None:

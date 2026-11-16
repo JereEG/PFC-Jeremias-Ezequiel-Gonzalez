@@ -45,6 +45,7 @@ from views.ui_shared import (
     render_controles_edicion_practica,
     render_data_editor_arandu,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -119,6 +120,15 @@ def _frag_lineal(defaults: dict) -> None:
                 f"- **Tipo:** Inversa (dado $y^* = {py:g}$)\n- **$x^*$ estimado:** `{px:.6f}`",
                 clave="int_lin_res",
             )
+            render_deduccion_paso_a_paso_viva(
+                f"Interpolación Lineal Inversa (y*={py:g})",
+                [
+                    f"**Selección del tramo activo:** Entre $(x_0={res['x0']:g}, y_0={res['y0']:g})$ y $(x_1={res['x1']:g}, y_1={res['y1']:g})$ queda encerrada la ordenada objetivo $y^* = {py:g}$.",
+                    f"**Cálculo del paso y diferencias:** $h = x_1 - x_0 = {res['h']:g}$, $\\Delta y_0 = y_1 - y_0 = {res['delta_y']:.6g}$ y $y^* - y_0 = {res['diferencia_y']:.6g}$.",
+                    f"**Sustitución en fórmula lineal inversa:** $x = {res['x0']:g} + \\frac{{({res['diferencia_y']:.6g})({res['h']:g})}}{{{res['delta_y']:.6g}}} = {px:.6f}$.",
+                ],
+                clave_ia="int_lin_viva",
+            )
         else:
             res = interpolar_lineal_directa(xs, ys, x_eval)
             px, py = res["x_eval"], res["y_interpolado"]
@@ -127,6 +137,15 @@ def _frag_lineal(defaults: dict) -> None:
                 "Resultado Interpolación Lineal Directa",
                 f"- **Tipo:** Directa (dado $x^* = {px:g}$)\n- **$y^*$ estimado:** `{py:.6f}`",
                 clave="int_lin_res",
+            )
+            render_deduccion_paso_a_paso_viva(
+                f"Interpolación Lineal Directa (x*={px:g})",
+                [
+                    f"**Selección del tramo activo:** Para $x^* = {px:g}$ se utiliza el segmento entre $(x_0={res['x0']:g}, y_0={res['y0']:g})$ y $(x_1={res['x1']:g}, y_1={res['y1']:g})$.",
+                    f"**Pendiente local secante:** $h = {res['h']:g}$, $\\Delta y_0 = {res['delta_y']:.6g} \\implies m = \\frac{{\\Delta y_0}}{{h}} = {res['pendiente']:.6g}$.",
+                    f"**Sustitución en $P_1(x^*)$:** $P_1({px:g}) = {res['y0']:g} + ({res['pendiente']:.6g})({px:g} - {res['x0']:g}) = {py:.6f}$.",
+                ],
+                clave_ia="int_lin_viva",
             )
     except Exception as exc:
         render_excepcion_validacion(
@@ -210,6 +229,25 @@ def _frag_cuadratica_inversa(defaults: dict) -> None:
     m1, m2 = st.columns(2)
     m1.metric("x estimado (cuadrática inversa)", f"{res['x_resultado']:.6f}")
     m2.metric("Nodos usados", f"({res['x0']}, {res['x1']}, {res['x2']})")
+    pasos_cuad_vivos = [
+        f"**Nodos equidistantes seleccionados ($h = {res['h']:g}$):** $(x_0={res['x0']:g}, y_0={res['y0']:g})$, $(x_1={res['x1']:g}, y_1={res['y1']:g})$, $(x_2={res['x2']:g}, y_2={res['y2']:g})$.",
+        f"**Diferencias progresivas hasta orden 2:** $\\Delta y_0 = {res['delta_y0']:.6g}$ y curvatura $\\Delta^2 y_0 = {res['delta2_y0']:.6g}$.",
+        f"**Ecuación cuadrática en $u = x - x_0$ para $y^* = {y_busc:g}$:** ${res['a_coef']:.6g}\\,u^2 + ({res['b_coef']:.6g})\\,u + ({res['c_coef']:.6g}) = 0$.",
+    ]
+    if not res.get("es_lineal"):
+        pasos_cuad_vivos.append(
+            f"**Resolvente cuadrática y selección de rama:** Discriminante $\\Delta = {res['discriminante']:.6g}$; "
+            f"candidatos $x_1 = {res['x_sol1']:.6f}$ y $x_2 = {res['x_sol2']:.6f} \\implies$ se selecciona la raíz dentro del rango tabular: $x = {res['x_resultado']:.6f}$."
+        )
+    else:
+        pasos_cuad_vivos.append(
+            f"**Caso degenerado lineal ($\\Delta^2 y_0 \\approx 0$):** Se despeja directamente $x = {res['x_resultado']:.6f}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Cuadrática Inversa (y*={y_busc:g})",
+        pasos_cuad_vivos,
+        clave_ia="int_cuad_viva",
+    )
 
     st.markdown("### Bloque 4 — Parábola Local vs Recta Horizontal $y = y^*$")
     x_tri = [res["x0"], res["x1"], res["x2"]]
@@ -305,6 +343,23 @@ def _frag_lagrange(defaults: dict) -> None:
         "Polinomio Simbólico y Evaluación (Lagrange)",
         f"- **$x^*$:** `{x_eval:g}`\n- **$P({x_eval:g})$:** `{res['y_interpolado']:.6f}` (grado `{res['grado']}`)\n$$\nP_{{{res['grado']}}}(x) = {simb['latex_expandido']}\n$$",
         clave="int_lag_res",
+    )
+    pasos_lag_vivos = [
+        f"**Planteo de Lagrange ($n+1 = {res['puntos']}$ nodos, grado ${res['grado']}$):** Construimos $P_{{{res['grado']}}}(x) = \\sum_{{i=0}}^{{{res['grado']}}} y_i L_i(x)$ evaluado en $x^* = {x_eval:g}$."
+    ]
+    for td in res["terminos_detalle"][:6]:
+        pasos_lag_vivos.append(
+            f"**Base $i = {td['i']}$ ($x_{td['i']} = {td['x_i']:g}, y_{td['i']} = {td['y_i']:g}$):** "
+            f"$L_{{{td['i']}}}({x_eval:g}) = {td['L_i']:.6f} \\implies y_{{{td['i']}}} L_{{{td['i']}}} = {td['termino']:.6f}$ "
+            f"(acumulado $= {td['acumulado']:.6f}$)."
+        )
+    pasos_lag_vivos.append(
+        f"**Polinomio expandido resultante:** $P_{{{res['grado']}}}(x) = {simb['latex_expandido']}$, entregando $P({x_eval:g}) = {res['y_interpolado']:.6f}$."
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Polinomio de Lagrange (x*={x_eval:g})",
+        pasos_lag_vivos,
+        clave_ia="int_lag_viva",
     )
     render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_lag")
 
@@ -1350,6 +1405,25 @@ def _frag_newton_gregory(defaults: dict) -> None:
         f"$$\n{tex_desc}\n$$",
     ]
     registrar_contexto_ia("Newton-Gregory — Resultados y Diferencias Finitas", "\n".join(resumen_ng_md), clave="int_ng_res")
+    pasos_ng_vivos = [
+        f"**Equidistancia y parámetros adimensionales ($h = {res_asc['h']:g}$):** $u = \\frac{{{x_eval:g} - {res_asc['x0']:g}}}{{{res_asc['h']:g}}} = {res_asc['u']:.6f}$ (Ascendente desde $x_0$) y $v = \\frac{{{x_eval:g} - {res_desc['xn']:g}}}{{{res_desc['h']:g}}} = {res_desc['v']:.6f}$ (Descendente desde $x_n$).",
+    ]
+    for ta, td in zip(res_asc["terminos"], res_desc["terminos"]):
+        pasos_ng_vivos.append(
+            f"**Grado $k = {ta['k']}$:** "
+            f"Ascendente aporta `{ta['coef_binomial']:.6f}` $\\times \\Delta^{{{ta['k']}}}y_0$ (`{ta['diferencia']:.6g}`) $= {ta['termino']:.6f}$ (acum. `{ta['acumulado']:.6f}`) | "
+            f"Descendente aporta `{td['coef_binomial']:.6f}` $\\times \\nabla^{{{td['k']}}}y_n$ (`{td['diferencia']:.6g}`) $= {td['termino']:.6f}$ (acum. `{td['acumulado']:.6f}`)."
+        )
+    pasos_ng_vivos.append(
+        f"**Conclusión en grado $k = {k_vis}$ (máx. {grado_max}):** "
+        f"$P_{{{k_vis}}}^{{\\mathrm{{asc}}}}({x_eval:g}) = {res_asc['y_interpolado']:.6f}$ y "
+        f"$P_{{{k_vis}}}^{{\\mathrm{{desc}}}}({x_eval:g}) = {res_desc['y_interpolado']:.6f}$."
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Newton-Gregory Ascendente y Descendente (k={k_vis})",
+        pasos_ng_vivos,
+        clave_ia="int_ng_viva",
+    )
 
     if k_vis < grado_max:
         u_val = float(res_asc["u"])
@@ -2184,6 +2258,22 @@ def _frag_formula_gauss(defaults: dict) -> None:
         f"$$\n{tex_pol}\n$$",
     ]
     registrar_contexto_ia("Fórmula de Gauss — Comparativa, Zig-Zag y Desarrollo", "\n".join(resumen_gauss_md), clave="int_gauss_res")
+    u_act = float(res_activo.get("u", res_activo.get("v", 0.0)))
+    x_anc = float(res_activo.get("x0_central", res_activo.get("x0", res_activo.get("xn", xs[0]))))
+    pasos_gauss_vivos = [
+        f"**Anclaje y parámetro adimensional ({_NOMBRES_METODO_GAUSS[modo_activo]}):** Con paso $h = {res_activo['h']:g}$ y nodo ancla $x_a = {x_anc:g}$, obtenemos parámetro $\\frac{{{x_eval:g} - {x_anc:g}}}{{{res_activo['h']:g}}} = {u_act:.6f}$. {rec['motivo']}",
+    ]
+    for tg in res_activo["terminos"][: k_vis + 1]:
+        df_txt = f" (desplazamiento entero `{tg['delta_factor']}`)" if tg.get("delta_factor") is not None else ""
+        pasos_gauss_vivos.append(
+            f"**Orden $k = {tg['k']}$:** Coeficiente `{tg['coef_binomial']:.6f}`{df_txt} $\\times$ diferencia `{tg['diferencia']:.6g}` "
+            f"$= {tg['termino']:.6f} \\implies P_{{{tg['k']}}}({x_eval:g}) = {tg['acumulado']:.6f}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"{_NOMBRES_METODO_GAUSS[modo_activo]} en Zig-Zag (k={k_vis})",
+        pasos_gauss_vivos,
+        clave_ia="int_gauss_viva",
+    )
 
 
 def _tab_formula_gauss() -> None:

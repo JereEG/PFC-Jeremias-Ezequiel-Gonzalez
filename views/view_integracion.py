@@ -29,6 +29,7 @@ from views.ui_shared import (
     render_controles_edicion_practica,
     render_data_editor_arandu,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -102,6 +103,31 @@ def _frag_diferenciacion(defaults: dict) -> None:
         f"- **Orden:** `{orden}` | **$x^*$:** `{x_eval:g}` | **{param_name}:** `{param:.4f}` | **Paso `h`:** `{res['h']:.4g}`\n"
         f"- **Derivada estimada:** `{res['derivada']:.6f}`",
         clave="ing_deriv_res",
+    )
+    simb_diff = r"\Delta" if esquema.startswith("Progresivas") else r"\nabla"
+    pasos_der_vivos = [
+        (
+            f"**Ancla y parámetro adimensional:** Con paso uniforme $h = {res['h']:.4g}$ e índice base "
+            f"$x_{{\\text{{base}}}} = {xs[res['indice_usado']]:g}$, calculamos "
+            f"${param_name} = \\frac{{{x_eval:g} - {xs[res['indice_usado']]:g}}}{{{res['h']:.4g}}} = {param:.6f}$."
+        )
+    ]
+    suma_aportes = 0.0
+    for td in res["terminos_detalle"]:
+        suma_aportes += td["aporte"]
+        pasos_der_vivos.append(
+            f"**Diferencia de orden {td['orden_diff']} (${simb_diff}^{{{td['orden_diff']}}} y$):** "
+            f"Coeficiente en ${param_name}$ = `{td['coeficiente']:.6f}` $\\times$ diferencia `{td['diferencia']:.6g}` "
+            f"$= {td['aporte']:.6f}$."
+        )
+    denom_h = f"h = {res['h']:.4g}" if orden == 1 else f"h^2 = {res['h']**2:.4g}"
+    pasos_der_vivos.append(
+        f"**División final por ${denom_h}$:** $\\frac{{{suma_aportes:.6f}}}{{{res['h'] if orden == 1 else res['h']**2:.4g}}} = {res['derivada']:.6f}$."
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Diferenciación ({esquema}, orden {orden}, x*={x_eval:g})",
+        pasos_der_vivos,
+        clave_ia="ing_deriv_viva",
     )
 
     render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_deriv")
@@ -298,6 +324,24 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         }
         for i, b in enumerate(res["bloques"])
     ]
+    pasos_int_vivos = [
+        f"**Segmentación por paso $\\Delta h$ y paridad:** Se evaluaron `{res['n_intervalos_total']}` subintervalos aplicando `{res['reglas_aplicadas']}`."
+    ]
+    for i_b, b in enumerate(res["bloques"][:8], start=1):
+        pasos_int_vivos.append(
+            f"**Bloque {i_b} ({b['regla']} en $[{b['x_nodos'][0]:g}, {b['x_nodos'][-1]:g}]$):** `{b['formula']}` $\\implies$ Área $= {b['area']:.6f}$."
+        )
+    if len(res["bloques"]) > 8:
+        pasos_int_vivos.append(f"_(Se resumen los primeros 8 bloques de {len(res['bloques'])} totales; suma acumulada completa abajo)_.")
+    pasos_int_vivos.append(
+        f"**Suma integral total:** $\\sum \\text{{Áreas}}_k = {res['area_total']:.6f}$"
+        + (f" frente a la exacta `{res['exacta']['integral_exacta']:.6f}` ($E_a = {res['exacta']['error_absoluto']:.3e}$)." if res["exacta"] else ".")
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Cuadratura ({res['reglas_aplicadas']})",
+        pasos_int_vivos,
+        clave_ia=f"{clave_state}_viva",
+    )
     render_dataframe_acotado(filas_bloques, max_filas=300, key_prefix=f"tbl_{clave_state}_blq")
 
     st.markdown("### Bloque 4 — Áreas Sombreadas por Sub-bloque Paso a Paso")
@@ -530,6 +574,21 @@ def _frag_laboratorio_paso_variable() -> None:
         }
         for tramo in res_lab["tramos"]
     ]
+    pasos_lab_vivos = [
+        f"**Partición de pasos en vivo:** $\\Delta h = {[round(v, 2) for v in pasos_h]}$ sobre $f(x) = \\sin(x) + 0.5x + 1.5$ en $[{res_lab['x0']:.2f}, {res_lab['xf']:.2f}]$."
+    ]
+    for tramo in res_lab["tramos"]:
+        pasos_lab_vivos.append(
+            f"**Tramo {tramo['tramo_id']} ({tramo['nodos']}, $[{tramo['inicio']:.2f}, {tramo['fin']:.2f}]$):** `{tramo['metodo']}` ($h={tramo['ancho_h']:.2f}$) $\\implies$ Área $= {tramo['area']:.6f}$. {tramo['motivo']}"
+        )
+    pasos_lab_vivos.append(
+        f"**Total híbrido vs Exacta:** Suma $= {res_lab['integral_aprox']:.6f}$ frente a exacta ${res_lab['integral_exacta']:.6f}$ ($E_r = {res_lab['error_relativo_pct']:.4f}\\%)$."
+    )
+    render_deduccion_paso_a_paso_viva(
+        "Laboratorio Paso Variable (Δh)",
+        pasos_lab_vivos,
+        clave_ia="int_lab_pv_viva",
+    )
     render_dataframe_acotado(filas_diag, max_filas=300, key_prefix="df_lab_paso_variable")
 
 

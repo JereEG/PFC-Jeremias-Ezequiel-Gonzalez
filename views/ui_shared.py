@@ -249,8 +249,13 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
 
     ejemplo = meta.get("ejemplo_teorico", {})
     profundizacion = guru.get("profundizacion", [])
-    if profundizacion or ejemplo:
-        with st.expander("Ver desarrollo teórico detallado (Para profundizar)", expanded=False):
+    deduccion_teorica = meta.get("deduccion_teorica", [])
+    if deduccion_teorica or profundizacion or ejemplo:
+        with st.expander("Ver desarrollo teórico detallado y deducción paso a paso (Para profundizar)", expanded=False):
+            if deduccion_teorica:
+                st.markdown("#### Deducción matemática paso a paso con explicación")
+                for idx, paso_d in enumerate(deduccion_teorica, start=1):
+                    st.markdown(f"{idx}. {paso_d}")
             for detalle in profundizacion:
                 st.markdown(f"- {detalle}")
             if ejemplo:
@@ -340,15 +345,22 @@ def render_practica_catedra_info(
     titulo_practica: str | None = None,
     enunciado_practica: str | None = None,
     solucion_referencia: str | None = None,
+    pasos_deduccion: list[str] | None = None,
 ) -> None:
     """Renderiza únicamente la zona estática del ejercicio de cátedra (fuera de fragmentos)."""
     if titulo_practica or enunciado_practica:
         ctx = _obtener_ctx_ia()
+        if pasos_deduccion is None:
+            teoria_meta = ctx.get("teoria") or {}
+            pasos_ded = ((teoria_meta.get("practica_profesora") or {}).get("pasos_deduccion")) or []
+        else:
+            pasos_ded = list(pasos_deduccion)
         clave_p = titulo_practica or "practica"
         ctx["practica"][clave_p] = {
             "titulo": titulo_practica or "",
             "enunciado": enunciado_practica or "",
             "solucion_referencia": solucion_referencia or "",
+            "pasos_deduccion": list(pasos_ded),
         }
         st.markdown("### Práctica de Cátedra Interactiva")
         with st.container(border=True):
@@ -356,9 +368,34 @@ def render_practica_catedra_info(
                 st.markdown(f"**{titulo_practica}**")
             if enunciado_practica:
                 st.markdown(enunciado_practica)
-            if solucion_referencia:
-                with st.expander("Ver solución de referencia esperada", expanded=False):
-                    st.success(solucion_referencia)
+            if solucion_referencia or pasos_ded:
+                with st.expander("Ver solución de referencia esperada y deducción paso a paso", expanded=False):
+                    if pasos_ded:
+                        st.markdown("**Desarrollo paso a paso del ejercicio de cátedra:**")
+                        for idx, paso_p in enumerate(pasos_ded, start=1):
+                            st.markdown(f"{idx}. {paso_p}")
+                    if solucion_referencia:
+                        st.success(solucion_referencia)
+
+
+def render_deduccion_paso_a_paso_viva(
+    titulo: str,
+    pasos_md: list[str],
+    clave_ia: str,
+    expanded: bool = False,
+) -> None:
+    """Renderiza el desglose paso a paso con explicación de los cálculos activos y lo registra para IA."""
+    pasos_limpios = [str(p).strip() for p in pasos_md if str(p).strip()]
+    if not pasos_limpios:
+        return
+    with st.expander(f"Deducción práctica paso a paso con explicación — {titulo}", expanded=expanded):
+        for idx, paso in enumerate(pasos_limpios, start=1):
+            st.markdown(f"{idx}. {paso}")
+    registrar_contexto_ia(
+        f"Deducción paso a paso ({titulo})",
+        "\n".join(f"{idx}. {paso}" for idx, paso in enumerate(pasos_limpios, start=1)),
+        clave=f"deduc_{clave_ia}",
+    )
 
 
 def render_subtitulo_controles_vivo(
@@ -942,6 +979,11 @@ def _seccion_teoria_markdown(teoria: dict[str, Any] | None) -> list[str]:
         partes.append("**Fórmulas oficiales (LaTeX):**")
         for f_tex in formulas:
             partes.append(f"$$\n{f_tex}\n$$")
+    deduc_t = teoria.get("deduccion_teorica", [])
+    if deduc_t:
+        partes.append("**Deducción matemática paso a paso:**")
+        for idx, paso_d in enumerate(deduc_t, start=1):
+            partes.append(f"{idx}. {paso_d}")
     if guru.get("cuando_usar"):
         partes.append("**Cuándo elegirlo:** " + " | ".join(guru["cuando_usar"]))
     if guru.get("cuando_falla"):
@@ -991,6 +1033,10 @@ def construir_markdown_contexto_ia(
                 partes.append(f"### {p_item['titulo']}")
             if p_item.get("enunciado"):
                 partes.append(p_item["enunciado"])
+            if p_item.get("pasos_deduccion"):
+                partes.append("**Deducción paso a paso:**")
+                for idx, paso_p in enumerate(p_item["pasos_deduccion"], start=1):
+                    partes.append(f"{idx}. {paso_p}")
             if p_item.get("solucion_referencia"):
                 partes.append(f"- **Solución de referencia:** {p_item['solucion_referencia']}")
         partes.append("")
@@ -1138,6 +1184,7 @@ __all__ = [
     "render_controles_edicion_practica",
     "render_data_editor_arandu",
     "render_dataframe_acotado",
+    "render_deduccion_paso_a_paso_viva",
     "render_error_validacion",
     "render_excepcion_validacion",
     "render_mini_catalogo_vista",

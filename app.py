@@ -30,7 +30,12 @@ def _sincronizar_modulos_locales() -> None:
     modulo_tema = sys.modules.get("views.theme")
     falta_simbolo = modulo_tema is not None and any(
         not hasattr(modulo_tema, simbolo)
-        for simbolo in ("construir_html_tarjeta_catalogo", "PALETA_ARANDU", "hex_a_rgba")
+        for simbolo in (
+            "construir_html_tarjeta_catalogo",
+            "construir_html_control_tema_esquina",
+            "PALETA_ARANDU",
+            "hex_a_rgba",
+        )
     )
     if getattr(sys, "_arandu_firmas_modulos", None) != firmas_actuales or falta_simbolo:
         importlib.invalidate_caches()
@@ -50,6 +55,7 @@ from core.version import APP_VERSION, OFFLINE_PWA_URL, es_entorno_offline_wasm
 from views.theme import (
     FEEDBACK_FORMS_URL,
     aplicar_estilo_arandu,
+    construir_html_control_tema_esquina,
     obtener_logo_arandu_src,
     obtener_logos_app,
 )
@@ -152,6 +158,11 @@ def _al_cambiar_tema_arandu() -> None:
     )
 
 
+st.session_state.setdefault(
+    "ui_tema_claro",
+    st.session_state.get("arandu_tema_modo", "oscuro") == "claro",
+)
+
 with st.sidebar:
     if _sidebar_uri:
         st.markdown(
@@ -174,15 +185,6 @@ with st.sidebar:
             """,
             unsafe_allow_html=True,
         )
-    st.session_state.setdefault(
-        "ui_tema_claro",
-        st.session_state.get("arandu_tema_modo", "oscuro") == "claro",
-    )
-    st.toggle(
-        "Modo claro suave",
-        key="ui_tema_claro",
-        on_change=_al_cambiar_tema_arandu,
-    )
     st.markdown("---")
     _slot_sidebar_ia = st.container()
     with st.container(border=True):
@@ -226,6 +228,18 @@ st.markdown(
     '<div id="arandu-contenido-principal" tabindex="-1" class="arandu-sr-only">Contenido principal de Arandú</div>',
     unsafe_allow_html=True,
 )
+_, _col_tema_der = st.columns([5.6, 2.8])
+with _col_tema_der:
+    st.markdown(
+        construir_html_control_tema_esquina(st.session_state.get("arandu_tema_modo", "oscuro")),
+        unsafe_allow_html=True,
+    )
+    st.toggle(
+        ":material/dark_mode: / :material/light_mode: Modo claro",
+        key="ui_tema_claro",
+        on_change=_al_cambiar_tema_arandu,
+        help="Alternar entre Modo Oscuro Botánico y Modo Claro Suave.",
+    )
 _pg_activa = nav.run()
 _titulo_pg_ia = getattr(_pg_activa, "title", None) or "Arandú"
 

@@ -29,6 +29,7 @@ from views.ui_shared import (
     render_controles_edicion_practica,
     render_data_editor_arandu,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -117,6 +118,32 @@ def _frag_series_taylor(defaults: dict) -> None:
         )
 
         hist = res["historial"]
+        pasos_taylor_vivos = [
+            (
+                f"**Configuración y cota de parada (Scarborough):** Evaluamos $e^{{{x_val:g}}} = \\sum_{{k=0}}^{{{n_max}}} \\frac{{({x_val:g})^k}}{{k!}}$. "
+                f"Para garantizar $n = {cifras_s}$ cifras significativas, exigimos $E_{{rp}} < E_s = 0.5 \\times 10^{{2-{cifras_s}}}\\% = {res['es_scarborough_pct']:.4g}\\%$."
+            )
+        ]
+        for r_h in hist[:6]:
+            erp_txt = f", $E_{{rp}} = {r_h['error_aprox_rp_pct']:.4g}\\%$" if r_h["error_aprox_rp_pct"] is not None else ""
+            pasos_taylor_vivos.append(
+                f"**Término $k = {r_h['k']}$:** $T_{{{r_h['k']}}} = {r_h['expresion']} = {r_h['termino']:.8g} \\implies "
+                f"S_{{{r_h['k']}}} = {r_h['suma_parcial']:.8f}$ ($E_a = {r_h['error_absoluto']:.3e}${erp_txt})."
+            )
+        if len(hist) > 6:
+            pasos_taylor_vivos.append(
+                f"**Cierre en $k = {n_max}$:** La acumulación completa $N = {n_max}$ alcanza $S_{{{n_max}}} = {res['aproximacion_float']:.8f}$ "
+                f"frente a $\\exp({x_val:g}) = {res['valor_exacto']:.8f}$ ($E_a = {res['error_absoluto_final']:.3e}$)."
+            )
+        if res.get("termino_scarborough") is not None:
+            pasos_taylor_vivos.append(
+                f"**Verificación de corte:** El criterio de Scarborough ($|E_{{rp}}| < {res['es_scarborough_pct']:.4g}\\%$) se cumple por primera vez en el término $k = {res['termino_scarborough']}$."
+            )
+        render_deduccion_paso_a_paso_viva(
+            f"Serie Maclaurin e^x (x={x_val:g}, N={n_max})",
+            pasos_taylor_vivos,
+            clave_ia="fund_taylor_ex",
+        )
         render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_fund_taylor")
 
         st.markdown("### Bloque 4 — Convergencia Paso a Paso")
@@ -150,6 +177,17 @@ def _frag_series_taylor(defaults: dict) -> None:
         m3.metric("Error absoluto Eₐ", f"{res_pi['error_absoluto']:.4e}")
 
         hist_pi = res_pi["historial"]
+        cota_leib = 4.0 / (2 * pasos_pi + 1)
+        render_deduccion_paso_a_paso_viva(
+            f"Serie Gregory-Leibniz π (N={pasos_pi})",
+            [
+                f"**Planteo de la serie alternante:** Evaluamos $\\pi \\approx 4 \\sum_{{k=0}}^{{{pasos_pi - 1}}} \\frac{{(-1)^k}}{{2k+1}}$ acumulando signos alternados de amplitud decreciente.",
+                "**Primeros 4 términos explícitos:** $k=0: +4$; $k=1: 4 - \\frac{4}{3} \\approx 2.666667$; $k=2: 2.666667 + \\frac{4}{5} \\approx 3.466667$; $k=3: 3.466667 - \\frac{4}{7} \\approx 2.895238$ (oscila acotando el límite exacto).",
+                f"**Cota del primer término omitido:** Al detener en $N = {pasos_pi}$, el error teórico queda acotado por $\\frac{{4}}{{2({pasos_pi}) + 1}} = {cota_leib:.6f}$.",
+                f"**Resultado acumulado:** $\\pi_{{{pasos_pi}}} = {res_pi['pi_aproximado']:.6f}$ frente a $\\pi = {res_pi['pi_exacto']:.6f}$ ($E_a = {res_pi['error_absoluto']:.4e}$).",
+            ],
+            clave_ia="fund_taylor_pi",
+        )
         render_dataframe_acotado(hist_pi, max_filas=300, key_prefix="tbl_fund_pi")
         muestra_pi = muestrear_para_grafico(hist_pi, max_puntos=220)
         fig_pi = crear_figura_base_plotly(
@@ -227,6 +265,17 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
     st.markdown("### Bloque 3 — Impacto de la Pérdida de Asociatividad")
     st.metric("Valor Exacto (u - v) - w", f"{res_asoc['exacto']:.8g}")
     tabla_asoc = res_asoc["tabla"]
+    t_a0, t_a1 = tabla_asoc[0], tabla_asoc[1]
+    render_deduccion_paso_a_paso_viva(
+        f"Asociatividad en punto flotante (k={k_dig})",
+        [
+            f"**Referencia exacta:** Evaluamos en precisión exacta $(u - v) - w = ({u_val:g} - {v_val:g}) - {w_val:g} = {res_asoc['exacto']:.8g}$ con registros normalizados a $k = {k_dig}$ dígitos.",
+            f"**Agrupación 1 — `{t_a0['agrupacion']}`:** Al restar primero $(u - v)$ el intermedio normalizado vale `{t_a0['paso_intermedio_redondeo']:g}`; al operar luego con $w$ se obtiene `{t_a0['redondeo_norm']}` en redondeo ($E_r = {t_a0['error_redondeo_pct']:.3g}\\%$) y `{t_a0['trunc_norm']}` en truncamiento ($E_r = {t_a0['error_trunc_pct']:.3g}\\%$).",
+            f"**Agrupación 2 — `{t_a1['agrupacion']}`:** Al restar primero $(u - w)$ el intermedio en redondeo da `{t_a1['paso_intermedio_redondeo']:g}` (desplazando los dígitos menos significativos de $w$ si las magnitudes difieren); al restar $v$ resulta `{t_a1['redondeo_norm']}` en redondeo ($E_r = {t_a1['error_redondeo_pct']:.3g}\\%$) y `{t_a1['trunc_norm']}` en truncamiento ($E_r = {t_a1['error_trunc_pct']:.3g}\\%$).",
+            "**Conclusión:** En aritmética finita $(u \\ominus v) \\ominus w \\neq (u \\ominus w) \\ominus v$; conviene agrupar primero operandos cercanos en magnitud para minimizar la absorción.",
+        ],
+        clave_ia="fund_asoc_viva",
+    )
     render_dataframe_acotado(tabla_asoc, max_filas=300, key_prefix="tbl_fund_asoc")
 
     st.markdown("### Bloque 4 — Comparación Visual del Error Relativo (%)")
@@ -322,6 +371,20 @@ def _frag_cancelacion_cuadratica(defaults: dict) -> None:
 
     st.markdown("### Bloque 3 — Resolvente Clásica vs Racionalizada")
     tabla_comp = res["tabla_comparativa"]
+    pm = res["pasos_maquina"]
+    pasos_canc_vivos = [
+        f"**Representación a $k = {k_dig}$ dígitos:** $fl(a) = {pm['fl_a']:g}$, $fl(b) = {pm['fl_b']:g}$, $fl(c) = {pm['fl_c']:g}$. Raíces exactas: $x_1 = {res['x1_exacto']:.8g}$, $x_2 = {res['x2_exacto']:.8g}$.",
+        f"**Cálculo finito del discriminante:** $fl(b^2) = {pm['fl_b_sq']:g}$, $fl(4ac) = {pm['fl_4ac']:g} \\implies \\Delta = fl(b^2 - 4ac) = {pm['fl_disc']:g}$, cuya raíz normalizada es $\\sqrt{{\\Delta}} = {pm['fl_sqrt_disc']:g}$.",
+    ]
+    for fila_c in tabla_comp:
+        pasos_canc_vivos.append(
+            f"**{fila_c['metodo']}:** Resultado en máquina `{fila_c['aprox_norm']}` ($E_r = {fila_c['error_relativo_pct']:.3g}\\%$) — {fila_c['diagnostico']}"
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Cancelación Cuadrática (k={k_dig})",
+        pasos_canc_vivos,
+        clave_ia="fund_canc_viva",
+    )
     render_dataframe_acotado(tabla_comp, max_filas=300, key_prefix="tbl_fund_canc")
 
     st.markdown("### Bloque 4 — Comparación de Pérdida de Precisión")
@@ -410,6 +473,24 @@ def _frag_horner(defaults: dict) -> None:
         f"- **Punto $x = {x_val:g}$ | Dígitos $k = {k_dig}$ | Coeficientes:** `{coefs_curr}`\n"
         f"- **Valor exacto:** `{res['f_exacto']:.6f}` | **Estándar redondeo:** `{tabla_err[1]['aproximacion']:.6g}` | **Horner redondeo:** `{tabla_err[3]['aproximacion']:.6g}`",
         clave="fund_horner_res",
+    )
+    pasos_horner_vivos = [
+        f"**Factorización anidada:** Para grado $n = {len(coefs_curr) - 1}$ con coeficientes `{coefs_curr}` evaluado en $x = {x_val:g}$ ($k = {k_dig}$ dígitos, valor exacto ${res['f_exacto']:.6f}$), agrupamos productos sucesivos por $x$ evitando calcular potencias $x^2, x^3, \\dots$ por separado."
+    ]
+    for ph in res.get("pasos_horner_round", []):
+        pasos_horner_vivos.append(
+            f"**Paso $k = {ph['paso']}$ (Redondeo):** `{ph['operacion']}` $\\implies b = {ph['valor']:g}$."
+        )
+    pasos_horner_vivos.append(
+        f"**Comparación de precisión frente al exacto (${res['f_exacto']:.6f}$):** "
+        f"Estándar (Redondeo) = `{tabla_err[1]['aproximacion_norm']}` ($E_r = {tabla_err[1]['error_relativo_pct']:.3g}\\%$) frente a "
+        f"Horner (Redondeo) = `{tabla_err[3]['aproximacion_norm']}` ($E_r = {tabla_err[3]['error_relativo_pct']:.3g}\\%$) y "
+        f"Horner (Truncado) = `{tabla_err[2]['aproximacion_norm']}` ($E_r = {tabla_err[2]['error_relativo_pct']:.3g}\\%)$."
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Esquema Anidado de Horner (x={x_val:g}, k={k_dig})",
+        pasos_horner_vivos,
+        clave_ia="fund_horner_viva",
     )
     render_dataframe_acotado(tabla_err, max_filas=300, key_prefix="tbl_fund_horner")
 

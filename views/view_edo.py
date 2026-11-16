@@ -29,6 +29,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
@@ -203,6 +204,24 @@ def _frag_euler_heun(defaults: dict) -> None:
         f"- **Euler:** `y(x_f) = {res_eu['y_final']:.6f}` | **Heun:** `y(x_f) = {res_he['y_final']:.6f}`",
         clave="edo_eh_res",
     )
+    pasos_eh_vivos = [
+        f"**Condición inicial y malla:** EDO $y' = {comp_f['f_latex']}$, $y({x0:g}) = {y0:g}$, paso $h = {res_he['h']:g}$ hasta $x_f = {res_he['xf_real']:g}$ ({res_he['n_pasos']} pasos)."
+    ]
+    for r_eu, r_he in zip(res_eu["tabla"][1:6], res_he["tabla"][1:6]):
+        pasos_eh_vivos.append(
+            f"**Paso $k = {r_he['k']}$ ($x_{{{r_he['k']}}} = {r_he['x_k']:g}$):** "
+            f"Euler predice $y = {r_eu['y_k']:.6f}$; "
+            f"Heun parte con $k_1 = {r_he['k1_pend']:.5f}$, $P = {r_he['P_euler']:.6f}$, $k_2 = {r_he['k2_pend']:.5f}$ y corrige ({r_he['iters_corr']} it.) a $C = {r_he['C_final']:.6f}$."
+        )
+    if res_he["n_pasos"] > 5:
+        pasos_eh_vivos.append(
+            f"**Cierre en $x_f = {res_he['xf_real']:g}$:** Euler $= {res_eu['y_final']:.6f}$ | Heun $= {res_he['y_final']:.6f}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Euler vs Heun (h={res_he['h']:g})",
+        pasos_eh_vivos,
+        clave_ia="edo_eh_viva",
+    )
 
     t1, t2 = st.tabs(["Tabla Euler", "Tabla Heun (Euler Modificado)"])
     with t1:
@@ -272,6 +291,24 @@ def _frag_runge_kutta(defaults: dict) -> None:
         f"- **EDO:** `{f_str}` | **$x_0 = {x0:g}, y_0 = {y0:g}, h = {h:g}, x_f = {res_rk4['xf_real']:g}$** (`n = {res_rk4['n_pasos']}` pasos)\n"
         f"- **RK2:** `y(x_f) = {res_rk2['y_final']:.6f}` | **RK4:** `y(x_f) = {res_rk4['y_final']:.6f}`",
         clave="edo_rk_res",
+    )
+    pasos_rk_vivos = [
+        f"**Condición inicial:** $y' = {comp_f['f_latex']}$, $y({x0:g}) = {y0:g}$, paso $h = {res_rk4['h']:g}$ ({res_rk4['n_pasos']} pasos hasta $x_f = {res_rk4['xf_real']:g}$)."
+    ]
+    for r2, r4 in zip(res_rk2["tabla"][1:5], res_rk4["tabla"][1:5]):
+        pasos_rk_vivos.append(
+            f"**Paso $k = {r4['k']}$ ($x = {r4['x_k']:g}$):** "
+            f"RK2 ($k_1={r2['k1']:.5f}, k_2={r2['k2']:.5f}$) $\\implies y = {r2['y_k']:.6f}$; "
+            f"RK4 ($k_1={r4['k1']:.5f}, k_2={r4['k2']:.5f}, k_3={r4['k3']:.5f}, k_4={r4['k4']:.5f}$) $\\implies y = {r4['y_k']:.6f}$."
+        )
+    if res_rk4["n_pasos"] > 4:
+        pasos_rk_vivos.append(
+            f"**Cierre en $x_f = {res_rk4['xf_real']:g}$:** RK2 $= {res_rk2['y_final']:.6f}$ | RK4 $= {res_rk4['y_final']:.6f}$."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Runge-Kutta RK2 vs RK4 (h={res_rk4['h']:g})",
+        pasos_rk_vivos,
+        clave_ia="edo_rk_viva",
     )
 
     t1, t2 = st.tabs(["Tabla RK4 (k1, k2, k3, k4)", "Tabla RK2 (k1, k2)"])
@@ -343,6 +380,25 @@ def _frag_milne(defaults: dict) -> None:
         f"- **EDO:** `{f_str}` | **$x_0 = {x0:g}, y_0 = {y0:g}, h = {h:g}, x_f = {res['xf_real']:g}$**\n"
         f"- **Milne $y(x_f)$:** `{res['y_final']:.6f}` | **Pasos:** `{res['n_pasos']}` | **Error abs. final:** `{err_mil}`",
         clave="edo_mil_res",
+    )
+    arr_pts = ", ".join(f"y({r['x_k']:g})={r['C_final']:.6f}" for r in res["tabla"][:4])
+    pasos_mil_vivos = [
+        f"**Arranque RK4 ($k = 0 \\dots 3$, $h = {res['h']:g}$):** Se calculan los cuatro puntos iniciales obligatorios: `{arr_pts}`."
+    ]
+    for rm in res["tabla"][4:10]:
+        pasos_mil_vivos.append(
+            f"**Paso $k = {rm['k']}$ ($x = {rm['x_k']:g}$):** Predictor $P = {rm['P']:.6f}$, "
+            f"1ra corrección $C = {rm['C']:.6f}$, 2da corrección $C^1 = {rm['C_final']:.6f}$ "
+            f"($|C^1 - P| = {rm['diff_P_C']:.3e}$, error local est. $\\approx |C-P|/29 = {rm['diff_P_C']/29.0:.3e}$)."
+        )
+    if len(res["tabla"]) > 10:
+        pasos_mil_vivos.append(
+            f"**Cierre en $x_f = {res['xf_real']:g}$:** $y(x_f) = {res['y_final']:.6f}$ (error abs.: `{err_mil}`)."
+        )
+    render_deduccion_paso_a_paso_viva(
+        f"Milne Predictor-Corrector (h={res['h']:g})",
+        pasos_mil_vivos,
+        clave_ia="edo_mil_viva",
     )
 
     render_dataframe_acotado(res["tabla"], max_filas=300, key_prefix="tbl_edo_milne")

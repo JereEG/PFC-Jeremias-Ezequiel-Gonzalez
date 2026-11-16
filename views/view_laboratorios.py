@@ -23,6 +23,7 @@ from views.ui_shared import (
     registrar_contexto_ia,
     registrar_pagina_ia,
     render_dataframe_acotado,
+    render_deduccion_paso_a_paso_viva,
     render_plotly_arandu,
     render_subtitulo_controles_vivo,
 )
@@ -47,6 +48,17 @@ def _frag_lab1_sumatorias() -> None:
         f"- **Límite $N = {n_lim}$** | **Suma $1..N$:** `{res_n['total']:.0f}` | **Suma pares:** `{res_p['suma_pares']}` (`{res_p['cant_pares']}` pares)",
         clave="lab1_sum_res",
     )
+    m_par = res_p["cant_pares"]
+    render_deduccion_paso_a_paso_viva(
+        f"Sumatorias Lab 1 (N={n_lim})",
+        [
+            "**Deducción de la suma cerrada de Gauss:** Sumando $S = 1 + 2 + \\dots + N$ con su orden inverso $S = N + (N-1) + \\dots + 1$, cada par vertical suma $(N + 1)$ un total de $N$ veces: $2S = N(N+1) \\implies S = \\frac{N(N+1)}{2}$.",
+            f"**Sustitución para $N = {n_lim}$:** $\\frac{{{n_lim}\\cdot({n_lim} + 1)}}{{2}} = {n_lim * (n_lim + 1) // 2}$, idéntico al bucle acumulativo (`{res_n['total']:.0f}`).",
+            f"**Deducción de suma de pares:** Los pares positivos hasta $N$ son $2(1 + 2 + \\dots + m)$ con $m = \\lfloor N/2 \\rfloor = {m_par}$, luego $S_{{\\text{{pares}}}} = 2 \\cdot \\frac{{m(m+1)}}{{2}} = m(m+1)$.",
+            f"**Sustitución para $m = {m_par}$:** ${m_par} \\times ({m_par} + 1) = {res_p['suma_pares']}$.",
+        ],
+        clave_ia="lab1_sum_viva",
+    )
 
 
 @st.fragment
@@ -70,6 +82,21 @@ def _frag_lab1_fibonacci() -> None:
         "Lab 1 — Sucesión de Fibonacci y Razón Áurea",
         f"- **Términos $N = {n_fib}$** | **$F_N$:** `{res_f['ultimo_termino']}` | **Razón $F_n/F_{{n-1}}$:** `{ultima_razon}` | **$\\varphi$ exacto:** `{res_f['phi_exacto']:.12f}`",
         clave="lab1_fib_res",
+    )
+    err_phi_txt = (
+        f"con cociente $F_{{{n_fib}}}/F_{{{n_fib - 1}}} = {ultima_razon:.12f}$ (distancia $|r - \\varphi| = {abs(ultima_razon - res_f['phi_exacto']):.3e}$)"
+        if ultima_razon is not None
+        else "sin cociente disponible"
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Fibonacci y Razón Áurea φ (N={n_fib})",
+        [
+            "**Relación de recurrencia lineal:** Definimos $F_k = F_{k-1} + F_{k-2}$ partiendo de $F_1 = 0$, $F_2 = 1$ (generando $0, 1, 1, 2, 3, 5, 8, \\dots$).",
+            "**Paso al límite para el cociente sucesivo:** Dividiendo la recurrencia por $F_{k-1}$ resulta $\\frac{F_k}{F_{k-1}} = 1 + \\frac{F_{k-2}}{F_{k-1}}$. Cuando $k \\to \\infty$, el límite $\\varphi$ satisface $\\varphi = 1 + \\frac{1}{\\varphi} \\implies \\varphi^2 - \\varphi - 1 = 0$.",
+            f"**Resolución de la ecuación característica:** Aplicando la cuadrática con raíz positiva obtenemos $\\varphi = \\frac{{1 + \\sqrt{{5}}}}{{2}} \\approx {res_f['phi_exacto']:.12f}$.",
+            f"**Verificación en $N = {n_fib}$:** El término exacto es $F_{{{n_fib}}} = {res_f['ultimo_termino']}$ ({res_f['cifras_ultimo']} cifras), {err_phi_txt}.",
+        ],
+        clave_ia="lab1_fib_viva",
     )
 
     render_dataframe_acotado(
