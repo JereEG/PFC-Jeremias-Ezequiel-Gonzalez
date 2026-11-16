@@ -203,6 +203,8 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
             title=dict(
                 y=0.98,
                 yanchor="top",
+                automargin=True,
+                pad=dict(b=8),
                 font=dict(
                     color=paleta["texto_principal"],
                     family="'Outfit', sans-serif",
@@ -369,7 +371,13 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
         plot_bgcolor=paleta["bg_lienzo"],
         margin=dict(l=50, r=30, t=60, b=50),
         font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=13),
-        title=dict(font=dict(color=paleta["texto_principal"], family="'Outfit', sans-serif", size=17)),
+        title=dict(
+            y=0.98,
+            yanchor="top",
+            automargin=True,
+            pad=dict(b=8),
+            font=dict(color=paleta["texto_principal"], family="'Outfit', sans-serif", size=17),
+        ),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -584,6 +592,55 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         [data-testid="stExpander"] summary, [data-testid="stExpander"] summary p {
             color: var(--arandu-text) !important;
         }
+        [data-testid="stExpander"] details,
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpanderDetails"] {
+            background-color: var(--arandu-surface) !important;
+            color: var(--arandu-text) !important;
+            border-color: var(--arandu-border) !important;
+        }
+        [data-testid="stExpander"] summary:hover,
+        [data-testid="stExpander"] summary:focus-visible,
+        [data-testid="stExpander"] summary:active {
+            background-color: var(--arandu-elevated) !important;
+            color: var(--arandu-text) !important;
+        }
+        [data-testid="stExpander"] svg {
+            color: var(--arandu-text) !important;
+            fill: currentColor !important;
+        }
+        [data-baseweb="popover"],
+        [data-baseweb="popover"] > div,
+        [data-baseweb="menu"],
+        ul[role="listbox"],
+        li[role="option"],
+        [data-baseweb="menu"] li {
+            background-color: var(--arandu-canvas) !important;
+            color: var(--arandu-text) !important;
+            border-color: var(--arandu-border) !important;
+        }
+        li[role="option"]:hover,
+        li[role="option"][aria-selected="true"],
+        [data-baseweb="menu"] li:hover {
+            background-color: var(--arandu-surface) !important;
+            color: var(--arandu-text) !important;
+        }
+        [data-testid="stNumberInput"] button,
+        [data-testid="stNumberInputStepUp"],
+        [data-testid="stNumberInputStepDown"] {
+            background-color: var(--arandu-surface) !important;
+            color: var(--arandu-text) !important;
+            border-color: var(--arandu-border) !important;
+        }
+        [data-testid="stToast"],
+        [data-testid="stCode"],
+        pre,
+        [data-testid="stMarkdownContainer"] code {
+            background-color: var(--arandu-surface) !important;
+            color: var(--arandu-text) !important;
+            border-color: var(--arandu-border) !important;
+        }
+        [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {
             color: var(--arandu-text) !important;
         }
@@ -658,6 +715,18 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             --gdg-font-family: 'JetBrains Mono', monospace;
             --gdg-base-font-style: 0.98rem 'JetBrains Mono', monospace;
             --gdg-header-font-style: 600 0.98rem 'JetBrains Mono', monospace;
+            --gdg-bg-cell: var(--arandu-canvas);
+            --gdg-bg-cell-medium: var(--arandu-surface);
+            --gdg-bg-header: var(--arandu-surface);
+            --gdg-bg-header-hovered: var(--arandu-elevated);
+            --gdg-bg-header-has-focus: var(--arandu-elevated);
+            --gdg-text-dark: var(--arandu-text);
+            --gdg-text-medium: var(--arandu-muted);
+            --gdg-text-light: var(--arandu-text-faint);
+            --gdg-text-header: var(--arandu-gold);
+            --gdg-text-header-selected: var(--arandu-text);
+            --gdg-border-color: var(--arandu-border);
+            --gdg-horizontal-border-color: var(--arandu-grid);
         }}
         [data-testid="stDataFrame"] {{
             border: 1px solid var(--arandu-border) !important;
