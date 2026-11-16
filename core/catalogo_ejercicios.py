@@ -12,6 +12,7 @@ expresiones de cátedra para evitar sobrecarga de SymPy en tiempo real.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import numpy as np
@@ -123,11 +124,93 @@ EXPRESIONES_PRECOMPUTADAS_PUNTO_FIJO: dict[str, dict[str, Any]] = {
     },
 }
 
+GAUSS_16_PUNTOS: tuple[tuple[float, float], ...] = (
+    (-0.9894009349916499, 0.0271524594117541),
+    (-0.9445750230732326, 0.0622535239386479),
+    (-0.8656312023878318, 0.0951585116824928),
+    (-0.7554044083550030, 0.1246289712555339),
+    (-0.6178762444026438, 0.1495959888165767),
+    (-0.4580167776572274, 0.1691565193950025),
+    (-0.2816035507792589, 0.1826034150449236),
+    (-0.0950125098376374, 0.1894506104550685),
+    (0.0950125098376374, 0.1894506104550685),
+    (0.2816035507792589, 0.1826034150449236),
+    (0.4580167776572274, 0.1691565193950025),
+    (0.6178762444026438, 0.1495959888165767),
+    (0.7554044083550030, 0.1246289712555339),
+    (0.8656312023878318, 0.0951585116824928),
+    (0.9445750230732326, 0.0622535239386479),
+    (0.9894009349916499, 0.0271524594117541),
+)
+
+
+def integrar_gauss_legendre_16(fn_np, a: float, b: float, subpaneles: int = 8) -> float:
+    """Calcula la integral definida de alta precisión por cuadratura Gauss-Legendre de 16 puntos."""
+    a_f, b_f = float(a), float(b)
+    if a_f == b_f:
+        return 0.0
+    ancho = (b_f - a_f) / subpaneles
+    total = 0.0
+    xs_gl = np.array([p[0] for p in GAUSS_16_PUNTOS], dtype=float)
+    ws_gl = np.array([p[1] for p in GAUSS_16_PUNTOS], dtype=float)
+    for p in range(subpaneles):
+        sub_a = a_f + p * ancho
+        sub_b = sub_a + ancho
+        medio = 0.5 * (sub_a + sub_b)
+        semilong = 0.5 * (sub_b - sub_a)
+        vals = np.asarray(fn_np(medio + semilong * xs_gl), dtype=float)
+        vals = np.where(np.isfinite(vals), vals, 0.0)
+        total += semilong * float(np.dot(ws_gl, vals))
+    return float(total)
+
+
 INTEGRALES_PRECOMPUTADAS: dict[str, dict[str, Any]] = {
     "x**2 / 5": {
         "f_latex": r"\frac{x^{2}}{5}",
         "fn_np": lambda x: (np.asarray(x, dtype=float) ** 2) / 5.0,
         "exact_eval": lambda a, b: ((float(b) ** 3) - (float(a) ** 3)) / 15.0,
+    },
+    "sin(x) + 1.5": {
+        "f_latex": r"\sin{\left(x \right)} + 1.5",
+        "fn_np": lambda x: np.sin(np.asarray(x, dtype=float)) + 1.5,
+        "exact_eval": lambda a, b: (-math.cos(float(b)) + 1.5 * float(b))
+        - (-math.cos(float(a)) + 1.5 * float(a)),
+    },
+    "0.2*x**3 - x**2 + 3": {
+        "f_latex": r"0.2 x^{3} - x^{2} + 3",
+        "fn_np": lambda x: 0.2 * (np.asarray(x, dtype=float) ** 3) - (np.asarray(x, dtype=float) ** 2) + 3.0,
+        "exact_eval": lambda a, b: (0.05 * (float(b) ** 4) - (float(b) ** 3) / 3.0 + 3.0 * float(b))
+        - (0.05 * (float(a) ** 4) - (float(a) ** 3) / 3.0 + 3.0 * float(a)),
+    },
+    "x**3 - 2*x + 3": {
+        "f_latex": r"x^{3} - 2 x + 3",
+        "fn_np": lambda x: (np.asarray(x, dtype=float) ** 3) - 2.0 * np.asarray(x, dtype=float) + 3.0,
+        "exact_eval": lambda a, b: (0.25 * (float(b) ** 4) - (float(b) ** 2) + 3.0 * float(b))
+        - (0.25 * (float(a) ** 4) - (float(a) ** 2) + 3.0 * float(a)),
+    },
+    "0.5*x**2 + 0.5": {
+        "f_latex": r"0.5 x^{2} + 0.5",
+        "fn_np": lambda x: 0.5 * (np.asarray(x, dtype=float) ** 2) + 0.5,
+        "exact_eval": lambda a, b: ((float(b) ** 3) / 6.0 + 0.5 * float(b))
+        - ((float(a) ** 3) / 6.0 + 0.5 * float(a)),
+    },
+    "cos(2*x) + 0.3*x + 1.5": {
+        "f_latex": r"\cos{\left(2 x \right)} + 0.3 x + 1.5",
+        "fn_np": lambda x: np.cos(2.0 * np.asarray(x, dtype=float)) + 0.3 * np.asarray(x, dtype=float) + 1.5,
+        "exact_eval": lambda a, b: (0.5 * math.sin(2.0 * float(b)) + 0.15 * (float(b) ** 2) + 1.5 * float(b))
+        - (0.5 * math.sin(2.0 * float(a)) + 0.15 * (float(a) ** 2) + 1.5 * float(a)),
+    },
+    "exp(0.5*x)": {
+        "f_latex": r"e^{0.5 x}",
+        "fn_np": lambda x: np.exp(0.5 * np.asarray(x, dtype=float)),
+        "exact_eval": lambda a, b: 2.0 * (math.exp(0.5 * float(b)) - math.exp(0.5 * float(a))),
+    },
+    "3*exp(-x**2)": {
+        "f_latex": r"3 e^{- x^{2}}",
+        "fn_np": lambda x: 3.0 * np.exp(-(np.asarray(x, dtype=float) ** 2)),
+        "exact_eval": lambda a, b: integrar_gauss_legendre_16(
+            lambda t: 3.0 * np.exp(-(np.asarray(t, dtype=float) ** 2)), a, b
+        ),
     },
 }
 

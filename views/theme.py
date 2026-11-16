@@ -369,9 +369,9 @@ def _calcular_margen_superior_arandu(fig: go.Figure) -> int:
     ]
     if not nombres:
         return 60
-    ancho_estimado = sum(54 + len(nom) * 8 for nom in nombres)
-    filas = min(max(1, math.ceil(ancho_estimado / 440)), 4)
-    return 60 + filas * 34
+    ancho_estimado = sum(72 + len(nom) * 8.5 for nom in nombres)
+    filas = min(max(1, math.ceil(ancho_estimado / 360)), 4)
+    return 76 + filas * 38
 
 
 def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
@@ -2139,6 +2139,84 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             display: inline-block;
             flex-shrink: 0;
             vertical-align: middle;
+        }}
+        .arandu-simpson-weights-card {{
+            padding: 1rem 1.15rem;
+            border-radius: 12px;
+            border: 1px solid var(--arandu-border);
+            background-color: var(--arandu-surface);
+            margin: 0.65rem 0 1rem 0;
+        }}
+        .arandu-simpson-weights-head {{
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.75rem;
+        }}
+        .arandu-simpson-formula-badge {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.84rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            background-color: var(--arandu-canvas);
+            border: 1px solid var(--arandu-border);
+            color: var(--arandu-gold);
+        }}
+        .arandu-simpson-weights-grid {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.65rem;
+        }}
+        .arandu-simpson-pill {{
+            min-width: 78px;
+            padding: 0.42rem 0.65rem;
+            border-radius: 10px;
+            border: 1px solid var(--arandu-border);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: var(--arandu-text);
+        }}
+        .arandu-simpson-pill-extremo {{
+            background-color: var(--arandu-canvas);
+            border-color: var(--arandu-border);
+        }}
+        .arandu-simpson-pill-interior {{
+            background-color: var(--arandu-sage-14);
+            border-color: var(--arandu-sage-55);
+        }}
+        .arandu-simpson-pill-frontera {{
+            background-color: var(--arandu-gold-12);
+            border-color: var(--arandu-gold-45);
+        }}
+        .arandu-simpson-pill-x {{
+            font-size: 0.74rem;
+            color: var(--arandu-muted);
+        }}
+        .arandu-simpson-pill-w {{
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: var(--arandu-gold);
+            margin: 0.12rem 0;
+        }}
+        .arandu-simpson-pill-meta {{
+            font-size: 0.72rem;
+            color: var(--arandu-muted);
+        }}
+        .arandu-simpson-role-legend {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            padding-top: 0.55rem;
+            border-top: 1px solid var(--arandu-grid);
+            font-size: 0.84rem;
+            color: var(--arandu-muted);
         }}
         @media (max-width: 900px) {{
             .arandu-ng-summary-grid {{

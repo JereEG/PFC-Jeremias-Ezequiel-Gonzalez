@@ -30,7 +30,11 @@ from core._cache_utils import (
     evaluar_fn_vectorizado,
     integral_sympy_cached,
 )
-from core.catalogo_ejercicios import INTEGRALES_PRECOMPUTADAS
+from core.catalogo_ejercicios import (
+    GAUSS_16_PUNTOS as _GAUSS_16,
+    INTEGRALES_PRECOMPUTADAS,
+    integrar_gauss_legendre_16,
+)
 
 
 COLORES_REGLAS = {
@@ -441,6 +445,103 @@ def _construir_subbloques_segmento(
     return bloques
 
 
+def calcular_ponderacion_nodal(
+    x_values: list[float] | np.ndarray,
+    y_values: list[float] | np.ndarray,
+    bloques: list[dict[str, Any]],
+    metodo_solicitado: str = "simpson_1_3",
+) -> dict[str, Any]:
+    """Calcula pesos nodales wᵢ, roles (Extremo/Interior/Frontera) y suma ponderada Σ wᵢ·f(xᵢ)."""
+    x = np.asarray(x_values, dtype=float)
+    y = np.asarray(y_values, dtype=float)
+    n_pts = len(x)
+    n_int = n_pts - 1
+    reglas = list(dict.fromkeys(b["regla"] for b in bloques))
+    h_unicos = {round(float(b["h"]), 6) for b in bloques}
+
+    acum_coef = [0.0] * n_pts
+    es_frontera = [False] * n_pts
+    idx_cursor = 0
+    for b in bloques:
+        m_b = len(b["x_nodos"]) - 1
+        h_b = float(b["h"])
+        regla_b = b["regla"]
+        if regla_b == "Trapecio":
+            loc = [(h_b / 2.0) * 1.0, (h_b / 2.0) * 1.0]
+        elif regla_b == "Simpson 1/3":
+            loc = [(h_b / 3.0) * w for w in (1.0, 4.0, 1.0)]
+        else:
+            loc = [(3.0 * h_b / 8.0) * w for w in (1.0, 3.0, 3.0, 1.0)]
+        for offset, c_loc in enumerate(loc):
+            if idx_cursor + offset < n_pts:
+                acum_coef[idx_cursor + offset] += c_loc
+        if idx_cursor > 0 and idx_cursor < n_pts - 1:
+            es_frontera[idx_cursor] = True
+        idx_cursor += m_b
+
+    es_puro_uniforme = len(reglas) == 1 and len(h_unicos) == 1
+    if es_puro_uniforme:
+        regla_u = reglas[0]
+        h_u = float(bloques[0]["h"])
+        if regla_u == "Simpson 1/3":
+            escala = h_u / 3.0
+            escala_txt = f"{h_u:.4g} / 3"
+            patron = "(1, 4, 2, 4, ..., 2, 4, 1)"
+            pesos = [1 if (i == 0 or i == n_int) else (4 if i % 2 == 1 else 2) for i in range(n_pts)]
+        elif regla_u == "Simpson 3/8":
+            escala = (3.0 * h_u) / 8.0
+            escala_txt = f"3·{h_u:.4g} / 8"
+            patron = "(1, 3, 3, 2, 3, 3, ..., 2, 3, 3, 1)"
+            pesos = [1 if (i == 0 or i == n_int) else (2 if i % 3 == 0 else 3) for i in range(n_pts)]
+        else:
+            escala = h_u / 2.0
+            escala_txt = f"{h_u:.4g} / 2"
+            patron = "(1, 2, 2, ..., 2, 1)"
+            pesos = [1 if (i == 0 or i == n_int) else 2 for i in range(n_pts)]
+    else:
+        h_ref = float(bloques[0]["h"]) if bloques else 1.0
+        escala = max(h_ref / 24.0, 1e-12)
+        escala_txt = f"{h_ref:.4g} / 24"
+        patron = "Combinación adaptativa por sub-bloques (" + " + ".join(reglas) + ")"
+        pesos = [round(c / escala, 4) for c in acum_coef]
+        pesos = [int(round(w)) if abs(w - round(w)) < 1e-6 else w for w in pesos]
+
+    nodos_info = []
+    suma_ponderada = 0.0
+    for i in range(n_pts):
+        w = pesos[i]
+        yi = float(y[i])
+        wy = float(w) * yi
+        suma_ponderada += wy
+        if i == 0 or i == n_int:
+            rol = "Extremo"
+        elif es_frontera[i]:
+            rol = "Frontera"
+        else:
+            rol = "Interior"
+        nodos_info.append({
+            "index": i,
+            "x": float(x[i]),
+            "y": yi,
+            "weight": w,
+            "rol": rol,
+            "wy": wy,
+            "aporte": float(acum_coef[i] * yi),
+        })
+
+    area_res = float(sum(acum_coef[i] * float(y[i]) for i in range(n_pts)))
+    return {
+        "es_puro_uniforme": es_puro_uniforme,
+        "regla_principal": reglas[0] if reglas else metodo_solicitado,
+        "patron_texto": patron,
+        "escala": float(escala),
+        "escala_texto": escala_txt,
+        "suma_ponderada": float(suma_ponderada),
+        "formula_resumen": f"I ≈ ({escala_txt}) · ({suma_ponderada:.3f}) = {area_res:.6f}",
+        "nodos": nodos_info,
+    }
+
+
 def integrar_adaptativo_en_vivo(
     x_values: list[float] | np.ndarray,
     y_values: list[float] | np.ndarray,
@@ -571,20 +672,33 @@ def integrar_adaptativo_en_vivo(
     area_total = float(sum(b["area"] for b in bloques_globales))
     reglas_globales = list(dict.fromkeys(b["regla"] for b in bloques_globales))
 
-    # Verificación exacta precomputada (cátedra) o cacheada en SymPy
+    # Verificación exacta precomputada (cátedra), SymPy cacheado o Gauss-Legendre 16 pts
     exacta_info = None
     if f_str and f_str.strip():
         try:
             clave_f = " ".join(f_str.strip().split())
             a_tot, b_tot = float(x[0]), float(x[-1])
+            metodo_ref = "Analítica"
             if clave_f in INTEGRALES_PRECOMPUTADAS:
                 pre_int = INTEGRALES_PRECOMPUTADAS[clave_f]
                 integral_exacta = float(pre_int["exact_eval"](a_tot, b_tot))
                 f_latex_int = pre_int["f_latex"]
+                fn_np = pre_int["fn_np"]
+                if "exp(-x**2)" in clave_f:
+                    metodo_ref = "Gauss-Legendre 16 pts"
             else:
-                res_int = integral_sympy_cached(clave_f, a_tot, b_tot)
-                integral_exacta = float(res_int["integral_exacta"])
-                f_latex_int = res_int["f_latex"]
+                fn_np = compilar_lambdify_1d(clave_f)
+                try:
+                    res_int = integral_sympy_cached(clave_f, a_tot, b_tot)
+                    integral_exacta = float(res_int["integral_exacta"])
+                    f_latex_int = res_int["f_latex"]
+                except Exception:
+                    integral_exacta = integrar_gauss_legendre_16(fn_np, a_tot, b_tot)
+                    f_latex_int = clave_f
+                    metodo_ref = "Gauss-Legendre 16 pts"
+
+            xg = np.linspace(a_tot, b_tot, 240)
+            yg = evaluar_fn_vectorizado(fn_np, xg, limite_abs=1e9)
             err_abs = abs(integral_exacta - area_total)
             err_pct = (err_abs / abs(integral_exacta) * 100.0) if abs(integral_exacta) > 1e-14 else 0.0
             exacta_info = {
@@ -592,9 +706,13 @@ def integrar_adaptativo_en_vivo(
                 "error_absoluto": err_abs,
                 "error_relativo_pct": err_pct,
                 "f_latex": f_latex_int,
+                "metodo_ref": metodo_ref,
+                "curva_exacta": {"x": xg.tolist(), "y": yg},
             }
         except Exception:
             exacta_info = None
+
+    ponderacion = calcular_ponderacion_nodal(x, y, bloques_globales, metodo_solicitado)
 
     return {
         "area_total": area_total,
@@ -608,6 +726,7 @@ def integrar_adaptativo_en_vivo(
         "n_intervalos_total": len(x) - 1,
         "n_puntos_total": len(x),
         "exacta": exacta_info,
+        "ponderacion_nodal": ponderacion,
         "duracion": time.perf_counter() - t_ini,
     }
 

@@ -7,11 +7,15 @@ Arquitectura Static-First con aislamiento mediante @st.fragment.
 
 from __future__ import annotations
 
+import html
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from core.catalogo_ejercicios import INTEGRALES_PRECOMPUTADAS
 from core.integracion import integrar_paso_variable
 from core.integracion_derivacion import (
     derivada_newton_gregory_ascendente,
@@ -38,6 +42,218 @@ from views.ui_shared import (
     render_subtitulo_controles_vivo,
     rerun_fragmento_seguro,
 )
+
+
+_ESCENARIOS_INTEGRACION: dict[str, tuple[dict[str, Any], ...]] = {
+    "trapecio": (
+        {
+            "id": "tp6_ej1",
+            "nombre": "TP6 Ej. 1 (Cátedra): y = x²/5 en [0.5, 25.5] (h=5, n=5)",
+            "f_str": "x**2 / 5",
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5, 25.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05, 130.05],
+            "nota": "Ejercicio oficial TP6 Ej. 1: trapecios compuestos sobre tabla con h = 5.",
+        },
+        {
+            "id": "trap_sin",
+            "nombre": "Visualizador: f(x) = sin(x) + 1.5 en [0, 4] (n=6)",
+            "f_str": "sin(x) + 1.5",
+            "a": 0.0,
+            "b": 4.0,
+            "n": 6,
+            "nota": "Función trigonométrica suave para observar cómo los segmentos lineales subestiman crestas y sobreestiman valles.",
+        },
+        {
+            "id": "trap_gauss",
+            "nombre": "Visualizador: Campana 3·e^(-x²) en [-2, 2] (n=8)",
+            "f_str": "3*exp(-x**2)",
+            "a": -2.0,
+            "b": 2.0,
+            "n": 8,
+            "nota": "Campana gaussiana sin primitiva elemental cerrada; comparada frente a Gauss-Legendre de 16 puntos.",
+        },
+    ),
+    "simpson_1_3": (
+        {
+            "id": "tp6_ej2",
+            "nombre": "TP6 Ej. 2 (Cátedra): y = x²/5 en [0.5, 20.5] (n=4, h=5)",
+            "f_str": "x**2 / 5",
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05],
+            "nota": "Ejercicio oficial TP6 Ej. 2: Simpson 1/3 puro con n = 4 subintervalos pares (error nulo en grado <= 3).",
+        },
+        {
+            "id": "s13_sin",
+            "nombre": "Visualizador: f(x) = sin(x) + 1.5 en [0, 4] (n=4)",
+            "f_str": "sin(x) + 1.5",
+            "a": 0.0,
+            "b": 4.0,
+            "n": 4,
+            "nota": "Función trigonométrica suave ideal para observar cómo las parábolas se adaptan a crestas y valles.",
+        },
+        {
+            "id": "s13_cub",
+            "nombre": "Visualizador: f(x) = 0.2x³ - x² + 3 en [0, 4] (n=4)",
+            "f_str": "0.2*x**3 - x**2 + 3",
+            "a": 0.0,
+            "b": 4.0,
+            "n": 4,
+            "nota": "Polinomio cúbico (grado 3). Simpson 1/3 integra polinomios de hasta grado 3 con error nulo.",
+        },
+        {
+            "id": "s13_gauss",
+            "nombre": "Visualizador: f(x) = 3·e^(-x²) en [-2, 2] (n=6)",
+            "f_str": "3*exp(-x**2)",
+            "a": -2.0,
+            "b": 2.0,
+            "n": 6,
+            "nota": "Campana de Gauss sin antiderivada elemental cerrada; comparada frente a cuadratura de alta precisión.",
+        },
+        {
+            "id": "s13_parab",
+            "nombre": "Visualizador: f(x) = 0.5x² + 0.5 en [0, 4] (n=4)",
+            "f_str": "0.5*x**2 + 0.5",
+            "a": 0.0,
+            "b": 4.0,
+            "n": 4,
+            "nota": "Parábola cuadrática pura. Al coincidir exactamente con el modelo interpolador, el error es siempre nulo.",
+        },
+        {
+            "id": "s13_osc",
+            "nombre": "Visualizador: f(x) = cos(2x) + 0.3x + 1.5 en [0, 4] (n=6)",
+            "f_str": "cos(2*x) + 0.3*x + 1.5",
+            "a": 0.0,
+            "b": 4.0,
+            "n": 6,
+            "nota": "Función oscilatoria combinada con tendencia lineal. Aumentá n para capturar las ondas.",
+        },
+    ),
+    "simpson_3_8": (
+        {
+            "id": "tp6_ej3",
+            "nombre": "TP6 Ej. 3 (Cátedra): y = x²/5 en [0.5, 25.5] (n=5, Combinado)",
+            "f_str": "x**2 / 5",
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5, 25.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05, 130.05],
+            "nota": "Ejercicio oficial TP6 Ej. 3: n = 5 impar resuelto con Simpson 3/8 [0.5, 15.5] + Simpson 1/3 [15.5, 25.5].",
+        },
+        {
+            "id": "s38_cub",
+            "nombre": "Visualizador: f(x) = x³ - 2x + 3 en [-1, 2] (n=6)",
+            "f_str": "x**3 - 2*x + 3",
+            "a": -1.0,
+            "b": 2.0,
+            "n": 6,
+            "nota": "Polinomio cúbico (grado 3). Simpson 3/8 ajusta cúbicas exactas, logrando error nulo incluso con n = 3.",
+        },
+        {
+            "id": "s38_sin",
+            "nombre": "Visualizador: f(x) = sin(x) + 1.5 en [0, 4.5] (n=6)",
+            "f_str": "sin(x) + 1.5",
+            "a": 0.0,
+            "b": 4.5,
+            "n": 6,
+            "nota": "Función trigonométrica suave. Cada bloque cúbico abraza puntos de inflexión y curvaturas.",
+        },
+        {
+            "id": "s38_exp",
+            "nombre": "Visualizador: f(x) = e^(0.5x) en [0, 3] (n=6)",
+            "f_str": "exp(0.5*x)",
+            "a": 0.0,
+            "b": 3.0,
+            "n": 6,
+            "nota": "Crecimiento exponencial continuo. Al aumentar los bloques cúbicos, el error disminuye con orden O(h^4).",
+        },
+        {
+            "id": "s38_gauss",
+            "nombre": "Visualizador: f(x) = 3·e^(-x²) en [-1.5, 1.5] (n=6)",
+            "f_str": "3*exp(-x**2)",
+            "a": -1.5,
+            "b": 1.5,
+            "n": 6,
+            "nota": "Campana de Gauss sin antiderivada elemental cerrada; comparada frente a cuadratura de Gauss-Legendre 16 pts.",
+        },
+    ),
+}
+
+
+def _materializar_escenario_integracion(esc: dict[str, Any]) -> tuple[list[float], list[float]]:
+    if "x" in esc and "y" in esc:
+        return list(esc["x"]), list(esc["y"])
+    a_v = float(esc["a"])
+    b_v = float(esc["b"])
+    n_v = int(esc["n"])
+    xs_v = np.linspace(a_v, b_v, n_v + 1)
+    fn_np = INTEGRALES_PRECOMPUTADAS[esc["f_str"]]["fn_np"]
+    ys_v = np.asarray(fn_np(xs_v), dtype=float)
+    return [round(float(v), 6) for v in xs_v], [round(float(v), 6) for v in ys_v]
+
+
+def _al_cambiar_preset_integracion(clave_state: str, metodo_solicitado: str) -> None:
+    escenarios = _ESCENARIOS_INTEGRACION.get(metodo_solicitado, ())
+    id_sel = st.session_state.get(f"ui_{clave_state}_preset")
+    esc = next((e for e in escenarios if e["id"] == id_sel), None)
+    if esc is None:
+        return
+    xn, yn = _materializar_escenario_integracion(esc)
+    st.session_state[f"{clave_state}_x"] = xn
+    st.session_state[f"{clave_state}_y"] = yn
+    st.session_state[f"{clave_state}_f_str"] = esc["f_str"]
+    st.session_state[f"{clave_state}_nota"] = esc["nota"]
+    for w_suf in ("__editor_df", "fstr", "dh", "n", "lim_a", "lim_b"):
+        st.session_state.pop(f"{clave_state}{w_suf}" if w_suf.startswith("__") else f"ui_{clave_state}_{w_suf}", None)
+
+
+def _construir_html_ponderacion_nodal(pond: dict[str, Any], clave_state: str) -> str:
+    nodos = pond.get("nodos", [])
+    regla = pond.get("regla_principal", "")
+    w_int_label = "4" if "1/3" in regla else ("3" if "3/8" in regla else "2")
+    pills = []
+    for nd in nodos:
+        rol = nd["rol"]
+        cls_rol = (
+            "arandu-simpson-pill-extremo"
+            if rol == "Extremo"
+            else ("arandu-simpson-pill-frontera" if rol == "Frontera" else "arandu-simpson-pill-interior")
+        )
+        pills.append(
+            f'<div class="arandu-simpson-pill {cls_rol}" '
+            f'title="Nodo x{nd["index"]}={nd["x"]:.4f} | f={nd["y"]:.5f} | Peso={nd["weight"]} ({rol})">'
+            f'<span class="arandu-simpson-pill-x">x<sub>{nd["index"]}</sub>={nd["x"]:.2f}</span>'
+            f'<span class="arandu-simpson-pill-w">w = {nd["weight"]}</span>'
+            f'<span class="arandu-simpson-pill-meta">{html.escape(rol)} · f={nd["y"]:.2f}</span>'
+            "</div>"
+        )
+    titulo_vec = "Fórmula y Vector de Coeficientes de Ponderación"
+    patron_esc = html.escape(str(pond.get("patron_texto", "")))
+    resumen_esc = html.escape(str(pond.get("formula_resumen", "")))
+    return (
+        '<div class="arandu-simpson-weights-card" role="region" aria-label="Vector de coeficientes de ponderación nodal">'
+        '<div class="arandu-simpson-weights-head">'
+        f'<div><strong>{titulo_vec}</strong><br/>'
+        f'<span style="font-size:0.86rem;color:var(--arandu-muted);">Patrón: <code>{patron_esc}</code></span></div>'
+        f'<div class="arandu-simpson-formula-badge">{resumen_esc}</div>'
+        "</div>"
+        f'<div class="arandu-simpson-weights-grid">{"".join(pills)}</div>'
+        '<div class="arandu-simpson-role-legend">'
+        '<span><strong>Extremo (w=1):</strong> bordes del intervalo [a, b]</span>'
+        f'<span><strong>Interior (w={w_int_label}):</strong> nodos internos de cada bloque</span>'
+        '<span><strong>Frontera (w=2):</strong> nodos compartidos entre bloques adyacentes</span>'
+        "</div>"
+        "</div>"
+    )
+
+
+def _construir_md_tabla_nodal(pond: dict[str, Any]) -> str:
+    lineas = [
+        "| i | xᵢ | f(xᵢ) | Peso wᵢ | Rol | wᵢ · f(xᵢ) | Aporte al área |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for nd in pond.get("nodos", []):
+        lineas.append(
+            f"| {nd['index']} | {nd['x']:.4f} | {nd['y']:.5f} | {nd['weight']} | {nd['rol']} | {nd['wy']:.5f} | {nd['aporte']:.6f} |"
+        )
+    return "\n".join(lineas)
 
 
 @st.fragment
@@ -188,12 +404,31 @@ def _tab_diferenciacion() -> None:
 
 @st.fragment
 def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) -> None:
+    escenarios = _ESCENARIOS_INTEGRACION.get(metodo_solicitado, ())
     modo = render_controles_edicion_practica(
         clave_state=clave_state,
         defaults_dict=defaults,
-        mensaje_edicion=r"Modifica los puntos tabulados o ajusta el paso $\Delta h$ y la cantidad de subintervalos $n$.",
+        mensaje_edicion=r"Modifica los puntos tabulados, cambia de función o ajusta límites $[a, b]$, paso $\Delta h$ y subintervalos $n$.",
     )
-    solo_lectura = modo == "catedra"
+    if escenarios:
+        ids_esc = [e["id"] for e in escenarios]
+        mapa_nom = {e["id"]: e["nombre"] for e in escenarios}
+        preset_key = f"ui_{clave_state}_preset"
+        if preset_key not in st.session_state or st.session_state[preset_key] not in ids_esc:
+            st.session_state[preset_key] = ids_esc[0]
+        esc_id = st.selectbox(
+            "Escenario o función de estudio:",
+            options=ids_esc,
+            format_func=lambda k_esc: mapa_nom[k_esc],
+            key=preset_key,
+            on_change=_al_cambiar_preset_integracion,
+            args=(clave_state, metodo_solicitado),
+        )
+        esc_actual = next((e for e in escenarios if e["id"] == esc_id), escenarios[0])
+        solo_lectura = (modo == "catedra") and (esc_id == ids_esc[0])
+        st.caption(esc_actual["nota"])
+    else:
+        solo_lectura = modo == "catedra"
 
     col_tbl, col_ctrl = st.columns([1.4, 1.3])
     with col_tbl:
@@ -223,11 +458,40 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
             st.session_state[f"{clave_state}_f_str"] = f_str
 
         xs_act = st.session_state[f"{clave_state}_x"]
+        ys_act = st.session_state[f"{clave_state}_y"]
+        a_act = float(xs_act[0])
+        b_act = float(xs_act[-1])
         h_actual = float(xs_act[1] - xs_act[0]) if len(xs_act) >= 2 else 1.0
         n_actual = max(1, len(xs_act) - 1)
 
-        st.markdown(r"**Ajuste de Paso $\Delta h$ y Subintervalos $n$ en Vivo:**")
+        if metodo_solicitado == "simpson_1_3":
+            info_bloques = f"h = {h_actual:.4f} | {n_actual // 2} parábola(s)" if n_actual % 2 == 0 else f"h = {h_actual:.4f} | n={n_actual} (adaptativo)"
+        elif metodo_solicitado == "simpson_3_8":
+            info_bloques = f"h = {h_actual:.4f} | {n_actual // 3} bloque(s) cúbico(s)" if n_actual % 3 == 0 else f"h = {h_actual:.4f} | n={n_actual} (combinado)"
+        else:
+            info_bloques = f"h = {h_actual:.4f} | {n_actual} trapecio(s)"
+
+        st.markdown(rf"**Ajuste de Límites $[a, b]$, Paso $\Delta h$ y Subintervalos $n$:** (`{info_bloques}`)")
         render_subtitulo_controles_vivo()
+
+        c_a, c_b = st.columns(2)
+        lim_a = c_a.number_input(
+            "Límite inferior $a$:",
+            value=float(round(a_act, 4)),
+            step=0.25,
+            format="%.4f",
+            disabled=solo_lectura,
+            key=f"ui_{clave_state}_lim_a",
+        )
+        lim_b = c_b.number_input(
+            "Límite superior $b$:",
+            value=float(round(b_act, 4)),
+            step=0.25,
+            format="%.4f",
+            disabled=solo_lectura,
+            key=f"ui_{clave_state}_lim_b",
+        )
+
         nuevo_h = st.number_input(
             r"Paso $\Delta h$ deseado (prueba cambiarlo para observar adaptación de paridad):",
             value=float(round(h_actual, 4)),
@@ -239,8 +503,8 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         nuevo_n = st.slider(
             "O fijar cantidad de subintervalos $n$:",
             min_value=2,
-            max_value=24,
-            value=n_actual,
+            max_value=30,
+            value=min(30, max(2, n_actual)),
             disabled=solo_lectura,
             key=f"ui_{clave_state}_n",
         )
@@ -251,21 +515,43 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
             key=f"ui_{clave_state}_est",
         )
 
-        b1, b2 = st.columns(2)
+        b1, b2, b3 = st.columns(3)
         if not solo_lectura and b1.button("Aplicar Δh", key=f"btn_dh_{clave_state}", use_container_width=True):
-            xn, yn, _ = remuestrear_tabla_integracion(defaults["x"], defaults["y"], nuevo_h=nuevo_h, f_str=f_str or None)
+            xn, yn, _ = remuestrear_tabla_integracion(xs_act, ys_act, nuevo_h=nuevo_h, f_str=f_str or None)
             st.session_state[f"{clave_state}_x"] = xn
             st.session_state[f"{clave_state}_y"] = yn
             if f"{clave_state}__editor_df" in st.session_state:
                 del st.session_state[f"{clave_state}__editor_df"]
             rerun_fragmento_seguro()
         if not solo_lectura and b2.button("Aplicar n subinterv.", key=f"btn_n_{clave_state}", use_container_width=True):
-            xn, yn, _ = remuestrear_tabla_integracion(defaults["x"], defaults["y"], nuevo_n=nuevo_n, f_str=f_str or None)
+            xn, yn, _ = remuestrear_tabla_integracion(xs_act, ys_act, nuevo_n=nuevo_n, f_str=f_str or None)
             st.session_state[f"{clave_state}_x"] = xn
             st.session_state[f"{clave_state}_y"] = yn
             if f"{clave_state}__editor_df" in st.session_state:
                 del st.session_state[f"{clave_state}__editor_df"]
             rerun_fragmento_seguro()
+        if not solo_lectura and b3.button("Aplicar [a, b]", key=f"btn_ab_{clave_state}", use_container_width=True):
+            if lim_b <= lim_a + 1e-6:
+                st.warning("El límite superior b debe ser estrictamente mayor que a.")
+            else:
+                xn, yn, _ = remuestrear_tabla_integracion([lim_a, lim_b], [0.0, 0.0], nuevo_n=nuevo_n, f_str=f_str or None) if (f_str and f_str.strip()) else remuestrear_tabla_integracion([lim_a, lim_b], [ys_act[0], ys_act[-1]], nuevo_n=nuevo_n, f_str=None)
+                st.session_state[f"{clave_state}_x"] = xn
+                st.session_state[f"{clave_state}_y"] = yn
+                if f"{clave_state}__editor_df" in st.session_state:
+                    del st.session_state[f"{clave_state}__editor_df"]
+                rerun_fragmento_seguro()
+
+        c_cap1, c_cap2 = st.columns(2)
+        mostrar_polinomios = c_cap1.checkbox(
+            "Polinomios sombreados",
+            value=True,
+            key=f"ui_{clave_state}_cap_poly",
+        )
+        mostrar_nodos = c_cap2.checkbox(
+            "Nodos diferenciados (wᵢ)",
+            value=True,
+            key=f"ui_{clave_state}_cap_nodes",
+        )
 
     xs = st.session_state[f"{clave_state}_x"]
     ys = st.session_state[f"{clave_state}_y"]
@@ -295,23 +581,49 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
             st.success(aviso)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Área Total Estimada", f"{res['area_total']:.6f}")
-    m2.metric("Reglas Aplicadas", res["reglas_aplicadas"])
-    m3.metric("Subintervalos (n)", res["n_intervalos_total"])
+    m1.metric("Área Total Estimada", f"{res['area_total']:.6f}", f"{res['reglas_aplicadas']} (n={res['n_intervalos_total']})")
     if res["exacta"]:
-        m4.metric("Integral Exacta", f"{res['exacta']['integral_exacta']:.6f}", f"Ea {res['exacta']['error_absoluto']:.2e}")
+        ex_inf = res["exacta"]
+        m2.metric("Integral Exacta", f"{ex_inf['integral_exacta']:.6f}", ex_inf.get("metodo_ref", "Analítica"))
+        m3.metric("Error Absoluto |E|", f"{ex_inf['error_absoluto']:.3e}" if ex_inf["error_absoluto"] >= 1e-11 else "0.000000")
+        m4.metric("Error Relativo (%)", f"{ex_inf['error_relativo_pct']:.4f}%" if ex_inf["error_relativo_pct"] >= 1e-9 else "0.0000%")
     else:
-        m4.metric("Exacta", "No provista")
+        m2.metric("Integral Exacta", "No provista")
+        m3.metric("Error Absoluto |E|", "-")
+        m4.metric("Error Relativo (%)", "-")
+
+    pond = res.get("ponderacion_nodal")
     exacta_md = (
-        f"- **Integral exacta:** `{res['exacta']['integral_exacta']:.6f}` | **Error abs.:** `{res['exacta']['error_absoluto']:.2e}`"
+        f"- **Integral exacta ({res['exacta'].get('metodo_ref', 'Analítica')}):** `{res['exacta']['integral_exacta']:.6f}` | "
+        f"**Error abs.:** `{res['exacta']['error_absoluto']:.3e}` | **Error rel.:** `{res['exacta']['error_relativo_pct']:.4f}%`"
         if res["exacta"]
         else ""
     )
+    pond_md = ""
+    if pond:
+        pond_md = f"\n- **Fórmula de ponderación nodal:** `{pond['formula_resumen']}` (Patrón `{pond['patron_texto']}`)\n" + _construir_md_tabla_nodal(pond)
     registrar_contexto_ia(
         f"Resultado Cuadratura ({clave_state})",
-        f"- **Área estimada:** `{res['area_total']:.6f}` | **Reglas aplicadas:** {res['reglas_aplicadas']} | **Subintervalos:** `{res['n_intervalos_total']}`\n{exacta_md}".strip(),
+        f"- **Área estimada:** `{res['area_total']:.6f}` | **Reglas aplicadas:** {res['reglas_aplicadas']} | **Subintervalos:** `{res['n_intervalos_total']}`\n{exacta_md}{pond_md}".strip(),
         clave=f"{clave_state}_res",
     )
+
+    if pond:
+        st.markdown(_construir_html_ponderacion_nodal(pond, clave_state), unsafe_allow_html=True)
+        with st.expander("Ver tabla detallada de evaluación nodal (xᵢ, f(xᵢ), wᵢ, wᵢ·f(xᵢ))", expanded=False):
+            filas_nodal = [
+                {
+                    "i": nd["index"],
+                    "xᵢ": round(nd["x"], 4),
+                    "f(xᵢ)": round(nd["y"], 5),
+                    "Peso wᵢ": nd["weight"],
+                    "Rol": nd["rol"],
+                    "wᵢ · f(xᵢ)": round(nd["wy"], 5),
+                    "Aporte al área": round(nd["aporte"], 6),
+                }
+                for nd in pond["nodos"]
+            ]
+            render_dataframe_acotado(filas_nodal, max_filas=300, key_prefix=f"tbl_{clave_state}_nodal")
 
     filas_bloques = [
         {
@@ -372,31 +684,97 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         "Simpson 1/3": "solid",
         "Simpson 3/8": "dot",
     }
-    for idx, b in enumerate(bloques[:k_vis], start=1):
+    reglas_distintas = len({b["regla"] for b in bloques})
+    if mostrar_polinomios:
+        for idx, b in enumerate(bloques[:k_vis], start=1):
+            if reglas_distintas == 1 and b["regla"] in ("Simpson 1/3", "Simpson 3/8"):
+                es_par_b = idx % 2 == 0
+                fill_b = PALETA_ARANDU["oro_fill"] if es_par_b else PALETA_ARANDU["salvia_fill"]
+                col_b = PALETA_ARANDU["oro"] if es_par_b else PALETA_ARANDU["salvia"]
+                etq_bloque = f"B{idx} ({'par' if es_par_b else 'impar'}): {b['regla']} (A={b['area']:.3f})"
+            else:
+                fill_b = fill_por_regla.get(b["regla"], PALETA_ARANDU["salvia_fill"])
+                col_b = color_por_regla.get(b["regla"], PALETA_ARANDU["salvia"])
+                etq_bloque = f"B{idx}: {b['regla']} (A={b['area']:.3f})"
+            fig.add_trace(
+                go.Scatter(
+                    x=b["x_curva"],
+                    y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
+                    mode="lines",
+                    fill="tozeroy",
+                    fillcolor=fill_b,
+                    name=etq_bloque,
+                    line=dict(
+                        color=col_b,
+                        width=2.4,
+                        dash=dash_por_regla.get(b["regla"], "solid"),
+                    ),
+                )
+            )
+            bx0, bxf = float(b["x_nodos"][0]), float(b["x_nodos"][-1])
+            by0, byf = float(b["y_nodos"][0]), float(b["y_nodos"][-1])
+            fig.add_trace(
+                go.Scatter(
+                    x=[bx0, bx0, None, bxf, bxf],
+                    y=[0.0, by0, None, 0.0, byf],
+                    mode="lines",
+                    showlegend=False,
+                    hoverinfo="skip",
+                    line=dict(color=col_b, width=1.1, dash="dot"),
+                )
+            )
+
+    if res["exacta"] and res["exacta"].get("curva_exacta"):
+        curva_ex = res["exacta"]["curva_exacta"]
         fig.add_trace(
             go.Scatter(
-                x=b["x_curva"],
-                y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
+                x=curva_ex["x"],
+                y=limpiar_valores_plotly(curva_ex["y"], limite_abs=1e9),
                 mode="lines",
-                fill="tozeroy",
-                fillcolor=fill_por_regla.get(b["regla"], PALETA_ARANDU["salvia_fill"]),
-                name=f"B{idx}: {b['regla']} (A={b['area']:.3f})",
-                line=dict(
-                    color=color_por_regla.get(b["regla"], PALETA_ARANDU["salvia"]),
-                    width=2.4,
-                    dash=dash_por_regla.get(b["regla"], "solid"),
-                ),
+                name="Curva exacta f(x)",
+                line=dict(color=PALETA_ARANDU["texto_principal"], width=2.6),
             )
         )
-    fig.add_trace(
-        go.Scatter(
-            x=xs,
-            y=ys,
-            mode="markers",
-            name="Nodos tabla",
-            marker=dict(size=9, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
+
+    if mostrar_nodos and pond:
+        grupos_nodos = (
+            ("Extremo (w=1)", "Extremo", PALETA_ARANDU["marfil_nodo"], "square"),
+            ("Interior", "Interior", PALETA_ARANDU["salvia"], "circle"),
+            ("Frontera (w=2)", "Frontera", PALETA_ARANDU["oro"], "diamond"),
         )
-    )
+        ver_etq = len(xs) <= 15
+        for nombre_grp, rol_filtro, col_grp, simb_grp in grupos_nodos:
+            sub_nd = [nd for nd in pond["nodos"] if nd["rol"] == rol_filtro]
+            if not sub_nd:
+                continue
+            fig.add_trace(
+                go.Scatter(
+                    x=[nd["x"] for nd in sub_nd],
+                    y=[nd["y"] for nd in sub_nd],
+                    mode="markers+text" if ver_etq else "markers",
+                    name=nombre_grp,
+                    text=[f"x{nd['index']}" for nd in sub_nd] if ver_etq else None,
+                    textposition="top center",
+                    customdata=[[nd["weight"], nd["rol"]] for nd in sub_nd],
+                    hovertemplate="x=%{x:.4f}<br>f(x)=%{y:.5f}<br>Peso w=%{customdata[0]} (%{customdata[1]})<extra></extra>",
+                    marker=dict(
+                        size=10,
+                        color=col_grp,
+                        symbol=simb_grp,
+                        line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.6),
+                    ),
+                )
+            )
+    elif mostrar_nodos:
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="markers",
+                name="Nodos tabla",
+                marker=dict(size=9, color=PALETA_ARANDU["marfil_nodo"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
+            )
+        )
     render_plotly_arandu(fig, key=f"plot_{clave_state}")
 
 
