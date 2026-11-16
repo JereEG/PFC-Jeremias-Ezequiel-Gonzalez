@@ -25,6 +25,7 @@ from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     muestrear_para_grafico,
+    registrar_contexto_ia,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
@@ -196,6 +197,12 @@ def _frag_euler_heun(defaults: dict) -> None:
     m1.metric("Euler y(x_f)", f"{res_eu['y_final']:.6f}")
     m2.metric("Heun y(x_f)", f"{res_he['y_final']:.6f}")
     m3.metric("Pasos (n)", res_he["n_pasos"])
+    registrar_contexto_ia(
+        "Resultados PVI Euler vs Heun",
+        f"- **EDO:** `{f_str}` | **$x_0 = {x0:g}, y_0 = {y0:g}, h = {h:g}, x_f = {res_he['xf_real']:g}$** (`n = {res_he['n_pasos']}` pasos)\n"
+        f"- **Euler:** `y(x_f) = {res_eu['y_final']:.6f}` | **Heun:** `y(x_f) = {res_he['y_final']:.6f}`",
+        clave="edo_eh_res",
+    )
 
     t1, t2 = st.tabs(["Tabla Euler", "Tabla Heun (Euler Modificado)"])
     with t1:
@@ -260,6 +267,12 @@ def _frag_runge_kutta(defaults: dict) -> None:
     m1.metric("RK2 y(x_f)", f"{res_rk2['y_final']:.6f}")
     m2.metric("RK4 y(x_f)", f"{res_rk4['y_final']:.6f}")
     m3.metric("Pasos (n)", res_rk4["n_pasos"])
+    registrar_contexto_ia(
+        "Resultados PVI RK2 vs RK4",
+        f"- **EDO:** `{f_str}` | **$x_0 = {x0:g}, y_0 = {y0:g}, h = {h:g}, x_f = {res_rk4['xf_real']:g}$** (`n = {res_rk4['n_pasos']}` pasos)\n"
+        f"- **RK2:** `y(x_f) = {res_rk2['y_final']:.6f}` | **RK4:** `y(x_f) = {res_rk4['y_final']:.6f}`",
+        clave="edo_rk_res",
+    )
 
     t1, t2 = st.tabs(["Tabla RK4 (k1, k2, k3, k4)", "Tabla RK2 (k1, k2)"])
     with t1:
@@ -324,6 +337,13 @@ def _frag_milne(defaults: dict) -> None:
     m2.metric("Pasos totales", res["n_pasos"])
     err_fin = res["tabla"][-1].get("error_abs")
     m3.metric("Error absoluto final", f"{err_fin:.3e}" if err_fin is not None else "-")
+    err_mil = f"{err_fin:.3e}" if err_fin is not None else "No provista"
+    registrar_contexto_ia(
+        "Resultados PVI Milne Predictor-Corrector",
+        f"- **EDO:** `{f_str}` | **$x_0 = {x0:g}, y_0 = {y0:g}, h = {h:g}, x_f = {res['xf_real']:g}$**\n"
+        f"- **Milne $y(x_f)$:** `{res['y_final']:.6f}` | **Pasos:** `{res['n_pasos']}` | **Error abs. final:** `{err_mil}`",
+        clave="edo_mil_res",
+    )
 
     render_dataframe_acotado(res["tabla"], max_filas=300, key_prefix="tbl_edo_milne")
 

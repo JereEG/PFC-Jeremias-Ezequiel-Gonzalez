@@ -24,6 +24,7 @@ from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     muestrear_para_grafico,
+    registrar_contexto_ia,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_data_editor_arandu,
@@ -108,6 +109,12 @@ def _frag_series_taylor(defaults: dict) -> None:
         m2.metric("Valor exacto exp(x)", f"{res['valor_exacto']:.8f}")
         m3.metric("Error absoluto Eₐ", f"{res['error_absoluto_final']:.3e}")
         m4.metric("Cota Scarborough Eₛ (%)", f"{res['es_scarborough_pct']:.4g}%")
+        registrar_contexto_ia(
+            "Resultados Serie de Maclaurin e^x",
+            f"- **$x = {x_val:g}$ | Términos máx:** `{n_max}` | **Cifras:** `{cifras_s}`\n"
+            f"- **Aproximación:** `{res['aproximacion_float']:.8f}` | **Exacto:** `{res['valor_exacto']:.8f}` | **Error abs.:** `{res['error_absoluto_final']:.3e}`",
+            clave="fund_taylor_res",
+        )
 
         hist = res["historial"]
         render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_fund_taylor")
@@ -398,6 +405,12 @@ def _frag_horner(defaults: dict) -> None:
     m1.metric("Valor Exacto", f"{res['f_exacto']:.6f}")
     m2.metric("Estándar (Redondeo)", f"{tabla_err[1]['aproximacion']:.6g}", f"Er {tabla_err[1]['error_relativo_pct']:.2f}%")
     m3.metric("Horner (Redondeo)", f"{tabla_err[3]['aproximacion']:.6g}", f"Er {tabla_err[3]['error_relativo_pct']:.2f}%")
+    registrar_contexto_ia(
+        "Resultados Esquema de Horner vs Estándar",
+        f"- **Punto $x = {x_val:g}$ | Dígitos $k = {k_dig}$ | Coeficientes:** `{coefs_curr}`\n"
+        f"- **Valor exacto:** `{res['f_exacto']:.6f}` | **Estándar redondeo:** `{tabla_err[1]['aproximacion']:.6g}` | **Horner redondeo:** `{tabla_err[3]['aproximacion']:.6g}`",
+        clave="fund_horner_res",
+    )
     render_dataframe_acotado(tabla_err, max_filas=300, key_prefix="tbl_fund_horner")
 
     st.markdown("### Bloque 4 — Comparación Paso a Paso de Errores por Esquema")

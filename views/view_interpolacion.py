@@ -37,8 +37,10 @@ from core.interpolacion import (
 from views.theme import PALETA_ARANDU, hex_a_rgba
 from views.ui_shared import (
     crear_figura_base_plotly,
+    html_tabla_a_markdown,
     inject_arandu_css,
     limpiar_valores_plotly,
+    registrar_contexto_ia,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_data_editor_arandu,
@@ -112,10 +114,20 @@ def _frag_lineal(defaults: dict) -> None:
             res = interpolar_lineal_inversa(xs, ys, y_busc)
             px, py = res["x_resultado"], res["y_buscado"]
             st.metric("x estimado por interpolación lineal inversa", f"{px:.6f}")
+            registrar_contexto_ia(
+                "Resultado Interpolación Lineal Inversa",
+                f"- **Tipo:** Inversa (dado $y^* = {py:g}$)\n- **$x^*$ estimado:** `{px:.6f}`",
+                clave="int_lin_res",
+            )
         else:
             res = interpolar_lineal_directa(xs, ys, x_eval)
             px, py = res["x_eval"], res["y_interpolado"]
             st.metric("y estimado por interpolación lineal directa", f"{py:.6f}")
+            registrar_contexto_ia(
+                "Resultado Interpolación Lineal Directa",
+                f"- **Tipo:** Directa (dado $x^* = {px:g}$)\n- **$y^*$ estimado:** `{py:.6f}`",
+                clave="int_lin_res",
+            )
     except Exception as exc:
         render_excepcion_validacion(
             exc,
@@ -289,6 +301,11 @@ def _frag_lagrange(defaults: dict) -> None:
     m1.metric(f"P({x_eval:g}) estimado", f"{res['y_interpolado']:.6f}")
     m2.metric("Grado del polinomio", res["grado"])
     st.latex(rf"P_{{{res['grado']}}}(x) = {simb['latex_expandido']}")
+    registrar_contexto_ia(
+        "Polinomio Simbólico y Evaluación (Lagrange)",
+        f"- **$x^*$:** `{x_eval:g}`\n- **$P({x_eval:g})$:** `{res['y_interpolado']:.6f}` (grado `{res['grado']}`)\n$$\nP_{{{res['grado']}}}(x) = {simb['latex_expandido']}\n$$",
+        clave="int_lag_res",
+    )
     render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_lag")
 
     st.markdown("### Bloque 4 — Construcción Geométrica por Suma Parcial de Bases")
@@ -1300,10 +1317,8 @@ def _frag_newton_gregory(defaults: dict) -> None:
         "Las columnas atenuadas superan el grado truncado k."
     )
     tabla_arr = calcular_diferencias_ascendentes(ys)
-    st.markdown(
-        _construir_html_tabla_escalonada_gregory(xs, tabla_arr, k_vis, modo_visual),
-        unsafe_allow_html=True,
-    )
+    tabla_ng_html = _construir_html_tabla_escalonada_gregory(xs, tabla_arr, k_vis, modo_visual)
+    st.markdown(tabla_ng_html, unsafe_allow_html=True)
     _render_inspector_celda_diferencia(xs, tabla_arr)
 
     st.markdown("### Bloque 5 — Desglose Paso a Paso de Ambos Polinomios")
@@ -1322,6 +1337,19 @@ def _frag_newton_gregory(defaults: dict) -> None:
         st.markdown(html_desc, unsafe_allow_html=True)
         with st.expander("Expresión algebraica sustituida Descendente (LaTeX)"):
             st.latex(tex_desc)
+
+    resumen_ng_md = [
+        f"- **Diagnóstico de malla:** {diag['mensaje']}",
+        f"- **$x^*$:** `{x_eval:g}` | **Grado truncado `k`:** `{k_vis}` (máximo `{grado_max}`)",
+        f"- **Ascendente ($u = {float(res_asc['u']):.4f}$):** `P_{k_vis}({x_eval:g}) = {float(res_asc['y_interpolado']):.6f}`",
+        f"- **Descendente ($v = {float(res_desc['v']):.4f}$):** `P_{k_vis}({x_eval:g}) = {float(res_desc['y_interpolado']):.6f}`",
+        "**Tabla escalonada de diferencias finitas:**",
+        html_tabla_a_markdown(tabla_ng_html),
+        "**Polinomios sustituidos:**",
+        f"$$\n{tex_asc}\n$$",
+        f"$$\n{tex_desc}\n$$",
+    ]
+    registrar_contexto_ia("Newton-Gregory — Resultados y Diferencias Finitas", "\n".join(resumen_ng_md), clave="int_ng_res")
 
     if k_vis < grado_max:
         u_val = float(res_asc["u"])
@@ -2106,18 +2134,16 @@ def _frag_formula_gauss(defaults: dict) -> None:
 
     with col_main:
         st.markdown(f"**Comparativa Simultánea en Grado $k = {k_vis}$ (vs. Grado Completo $n - 1 = {grado_max}$)**")
-        st.markdown(
-            _construir_html_comparativa_4metodos(
-                resultados,
-                k_vis,
-                grado_max,
-                modo_activo,
-                rec["modo"],
-                y_ref,
-                ref_es_exacta,
-            ),
-            unsafe_allow_html=True,
+        comp_html = _construir_html_comparativa_4metodos(
+            resultados,
+            k_vis,
+            grado_max,
+            modo_activo,
+            rec["modo"],
+            y_ref,
+            ref_es_exacta,
         )
+        st.markdown(comp_html, unsafe_allow_html=True)
         _render_grafica_gauss_comparativa(
             xs,
             ys,
@@ -2142,6 +2168,22 @@ def _frag_formula_gauss(defaults: dict) -> None:
     st.markdown(html_card, unsafe_allow_html=True)
     with st.expander("Expresión algebraica sustituida del método activo (LaTeX)"):
         st.latex(tex_pol)
+
+    tira_limpia = html_tabla_a_markdown(tira_html)
+    resumen_gauss_md = [
+        f"- **Escenario:** {preset['titulo']}",
+        f"- **Método activo:** {_NOMBRES_METODO_GAUSS[modo_activo]}",
+        f"- **Recomendación óptima para $x^* = {x_eval:g}$:** {_NOMBRES_METODO_GAUSS[rec['modo']]} ({rec['motivo']})",
+        f"- **Grado de truncamiento:** `k = {k_vis}` (máximo `n - 1 = {grado_max}`)",
+        f"- **{tira_limpia}**",
+        "**Comparativa de los 4 métodos:**",
+        html_tabla_a_markdown(comp_html),
+        "**Tabla escalonada de diferencias finitas:**",
+        html_tabla_a_markdown(tabla_html),
+        "**Expresión sustituida del método activo (LaTeX):**",
+        f"$$\n{tex_pol}\n$$",
+    ]
+    registrar_contexto_ia("Fórmula de Gauss — Comparativa, Zig-Zag y Desarrollo", "\n".join(resumen_gauss_md), clave="int_gauss_res")
 
 
 def _tab_formula_gauss() -> None:

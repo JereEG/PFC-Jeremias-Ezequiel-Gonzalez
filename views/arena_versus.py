@@ -64,6 +64,8 @@ from views.ui_shared import (
     inject_arandu_css,
     limpiar_valores_plotly,
     muestrear_para_grafico,
+    registrar_contexto_ia,
+    registrar_pagina_ia,
     render_data_editor_arandu,
     render_excepcion_validacion,
     render_plotly_arandu,
@@ -547,6 +549,7 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 
 def vista_arena_versus() -> None:
     inject_arandu_css()
+    registrar_pagina_ia("Arena Versus")
     st.title("Arena Versus — Comparador Directo de Métodos")
     st.markdown(
         "Compara dos algoritmos únicamente dentro de su **misma familia matemática**, "
@@ -600,6 +603,15 @@ def vista_arena_versus() -> None:
         st.success(f"**¿Qué esperamos ver en ejecución?**\n\n{exp['que_esperamos']}")
     with ce2:
         st.warning(f"**Nota sobre Excepciones y Casos Límite**\n\n{exp['excepciones']}")
+    registrar_contexto_ia(
+        f"Duelo Arena Versus — {_sin_emojis(ficha_fam['titulo'])}",
+        f"- **Contendiente A:** {ficha_a['nombre']} (Orden: {ficha_a['orden']}; Requisitos: {ficha_a['requisitos']})\n"
+        f"- **Contendiente B:** {ficha_b['nombre']} (Orden: {ficha_b['orden']}; Requisitos: {ficha_b['requisitos']})\n"
+        f"- **Qué esperamos ver:** {exp['que_esperamos']}\n"
+        f"- **Excepciones y casos límite:** {exp['excepciones']}",
+        clave="arena_vs_meta",
+        categoria="resultados",
+    )
 
     st.divider()
     if m_a == m_b:

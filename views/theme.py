@@ -666,6 +666,19 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             color: var(--arandu-text) !important;
             border-color: var(--arandu-border) !important;
         }
+        [data-testid="stDialog"] [role="dialog"],
+        [data-baseweb="modal"] > div > div {
+            background-color: var(--arandu-surface) !important;
+            color: var(--arandu-text) !important;
+            border: 1px solid var(--arandu-border) !important;
+        }
+        [data-testid="stDialog"] [data-testid="stCode"],
+        [data-testid="stDialog"] [data-testid="stCode"] pre,
+        [data-testid="stDialog"] [data-testid="stCode"] code {
+            background-color: var(--arandu-canvas) !important;
+            color: var(--arandu-text) !important;
+            border-color: var(--arandu-border) !important;
+        }
         [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {
             color: var(--arandu-text) !important;

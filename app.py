@@ -53,6 +53,7 @@ from views.theme import (
     obtener_logo_arandu_src,
     obtener_logos_app,
 )
+from views.ui_shared import mostrar_dialogo_copiar_ia
 
 _SIDEBAR_LOGO, _PAGE_ICON = obtener_logos_app()
 
@@ -183,6 +184,7 @@ with st.sidebar:
         on_change=_al_cambiar_tema_arandu,
     )
     st.markdown("---")
+    _slot_sidebar_ia = st.container()
     with st.container(border=True):
         st.markdown('<h2 class="arandu-sidebar-heading">Feedback</h2>', unsafe_allow_html=True)
         st.caption("¿Probaste la plataforma? Contanos qué te pareció o reportá mejoras:")
@@ -224,4 +226,33 @@ st.markdown(
     '<div id="arandu-contenido-principal" tabindex="-1" class="arandu-sr-only">Contenido principal de Arandú</div>',
     unsafe_allow_html=True,
 )
-nav.run()
+_pg_activa = nav.run()
+_titulo_pg_ia = getattr(_pg_activa, "title", None) or "Arandú"
+
+with _slot_sidebar_ia:
+    with st.container(border=True):
+        st.markdown('<h2 class="arandu-sidebar-heading">Asistente IA</h2>', unsafe_allow_html=True)
+        st.caption("Copiá teoría, fórmulas LaTeX, datos y resultados de esta página.")
+        _clic_ia_sidebar = st.button(
+            "Copiar todo en texto para IA",
+            key="btn_ia_copiar_sidebar",
+            type="primary",
+            use_container_width=True,
+        )
+
+st.divider()
+with st.container(border=True):
+    _c_ia_info, _c_ia_btn = st.columns([2.4, 1.0])
+    _c_ia_info.markdown(
+        "**Exportar vista completa para IA:** generá en un clic el resumen estructurado "
+        "(Markdown + LaTeX) con la teoría, entradas, cálculos y gráficos actuales."
+    )
+    with _c_ia_btn:
+        _clic_ia_pie = st.button(
+            "Copiar todo en texto para IA",
+            key="btn_ia_copiar_pie",
+            use_container_width=True,
+        )
+
+if _clic_ia_sidebar or _clic_ia_pie:
+    mostrar_dialogo_copiar_ia(pagina_actual=_titulo_pg_ia)

@@ -9,11 +9,12 @@ import streamlit as st
 
 from core.version import APP_VERSION, es_entorno_offline_wasm
 from views.theme import construir_html_tarjeta_catalogo, obtener_logo_arandu_src
-from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css, render_tarjeta_catalogo
+from views.ui_shared import FEEDBACK_FORMS_URL, inject_arandu_css, registrar_contexto_ia, registrar_pagina_ia, render_tarjeta_catalogo
 
 
 def vista_inicio() -> None:
     inject_arandu_css()
+    registrar_pagina_ia("Inicio — Portal Arandú")
 
     logo_uri = obtener_logo_arandu_src(prefer_svg=False)
     logo_html = (
@@ -135,6 +136,16 @@ def vista_inicio() -> None:
             False,
         ),
     ]
+
+    tarjetas_md = "\n".join(
+        f"- **{item[1]}** (`{item[5]}`): {item[2]}"
+        for item in tarjetas
+    )
+    registrar_contexto_ia(
+        "Catálogo de Módulos Disponibles",
+        "Arandú organiza los Métodos Computacionales (FaCENA — UNNE) en 8 módulos y Arena Versus:\n\n" + tarjetas_md,
+        clave="inicio_catalogo",
+    )
 
     for idx in range(0, 6, 3):
         cols = st.columns(3)

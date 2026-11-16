@@ -58,9 +58,155 @@ def obtener_logo_data_uri() -> str | None:
     return obtener_logo_arandu_src(prefer_svg=True)
 
 
+_IA_CTX_KEY = "_arandu_ia_ctx"
+
+
+def _obtener_ctx_ia() -> dict[str, Any]:
+    """Obtiene o inicializa el registro del contexto actual para exportar en texto hacia IA."""
+    ctx = st.session_state.get(_IA_CTX_KEY)
+    if not isinstance(ctx, dict):
+        ctx = {
+            "pagina": "",
+            "metodo": {},
+            "teoria": None,
+            "practica": {},
+            "controles": {},
+            "editores": {},
+            "tablas": {},
+            "resultados": {},
+            "graficos": {},
+            "errores": {},
+        }
+        st.session_state[_IA_CTX_KEY] = ctx
+    return ctx
+
+
+def reiniciar_contexto_ia(pagina: str | None = None) -> None:
+    """Reinicia el colector estructurado al comenzar un render completo de página."""
+    st.session_state[_IA_CTX_KEY] = {
+        "pagina": pagina or "",
+        "metodo": {},
+        "teoria": None,
+        "practica": {},
+        "controles": {},
+        "editores": {},
+        "tablas": {},
+        "resultados": {},
+        "graficos": {},
+        "errores": {},
+    }
+
+
+_TITULOS_VISTA_IA: dict[str, str] = {
+    "fundamentos": "Fundamentos y Errores",
+    "raices": "Raíces de Ecuaciones",
+    "sistemas": "Álgebra Lineal y Autovalores",
+    "interpolacion": "Interpolación Polinomial",
+    "integracion": "Integración y Derivación",
+    "edo": "Ecuaciones Diferenciales",
+}
+
+
+def registrar_pagina_ia(titulo: str) -> None:
+    """Fija el título descriptivo de la página actual para exportación hacia IA."""
+    ctx = _obtener_ctx_ia()
+    ctx["pagina"] = str(titulo).strip()
+
+
+def registrar_contexto_ia(
+    titulo: str,
+    contenido_md: str,
+    clave: str | None = None,
+    categoria: str = "resultados",
+) -> None:
+    """Registra un bloque Markdown/LaTeX relevante dentro de la vista activa para exportación IA."""
+    ctx = _obtener_ctx_ia()
+    bucket = ctx.setdefault(categoria, {})
+    if not isinstance(bucket, dict):
+        bucket = {}
+        ctx[categoria] = bucket
+    bucket[clave or titulo] = (titulo, str(contenido_md).strip())
+
+
+_RE_SR_ONLY = re.compile(r"<span[^>]*class=['\"][^'\"]*arandu-sr-only[^'\"]*['\"][^>]*>.*?</span>", re.DOTALL)
+_RE_TR = re.compile(r"<tr[^>]*>(.*?)</tr>", re.DOTALL | re.IGNORECASE)
+_RE_CELL = re.compile(r"<t[hd][^>]*>(.*?)</t[hd]>", re.DOTALL | re.IGNORECASE)
+
+
+def html_tabla_a_markdown(html_str: str) -> str:
+    """Convierte una tabla HTML accesible en una tabla Markdown legible por modelos de lenguaje."""
+    limpio_sr = _RE_SR_ONLY.sub("", str(html_str))
+    filas: list[list[str]] = []
+    for match_tr in _RE_TR.finditer(limpio_sr):
+        celdas = []
+        for match_td in _RE_CELL.finditer(match_tr.group(1)):
+            txt = html.unescape(_HTML_TAG_RE.sub(" ", match_td.group(1)))
+            txt = re.sub(r"\s+", " ", txt).strip().replace("|", "\\|")
+            celdas.append(txt)
+        if celdas:
+            filas.append(celdas)
+    if not filas:
+        txt = html.unescape(_HTML_TAG_RE.sub(" ", limpio_sr))
+        return re.sub(r"\s+", " ", txt).strip()
+
+    ancho = max(len(f) for f in filas)
+    norm = [f + [""] * (ancho - len(f)) for f in filas]
+    lineas = [
+        "| " + " | ".join(norm[0]) + " |",
+        "| " + " | ".join("---" for _ in norm[0]) + " |",
+    ]
+    for fila in norm[1:]:
+        lineas.append("| " + " | ".join(fila) + " |")
+    return "\n".join(lineas)
+
+
+def _formatear_valor_ia(valor: Any) -> str:
+    if isinstance(valor, float):
+        return f"{valor:.8g}"
+    if isinstance(valor, list):
+        if len(valor) > 20:
+            items = [_formatear_valor_ia(v) for v in valor[:12]]
+            return f"[{', '.join(items)}, ... ({len(valor)} elementos)]"
+        return "[" + ", ".join(_formatear_valor_ia(v) for v in valor) + "]"
+    return str(valor).replace("\n", " ").strip()
+
+
+def _df_a_markdown(datos: Any, max_filas: int = 80) -> str:
+    import pandas as pd
+
+    df = datos if isinstance(datos, pd.DataFrame) else pd.DataFrame(datos)
+    if df.empty:
+        return "_(Tabla vacía)_"
+    cols = [str(c).replace("|", "\\|") for c in df.columns]
+    total = len(df)
+    omitidas = 0
+    if total > max_filas:
+        n_head = max(max_filas // 2, 10)
+        n_tail = max(max_filas - n_head, 10)
+        df_head = df.iloc[:n_head]
+        df_tail = df.iloc[-n_tail:]
+        omitidas = total - n_head - n_tail
+        bloques = [df_head, df_tail]
+    else:
+        bloques = [df]
+
+    lineas = [
+        "| " + " | ".join(cols) + " |",
+        "| " + " | ".join("---" for _ in cols) + " |",
+    ]
+    for idx_b, sub_df in enumerate(bloques):
+        if idx_b == 1 and omitidas > 0:
+            lineas.append(f"| ... _({omitidas} filas intermedias omitidas de {total} totales)_ | " + " | ".join("" for _ in cols[1:]) + " |")
+        for _, row in sub_df.iterrows():
+            vals = [_formatear_valor_ia(v).replace("|", "\\|") for v in row.tolist()]
+            lineas.append("| " + " | ".join(vals) + " |")
+    return "\n".join(lineas)
+
+
 def inject_arandu_css() -> None:
-    """Aplica la hoja CSS cacheada de Arandú sin reconstruir cadenas por interacción."""
+    """Aplica la hoja CSS cacheada de Arandú y reinicia el colector estructurado para IA."""
     aplicar_estilo_arandu()
+    reiniciar_contexto_ia()
 
 
 def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
@@ -74,6 +220,9 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     if not meta:
         st.error(f"No se encontró la ficha '{clave_metodo}' en el catálogo.")
         return {}
+
+    ctx = _obtener_ctx_ia()
+    ctx["teoria"] = copy.deepcopy(meta)
 
     guru = meta.get("guru", {})
 
@@ -194,6 +343,13 @@ def render_practica_catedra_info(
 ) -> None:
     """Renderiza únicamente la zona estática del ejercicio de cátedra (fuera de fragmentos)."""
     if titulo_practica or enunciado_practica:
+        ctx = _obtener_ctx_ia()
+        clave_p = titulo_practica or "practica"
+        ctx["practica"][clave_p] = {
+            "titulo": titulo_practica or "",
+            "enunciado": enunciado_practica or "",
+            "solucion_referencia": solucion_referencia or "",
+        }
         st.markdown("### Práctica de Cátedra Interactiva")
         with st.container(border=True):
             if titulo_practica:
@@ -251,6 +407,23 @@ def render_controles_edicion_practica(
     if modo == "manual":
         st.info(mensaje_edicion)
     render_subtitulo_controles_vivo()
+
+    params_vivos: dict[str, str] = {}
+    prefijo_state = f"{clave_state}_"
+    prefijos_ui = (f"ui_{clave_state}_",) + _PREFIJOS_WIDGETS_PRACTICA.get(clave_state, ())
+    for k_ss, val_ss in st.session_state.items():
+        if not isinstance(k_ss, str) or k_ss.endswith("__editor_df") or k_ss == modo_key:
+            continue
+        if k_ss.startswith(prefijo_state) or k_ss.startswith(prefijos_ui):
+            if hasattr(val_ss, "to_dict"):
+                continue
+            params_vivos[k_ss] = _formatear_valor_ia(val_ss)
+    ctx = _obtener_ctx_ia()
+    ctx["controles"][clave_state] = {
+        "modo": "Edición manual en vivo" if modo == "manual" else "Valores oficiales de cátedra",
+        "mensaje": mensaje_edicion,
+        "parametros": params_vivos,
+    }
     return modo
 
 
@@ -404,6 +577,16 @@ def render_plotly_arandu(
     titulo, ejex, ejey, resumen_final, filas_html, filas_csv = _extraer_accesibilidad_plotly(
         fig, resumen_accesible=resumen_accesible
     )
+    ctx = _obtener_ctx_ia()
+    graf_key = str(key or titulo)
+    md_graf = [f"- **Título:** {titulo}", f"- **Ejes:** `{ejex}` vs `{ejey}`", f"- **Resumen:** {resumen_final}"]
+    if filas_html:
+        muestra_pts = filas_html[:36]
+        tbl_graf = [f"| Serie | {ejex} | {ejey} |", "| --- | --- | --- |"]
+        for s_g, x_g, y_g in muestra_pts:
+            tbl_graf.append(f"| {s_g} | {x_g} | {y_g} |")
+        md_graf.append("\n".join(tbl_graf))
+    ctx["graficos"][graf_key] = (titulo, "\n".join(md_graf))
     st.markdown(
         f'<p class="arandu-chart-desc" role="region" aria-live="polite" '
         f'aria-label="Resumen accesible: {html.escape(titulo)}">'
@@ -458,6 +641,12 @@ def render_error_validacion(
     ejemplo: str | None = None,
 ) -> None:
     """Presenta errores de validación accesibles con diagnóstico y corrección sugerida (WCAG 3.3.3)."""
+    ctx = _obtener_ctx_ia()
+    ej_txt = f"\n- **Ejemplo válido:** `{ejemplo}`" if ejemplo else ""
+    ctx["errores"][str(campo)] = (
+        f"Error de validación ({campo})",
+        f"- **Qué ocurrió:** {detalle}\n- **Cómo corregirlo:** {sugerencia}{ej_txt}",
+    )
     campo_esc = html.escape(str(campo))
     detalle_esc = html.escape(str(detalle))
     sugerencia_esc = html.escape(str(sugerencia))
@@ -549,7 +738,14 @@ def render_data_editor_arandu(datos: Any, **kwargs: Any) -> Any:
         '<div class="arandu-tbl-tag-edit">[ TABLA INTERACTIVA — Hacé doble clic en cualquier celda para editar los valores en vivo ]</div>',
         unsafe_allow_html=True,
     )
-    return st.data_editor(datos, **kwargs)
+    resultado = st.data_editor(datos, **kwargs)
+    ctx = _obtener_ctx_ia()
+    ed_key = str(kwargs.get("key") or f"tabla_{len(ctx['editores']) + 1}")
+    try:
+        ctx["editores"][ed_key] = (f"Tabla de entrada ({ed_key})", _df_a_markdown(resultado))
+    except Exception:
+        pass
+    return resultado
 
 
 def render_dataframe_acotado(
@@ -567,6 +763,11 @@ def render_dataframe_acotado(
         unsafe_allow_html=True,
     )
     df = datos if isinstance(datos, pd.DataFrame) else pd.DataFrame(datos)
+    ctx = _obtener_ctx_ia()
+    try:
+        ctx["tablas"][key_prefix] = (f"Tabla de resultados ({key_prefix})", _df_a_markdown(df, max_filas=80))
+    except Exception:
+        pass
     total = len(df)
     if total <= max_filas:
         st.dataframe(df, use_container_width=True, hide_index=hide_index, **kwargs)
@@ -695,6 +896,18 @@ def render_selector_fichas_metodos(
                 )
 
     ficha_activa = fichas[activo]
+    ctx = _obtener_ctx_ia()
+    if not ctx.get("pagina"):
+        ctx["pagina"] = _TITULOS_VISTA_IA.get(vista_id, vista_id.capitalize())
+    ctx["metodo"] = {
+        "vista_id": vista_id,
+        "numero": str(ficha_activa["numero"]),
+        "titulo": str(ficha_activa["titulo"]),
+        "subtitulo": str(ficha_activa["subtitulo"]),
+        "resumen": str(ficha_activa["resumen"]),
+        "pista": str(ficha_activa["pista"]),
+        "disponibles": [f"{f['numero']}. {f['titulo']}" for f in fichas],
+    }
     titulo_esc = html.escape(f"Método {ficha_activa['numero']} — {ficha_activa['titulo']}")
     pista_esc = html.escape(ficha_activa["pista"])
     st.markdown(
@@ -706,6 +919,181 @@ def render_selector_fichas_metodos(
         unsafe_allow_html=True,
     )
     return activo
+
+
+def _seccion_teoria_markdown(teoria: dict[str, Any] | None) -> list[str]:
+    if not teoria:
+        return []
+    partes = ["## 1. Marco Teórico y Fórmulas Oficiales"]
+    partes.append(f"- **Método:** {teoria.get('nombre', '')}")
+    if teoria.get("resumen_corto"):
+        partes.append(f"- **Resumen:** {teoria['resumen_corto']}")
+    guru = teoria.get("guru", {})
+    if guru.get("que_resuelve"):
+        partes.append(f"- **Qué resuelve:** {guru['que_resuelve']}")
+    if guru.get("intuicion_geometrica"):
+        partes.append(f"- **Intuición:** {guru['intuicion_geometrica']}")
+    pasos_alg = guru.get("algoritmo_pasos", [])
+    if pasos_alg:
+        partes.append("**Algoritmo:**")
+        partes.extend(f"- {p}" for p in pasos_alg)
+    formulas = teoria.get("formulas_latex", [])
+    if formulas:
+        partes.append("**Fórmulas oficiales (LaTeX):**")
+        for f_tex in formulas:
+            partes.append(f"$$\n{f_tex}\n$$")
+    if guru.get("cuando_usar"):
+        partes.append("**Cuándo elegirlo:** " + " | ".join(guru["cuando_usar"]))
+    if guru.get("cuando_falla"):
+        partes.append("**Cuándo evitarlo / tener cuidado:** " + " | ".join(guru["cuando_falla"]))
+    ej = teoria.get("ejemplo_teorico", {})
+    if ej:
+        partes.append(f"**Ejemplo teórico ({ej.get('titulo', '')}):** {ej.get('enunciado', '')}")
+        for idx, paso in enumerate(ej.get("pasos", []), start=1):
+            partes.append(f"{idx}. {paso}")
+        if ej.get("resultado_final"):
+            partes.append(f"- **Conclusión:** {ej['resultado_final']}")
+    return partes
+
+
+def construir_markdown_contexto_ia(
+    pagina_actual: str | None = None,
+    incluir_teoria: bool = True,
+) -> tuple[str, int]:
+    """Construye un documento Markdown + LaTeX completo con el estado actual de la vista para una IA."""
+    ctx = _obtener_ctx_ia()
+    pagina = ctx.get("pagina") or pagina_actual or "Vista actual de Arandú"
+    metodo = ctx.get("metodo") or {}
+    partes = [
+        f"# Contexto completo de Arandú — {pagina}",
+        "- **Plataforma:** Arandú: Métodos Computacionales (FaCENA — UNNE)",
+        f"- **Página activa:** {pagina}",
+    ]
+    if metodo:
+        partes.append(
+            f"- **Método seleccionado:** {metodo.get('numero', '')} — {metodo.get('titulo', '')} ({metodo.get('pista', '')})"
+        )
+        if metodo.get("resumen"):
+            partes.append(f"- **Descripción del método:** {metodo['resumen']}")
+    partes.append("")
+
+    secciones_contadas = 1
+    if incluir_teoria and ctx.get("teoria"):
+        partes.extend(_seccion_teoria_markdown(ctx["teoria"]))
+        partes.append("")
+        secciones_contadas += 1
+
+    practicas = ctx.get("practica") or {}
+    if practicas:
+        partes.append("## 2. Consigna de Práctica de Cátedra")
+        for p_item in practicas.values():
+            if p_item.get("titulo"):
+                partes.append(f"### {p_item['titulo']}")
+            if p_item.get("enunciado"):
+                partes.append(p_item["enunciado"])
+            if p_item.get("solucion_referencia"):
+                partes.append(f"- **Solución de referencia:** {p_item['solucion_referencia']}")
+        partes.append("")
+        secciones_contadas += 1
+
+    controles = ctx.get("controles") or {}
+    editores = ctx.get("editores") or {}
+    if controles or editores:
+        partes.append("## 3. Parámetros y Datos de Entrada Activos en Vivo")
+        for clave_st, info_c in controles.items():
+            partes.append(f"### Controles (`{clave_st}` — {info_c.get('modo', '')})")
+            if info_c.get("mensaje"):
+                partes.append(f"- **Nota activa:** {info_c['mensaje']}")
+            for pk, pv in (info_c.get("parametros") or {}).items():
+                partes.append(f"- `{pk}` = `{pv}`")
+        for tit_e, md_e in editores.values():
+            partes.append(f"### {tit_e}")
+            partes.append(md_e)
+        partes.append("")
+        secciones_contadas += 1
+
+    resultados = ctx.get("resultados") or {}
+    tablas = ctx.get("tablas") or {}
+    if resultados or tablas:
+        partes.append("## 4. Resultados Calculados, Fórmulas Evaluadas y Tablas")
+        for tit_r, md_r in resultados.values():
+            partes.append(f"### {tit_r}")
+            partes.append(md_r)
+        for tit_t, md_t in tablas.values():
+            partes.append(f"### {tit_t}")
+            partes.append(md_t)
+        partes.append("")
+        secciones_contadas += 1
+
+    errores = ctx.get("errores") or {}
+    if errores:
+        partes.append("## Alertas y Errores de Validación Activos")
+        for tit_err, md_err in errores.values():
+            partes.append(f"### {tit_err}")
+            partes.append(md_err)
+        partes.append("")
+        secciones_contadas += 1
+
+    graficos = ctx.get("graficos") or {}
+    if graficos:
+        partes.append("## 5. Gráficos Interactivos y Datos Muestreados")
+        for tit_g, md_g in graficos.values():
+            partes.append(f"### {tit_g}")
+            partes.append(md_g)
+        partes.append("")
+        secciones_contadas += 1
+
+    return "\n".join(partes).strip(), secciones_contadas
+
+
+def _render_contenido_exportador_ia(pagina_actual: str | None = None) -> None:
+    incluir_teoria = st.checkbox(
+        "Incluir marco teórico completo y fórmulas oficiales de cátedra",
+        value=True,
+        key="ui_ia_incluir_teoria",
+    )
+    texto_ia, n_sec = construir_markdown_contexto_ia(
+        pagina_actual=pagina_actual,
+        incluir_teoria=incluir_teoria,
+    )
+    st.caption(
+        f"{n_sec} secciones capturadas · {len(texto_ia)} caracteres en formato Markdown + LaTeX. "
+        "Hacé clic en el ícono de copiar en la esquina superior derecha del recuadro o descargá el archivo."
+    )
+    st.code(texto_ia, language="markdown", wrap_lines=True, height=380)
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "_", (pagina_actual or "arandu").lower()).strip("_") or "arandu"
+    st.download_button(
+        "Descargar archivo .md para IA",
+        data=texto_ia.encode("utf-8"),
+        file_name=f"contexto_ia_{slug[:40]}.md",
+        mime="text/markdown",
+        key=f"dl_ia_{slug[:24]}",
+        use_container_width=True,
+    )
+
+
+if hasattr(st, "dialog"):
+
+    @st.dialog("Copiar todo en texto para IA (Markdown + LaTeX)", width="large")
+    def mostrar_dialogo_copiar_ia(pagina_actual: str | None = None) -> None:
+        """Muestra en una ventana accesible todo el contexto actual listo para copiar hacia una IA."""
+        _render_contenido_exportador_ia(pagina_actual=pagina_actual)
+
+else:
+
+    def mostrar_dialogo_copiar_ia(pagina_actual: str | None = None) -> None:
+        with st.expander("Copiar todo en texto para IA (Markdown + LaTeX)", expanded=True):
+            _render_contenido_exportador_ia(pagina_actual=pagina_actual)
+
+
+def render_boton_copiar_ia(
+    pagina_actual: str | None = None,
+    key: str = "btn_ia_copiar",
+    label: str = "Copiar todo en texto para IA",
+) -> None:
+    """Renderiza el botón que sincroniza los datos actuales y abre el texto completo para copiar."""
+    if st.button(label, key=key, type="primary", use_container_width=True):
+        mostrar_dialogo_copiar_ia(pagina_actual=pagina_actual)
 
 
 __all__ = [
@@ -731,15 +1119,22 @@ __all__ = [
     "LOGO_SVG_PATH",
     "PALETA_ARANDU",
     "PLOTLY_CONFIG_ARANDU",
+    "construir_markdown_contexto_ia",
     "crear_figura_base_plotly",
     "estilizar_figura_arandu",
+    "html_tabla_a_markdown",
     "inicializar_estado_practica",
     "inject_arandu_css",
     "limpiar_valores_plotly",
+    "mostrar_dialogo_copiar_ia",
     "muestrear_para_grafico",
     "obtener_logo_data_uri",
+    "registrar_contexto_ia",
+    "registrar_pagina_ia",
+    "reiniciar_contexto_ia",
     "render_banner_edicion_profesora",
     "render_bloque_1_teoria_y_ejemplo",
+    "render_boton_copiar_ia",
     "render_controles_edicion_practica",
     "render_data_editor_arandu",
     "render_dataframe_acotado",

@@ -20,6 +20,8 @@ from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     muestrear_para_grafico,
+    registrar_contexto_ia,
+    registrar_pagina_ia,
     render_dataframe_acotado,
     render_plotly_arandu,
     render_subtitulo_controles_vivo,
@@ -40,6 +42,11 @@ def _frag_lab1_sumatorias() -> None:
     c1, c2 = st.columns(2)
     c1.metric(f"Suma 1..{n_lim}", f"{res_n['total']:.0f}", f"Cerrada N(N+1)/2 = {n_lim * (n_lim + 1) // 2}")
     c2.metric(f"Suma pares ≤ {n_lim}", str(res_p["suma_pares"]), f"Pares sumados: {res_p['cant_pares']}")
+    registrar_contexto_ia(
+        "Lab 1 — Sumatorias",
+        f"- **Límite $N = {n_lim}$** | **Suma $1..N$:** `{res_n['total']:.0f}` | **Suma pares:** `{res_p['suma_pares']}` (`{res_p['cant_pares']}` pares)",
+        clave="lab1_sum_res",
+    )
 
 
 @st.fragment
@@ -59,6 +66,11 @@ def _frag_lab1_fibonacci() -> None:
     c1.metric(f"Término F_{n_fib}", f"{res_f['ultimo_termino']:.4e}" if n_fib > 25 else str(res_f["ultimo_termino"]))
     c2.metric("Razón F_n / F_{n-1}", f"{ultima_razon:.12f}" if ultima_razon else "-")
     c3.metric("φ = (1 + √5)/2 exacto", f"{res_f['phi_exacto']:.12f}")
+    registrar_contexto_ia(
+        "Lab 1 — Sucesión de Fibonacci y Razón Áurea",
+        f"- **Términos $N = {n_fib}$** | **$F_N$:** `{res_f['ultimo_termino']}` | **Razón $F_n/F_{{n-1}}$:** `{ultima_razon}` | **$\\varphi$ exacto:** `{res_f['phi_exacto']:.12f}`",
+        clave="lab1_fib_res",
+    )
 
     render_dataframe_acotado(
         [
@@ -94,6 +106,7 @@ def _frag_lab1_fibonacci() -> None:
 
 def vista_laboratorios() -> None:
     inject_arandu_css()
+    registrar_pagina_ia("Histórico de Cursada — Laboratorios 1 al 7")
     st.title("Histórico de Cursada — Laboratorios 1 al 7")
     st.caption(
         "Anexo curricular de Métodos Computacionales (FaCENA - UNNE). "

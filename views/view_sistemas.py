@@ -26,6 +26,7 @@ from views.ui_shared import (
     inject_arandu_css,
     limpiar_valores_plotly,
     muestrear_para_grafico,
+    registrar_contexto_ia,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_data_editor_arandu,
@@ -94,6 +95,12 @@ def _frag_gauss(defaults: dict) -> None:
     for i, val in enumerate(res["solucion"]):
         cols[i].metric(f"x_{i+1}", f"{val:.6f}")
     cols[-1].metric("‖Ax - b‖₂", f"{res['norma_error']:.3e}")
+    sol_txt = ", ".join(f"x_{i+1}={v:.6f}" for i, v in enumerate(res["solucion"]))
+    registrar_contexto_ia(
+        "Solución Eliminación de Gauss",
+        f"- **Vector solución:** `[{sol_txt}]`\n- **Norma residual $\\|Ax - b\\|_2$:** `{res['norma_error']:.3e}`",
+        clave="sis_gauss_res",
+    )
 
     pasos = res["pasos_escalonamiento"]
     if pasos:
@@ -169,8 +176,19 @@ def _frag_gauss_jordan(defaults: dict) -> None:
         for i, val in enumerate(res["solucion"]):
             cols[i].metric(f"x_{i+1}", f"{val:.6f}")
         cols[-1].metric("‖Ax - b‖₂", f"{res['norma_error']:.3e}")
+        sol_txt = ", ".join(f"x_{i+1}={v:.6f}" for i, v in enumerate(res["solucion"]))
+        registrar_contexto_ia(
+            "Solución Gauss-Jordan",
+            f"- **Vector solución:** `[{sol_txt}]`\n- **Norma residual:** `{res['norma_error']:.3e}`",
+            clave="sis_gj_res",
+        )
     else:
         st.metric("‖A·A⁻¹ - I‖₂", f"{res['norma_error']:.3e}")
+        registrar_contexto_ia(
+            "Error Inversión Gauss-Jordan",
+            f"- **Error $\\|A \\cdot A^{{-1}} - I\\|_2$:** `{res['norma_error']:.3e}`",
+            clave="sis_gj_res",
+        )
         render_dataframe_acotado(res["inversa"], max_filas=300, key_prefix="tbl_sis_gj_inv", hide_index=False)
 
     pasos = res["pasos"]
@@ -235,6 +253,12 @@ def _frag_lu(defaults: dict) -> None:
     for i, val in enumerate(res["solucion"]):
         cols[i].metric(f"x_{i+1}", f"{val:.6f}")
     cols[-1].metric("Error ‖LU - A‖", f"{res['error_LU']:.2e}")
+    sol_lu = ", ".join(f"x_{i+1}={v:.6f}" for i, v in enumerate(res["solucion"]))
+    registrar_contexto_ia(
+        "Solución Factorización LU (Doolittle)",
+        f"- **Vector solución:** `[{sol_lu}]`\n- **Error $\\|LU - A\\|$:** `{res['error_LU']:.2e}`",
+        clave="sis_lu_res",
+    )
 
     pasos = res["pasos_eliminacion"]
     if pasos:
@@ -312,6 +336,13 @@ def _frag_gauss_seidel(defaults: dict) -> None:
         cols[i].metric(f"x_{i+1}", f"{val:.6f}")
     cols[-2].metric("Iteraciones", res["iteraciones"])
     cols[-1].metric("Error final", f"{res['error_final']:.3e}")
+    sol_gs = ", ".join(f"x_{i+1}={v:.6f}" for i, v in enumerate(res["solucion"]))
+    registrar_contexto_ia(
+        "Solución y Dominancia Gauss-Seidel",
+        f"- **Dominancia diagonal:** {dom['diagnostico']}\n"
+        f"- **Vector solución:** `[{sol_gs}]` | **Iteraciones:** `{res['iteraciones']}` | **Error:** `{res['error_final']:.3e}`",
+        clave="sis_gs_res",
+    )
 
     hist = res["historial"]
     filas_hist = [
@@ -409,6 +440,11 @@ def _frag_potencias(defaults: dict) -> None:
     m1.metric("Autovalor estimado λ", f"{lam_final:.6f}")
     m2.metric("Iteraciones", res["iteraciones"])
     m3.metric("Error % final", f"{res['error_final_pct']:.4f}%")
+    registrar_contexto_ia(
+        "Resultado Método de las Potencias",
+        f"- **Tipo:** {tipo}\n- **Autovalor estimado $\\lambda$:** `{lam_final:.6f}` | **Iteraciones:** `{res['iteraciones']}` | **Error %:** `{res['error_final_pct']:.4f}%`",
+        clave="sis_pot_res",
+    )
 
     hist = res["historial"]
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_sis_pot")
@@ -484,6 +520,12 @@ def _frag_faddeev(defaults: dict) -> None:
     m1.metric("det(A)", f"{res['determinante']:.6f}")
     m2.metric("Autovalores", ", ".join(f"{v:.4f}" if isinstance(v, (int, float)) else str(v) for v in res["autovalores"]))
     m3.metric("Error A⁻¹", f"{res['error_inversa']:.2e}" if res["error_inversa"] is not None else "Singular")
+    registrar_contexto_ia(
+        "Polinomio Característico y Autovalores (Faddeev-Leverrier)",
+        f"- **Polinomio:** `{res['polinomio_texto']}`\n- **det(A):** `{res['determinante']:.6f}`\n"
+        f"- **Autovalores:** `{res['autovalores']}`",
+        clave="sis_fad_res",
+    )
 
     if res["inversa"] is not None:
         with st.expander(r"Ver Matriz Inversa $A^{-1}$ obtenida por Faddeev"):

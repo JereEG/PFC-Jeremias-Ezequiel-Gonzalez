@@ -24,6 +24,7 @@ from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     limpiar_valores_plotly,
+    registrar_contexto_ia,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_data_editor_arandu,
@@ -96,6 +97,12 @@ def _frag_diferenciacion(defaults: dict) -> None:
     m1.metric(f"f{'´' if orden == 1 else '´´'}({x_eval:g})", f"{res['derivada']:.6f}")
     m2.metric(f"Parámetro {param_name}", f"{param:.4f}")
     m3.metric("Paso h", f"{res['h']:.4g}")
+    registrar_contexto_ia(
+        "Derivada Numérica (Newton-Gregory)",
+        f"- **Orden:** `{orden}` | **$x^*$:** `{x_eval:g}` | **{param_name}:** `{param:.4f}` | **Paso `h`:** `{res['h']:.4g}`\n"
+        f"- **Derivada estimada:** `{res['derivada']:.6f}`",
+        clave="ing_deriv_res",
+    )
 
     render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_deriv")
 
@@ -269,6 +276,16 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         m4.metric("Integral Exacta", f"{res['exacta']['integral_exacta']:.6f}", f"Ea {res['exacta']['error_absoluto']:.2e}")
     else:
         m4.metric("Exacta", "No provista")
+    exacta_md = (
+        f"- **Integral exacta:** `{res['exacta']['integral_exacta']:.6f}` | **Error abs.:** `{res['exacta']['error_absoluto']:.2e}`"
+        if res["exacta"]
+        else ""
+    )
+    registrar_contexto_ia(
+        f"Resultado Cuadratura ({clave_state})",
+        f"- **Área estimada:** `{res['area_total']:.6f}` | **Reglas aplicadas:** {res['reglas_aplicadas']} | **Subintervalos:** `{res['n_intervalos_total']}`\n{exacta_md}".strip(),
+        clave=f"{clave_state}_res",
+    )
 
     filas_bloques = [
         {

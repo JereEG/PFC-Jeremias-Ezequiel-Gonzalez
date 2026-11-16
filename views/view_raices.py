@@ -29,6 +29,7 @@ from views.ui_shared import (
     crear_figura_base_plotly,
     inject_arandu_css,
     muestrear_para_grafico,
+    registrar_contexto_ia,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
@@ -120,6 +121,12 @@ def _frag_biseccion(defaults: dict) -> None:
     m2.metric("Iteraciones", f"{res['iteraciones']} (teórico: {res['n_teorico_entero']})")
     m3.metric("Error final |Δx|", f"{res['error_final']:.3e}")
     m4.metric("f(raíz)", f"{res['f_raiz']:.3e}")
+    registrar_contexto_ia(
+        "Resultado Bisección",
+        f"- **Raíz:** `{res['raiz']:.6f}` | **Iteraciones:** `{res['iteraciones']}` (teórico `{res['n_teorico_entero']}`)\n"
+        f"- **Error final:** `{res['error_final']:.3e}` | **$f(\\text{{raíz}})$:** `{res['f_raiz']:.3e}`",
+        clave="raiz_bis_res",
+    )
 
     hist = res["historial"]
     cols_bis = ["iteracion", "a", "b", "x_k", "f_a", "f_xk", "f_b", "error", "cumple_tol"]
@@ -235,6 +242,11 @@ def _frag_interpolacion_lineal(defaults: dict) -> None:
     m1.metric("Raíz aproximada", f"{res['raiz']:.6f}")
     m2.metric("Iteraciones", res["iteraciones"])
     m3.metric("Error final", f"{res['error_final']:.3e}")
+    registrar_contexto_ia(
+        "Resultado Interpolación Lineal / Regula Falsi",
+        f"- **Variante:** {variante}\n- **Raíz:** `{res['raiz']:.6f}` | **Iteraciones:** `{res['iteraciones']}` | **Error:** `{res['error_final']:.3e}`",
+        clave="raiz_rf_res",
+    )
 
     hist = res["historial"]
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_rf")
@@ -348,6 +360,13 @@ def _frag_newton_raphson(defaults: dict) -> None:
     m1.metric("Raíz aproximada", f"{res['raiz']:.7f}")
     m2.metric("Iteraciones", res["iteraciones"])
     m3.metric("Error final", f"{res['error_final']:.3e}")
+    registrar_contexto_ia(
+        "Derivadas, Fourier y Resultado Newton-Raphson",
+        f"- **Derivadas:** $$f'(x) = {comp['d1_latex']}, \\qquad f''(x) = {comp['d2_latex']}$$\n"
+        f"- **Validación Fourier:** {fourier['detalle_fourier']}\n"
+        f"- **Raíz:** `{res['raiz']:.7f}` | **Iteraciones:** `{res['iteraciones']}` | **Error:** `{res['error_final']:.3e}`",
+        clave="raiz_nr_res",
+    )
 
     hist = res["historial"]
     render_dataframe_acotado(hist, max_filas=300, key_prefix="tbl_raiz_nr")
@@ -443,6 +462,13 @@ def _frag_punto_fijo_aitken(defaults: dict) -> None:
     m1, m2 = st.columns(2)
     m1.metric("Punto Fijo simple", f"{pf['raiz']:.6f}", f"{pf['iteraciones']} iters | Err {pf['error_final']:.2e}")
     m2.metric("Aceleración Δ² de Aitken", f"{ait['raiz']:.6f}", f"{ait['ciclos']} ciclos | Err {ait['error_final']:.2e}")
+    registrar_contexto_ia(
+        "Derivada g'(x), Punto Fijo y Aitken Δ²",
+        f"- **Derivada:** $$g'(x) = {comp_g['dg_latex']}, \\qquad |g'(x_0)| = {deriv_x0:.4f}$$\n"
+        f"- **Punto Fijo simple:** raíz `{pf['raiz']:.6f}` (`{pf['iteraciones']}` iters, error `{pf['error_final']:.2e}`)\n"
+        f"- **Aitken $\\Delta^2$:** raíz `{ait['raiz']:.6f}` (`{ait['ciclos']}` ciclos, error `{ait['error_final']:.2e}`)",
+        clave="raiz_pf_res",
+    )
 
     t_pf, t_ait = st.tabs(["Tabla Punto Fijo", "Tabla Aitken Δ²"])
     with t_pf:
