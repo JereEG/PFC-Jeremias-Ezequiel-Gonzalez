@@ -216,7 +216,7 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
                 y=1.02,
                 xanchor="left",
                 x=0,
-                bgcolor=hex_a_rgba(paleta["bg_secundario"], 0.78),
+                bgcolor=paleta["bg_secundario"],
                 bordercolor=paleta["borde"],
                 borderwidth=1,
                 font=dict(color=paleta["texto_principal"], size=13),
@@ -281,6 +281,82 @@ def __getattr__(name: str):
     raise AttributeError(f"module 'views.theme' has no attribute {name!r}")
 
 
+def _mapa_colores_oscuro_a_claro() -> dict[str, str]:
+    """Construye el mapeo de colores de paleta oscura hacia modo claro de alto contraste."""
+    claves = (
+        "oro",
+        "salvia",
+        "terracota",
+        "terracota_oscuro",
+        "salvia_borde",
+        "texto_principal",
+        "texto_secundario",
+        "texto_atenuado",
+        "borde",
+        "grilla",
+        "bg_lienzo",
+        "bg_principal",
+        "bg_secundario",
+    )
+    mapa = {PALETA_ARANDU[k].lower(): PALETA_ARANDU_CLARO[k] for k in claves}
+    for k_base in ("oro", "salvia", "terracota"):
+        for alpha in (0.22, 0.25):
+            mapa[hex_a_rgba(PALETA_ARANDU[k_base], alpha).lower()] = hex_a_rgba(
+                PALETA_ARANDU_CLARO[k_base], alpha
+            )
+    return mapa
+
+
+def _remapear_color(valor, mapa: dict[str, str]):
+    if isinstance(valor, str):
+        return mapa.get(valor.lower(), valor)
+    if isinstance(valor, (list, tuple)):
+        convertidos = [mapa.get(v.lower(), v) if isinstance(v, str) else v for v in valor]
+        return tuple(convertidos) if isinstance(valor, tuple) else convertidos
+    return valor
+
+
+def _adaptar_colores_figura_al_tema(fig: go.Figure, modo: str) -> None:
+    """Reemplaza colores oscuros en trazos, formas y anotaciones cuando el modo claro está activo."""
+    if modo != "claro":
+        return
+    mapa = _mapa_colores_oscuro_a_claro()
+    mapa_linea = {**mapa, PALETA_ARANDU["marfil_nodo"].lower(): PALETA_ARANDU_CLARO["texto_principal"]}
+
+    for traza in getattr(fig, "data", ()) or ():
+        if getattr(traza, "fillcolor", None) is not None:
+            traza.fillcolor = _remapear_color(traza.fillcolor, mapa)
+        linea = getattr(traza, "line", None)
+        if linea is not None and getattr(linea, "color", None) is not None:
+            linea.color = _remapear_color(linea.color, mapa_linea)
+        marcador = getattr(traza, "marker", None)
+        if marcador is not None:
+            m_line = getattr(marcador, "line", None)
+            if m_line is not None and getattr(m_line, "color", None) is not None:
+                m_line.color = _remapear_color(m_line.color, mapa_linea)
+            if getattr(marcador, "color", None) is not None:
+                m_color = marcador.color
+                if (
+                    isinstance(m_color, str)
+                    and m_color.lower() == PALETA_ARANDU["marfil_nodo"].lower()
+                    and not (m_line is not None and getattr(m_line, "color", None))
+                ):
+                    marcador.color = PALETA_ARANDU_CLARO["texto_principal"]
+                else:
+                    marcador.color = _remapear_color(m_color, mapa)
+
+    for forma in getattr(fig.layout, "shapes", ()) or ():
+        if getattr(forma, "fillcolor", None) is not None:
+            forma.fillcolor = _remapear_color(forma.fillcolor, mapa)
+        f_line = getattr(forma, "line", None)
+        if f_line is not None and getattr(f_line, "color", None) is not None:
+            f_line.color = _remapear_color(f_line.color, mapa_linea)
+
+    for anotacion in getattr(fig.layout, "annotations", ()) or ():
+        if getattr(anotacion, "font", None) is not None and getattr(anotacion.font, "color", None) is not None:
+            anotacion.font.color = _remapear_color(anotacion.font.color, mapa_linea)
+
+
 def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     """Aplica la plantilla y colores orgánicos de Arandú según el tema activo."""
     modo = obtener_modo_tema()
@@ -293,13 +369,22 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
         plot_bgcolor=paleta["bg_lienzo"],
         margin=dict(l=50, r=30, t=60, b=50),
         font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=13),
+        title=dict(font=dict(color=paleta["texto_principal"], family="'Outfit', sans-serif", size=17)),
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
             xanchor="left",
             x=0,
+            bgcolor=paleta["bg_secundario"],
+            bordercolor=paleta["borde"],
+            borderwidth=1,
             font=dict(color=paleta["texto_principal"], size=13),
+        ),
+        hoverlabel=dict(
+            bgcolor=paleta["bg_secundario"],
+            bordercolor=paleta["terracota_oscuro"],
+            font=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=12),
         ),
     )
     fig.update_xaxes(
@@ -322,6 +407,7 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
         tickfont=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=13),
         title_font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=14),
     )
+    _adaptar_colores_figura_al_tema(fig, modo)
     return fig
 
 
@@ -964,6 +1050,18 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             color: var(--arandu-gold) !important;
             text-decoration: underline !important;
             text-underline-offset: 3px;
+        }}
+        .js-plotly-plot .plotly .modebar {{
+            background-color: var(--arandu-surface) !important;
+            border: 1px solid var(--arandu-border) !important;
+            border-radius: 6px !important;
+        }}
+        .js-plotly-plot .plotly .modebar-btn svg path {{
+            fill: var(--arandu-muted) !important;
+        }}
+        .js-plotly-plot .plotly .modebar-btn:hover svg path,
+        .js-plotly-plot .plotly .modebar-btn.active svg path {{
+            fill: var(--arandu-gold) !important;
         }}
         a:focus-visible,
         button:focus-visible,

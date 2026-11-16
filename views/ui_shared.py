@@ -399,8 +399,10 @@ def render_plotly_arandu(
     **kwargs: Any,
 ) -> None:
     """Renderiza figuras Plotly con resumen accesible, tabla semántica HTML y descarga CSV."""
+    estilizar_figura_arandu(fig)
     config = kwargs.pop("config", PLOTLY_CONFIG_ARANDU)
-    st.plotly_chart(fig, use_container_width=True, config=config, key=key, **kwargs)
+    theme_arg = kwargs.pop("theme", None)
+    st.plotly_chart(fig, use_container_width=True, config=config, theme=theme_arg, key=key, **kwargs)
 
     titulo, ejex, ejey, resumen_final, filas_html, filas_csv = _extraer_accesibilidad_plotly(
         fig, resumen_accesible=resumen_accesible
