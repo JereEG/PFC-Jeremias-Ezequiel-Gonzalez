@@ -22,6 +22,7 @@ from views.ui_shared import (
     muestrear_para_grafico,
     render_dataframe_acotado,
     render_plotly_arandu,
+    render_subtitulo_controles_vivo,
 )
 
 
@@ -31,6 +32,7 @@ def _frag_lab1_sumatorias() -> None:
         r"Compara la acumulación iterativa mediante un bucle `for` en memoria frente a la fórmula cerrada "
         r"$\sum_{i=1}^{N} i = \frac{N(N+1)}{2}$ (complejidad $O(N)$ vs. $O(1)$)."
     )
+    render_subtitulo_controles_vivo()
     n_lim = st.slider(r"Cantidad límite $N$:", 5, 500, 100, key="lab1_n_sum")
     enteros = list(range(1, n_lim + 1))
     res_n = sumar_n_positivos([float(v) for v in enteros])
@@ -46,6 +48,7 @@ def _frag_lab1_fibonacci() -> None:
         r"Evalúa la recurrencia $F_k = F_{k-1} + F_{k-2}$ en aritmética entera exacta y verifica cómo el "
         r"cociente sucesivo $\frac{F_k}{F_{k-1}}$ converge a la razón áurea $\varphi = \frac{1 + \sqrt{5}}{2}$."
     )
+    render_subtitulo_controles_vivo()
     n_fib = st.slider(r"Cantidad de términos $N$ (TP1 solicita $N = 200$):", 5, 200, 30, key="lab1_n_fib")
     res_f = generar_fibonacci(n_fib)
     hist_f = res_f["tabla"]

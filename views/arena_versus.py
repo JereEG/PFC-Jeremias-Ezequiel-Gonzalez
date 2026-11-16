@@ -34,6 +34,8 @@ from core.interpolacion import (
     diagnosticar_espaciamiento_nodos,
     evaluar_curva_gregory_parcial,
     evaluar_curva_lagrange,
+    interpolar_gauss_progresiva,
+    interpolar_gauss_regresiva,
     interpolar_lagrange,
     interpolar_newton_gregory_ascendente,
     interpolar_newton_gregory_descendente,
@@ -62,7 +64,10 @@ from views.ui_shared import (
     inject_arandu_css,
     limpiar_valores_plotly,
     muestrear_para_grafico,
+    render_data_editor_arandu,
+    render_excepcion_validacion,
     render_plotly_arandu,
+    render_subtitulo_controles_vivo,
 )
 
 
@@ -102,6 +107,7 @@ def _render_ficha_tecnica(titulo_slot: str, ficha: dict, color_acento: str) -> N
 @st.fragment
 def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Raíces sobre una misma Ecuación $f(x) = 0$")
+    render_subtitulo_controles_vivo()
     c1, c2 = st.columns(2)
     f_str = c1.text_input("Ecuación $f(x) = 0$:", value="x**3 - 2*x - 5", key="vs_raiz_f")
     g_str = c2.text_input("Despeje $x = g(x)$ (si participa Aitken):", value="(2*x + 5)**(1/3)", key="vs_raiz_g")
@@ -136,7 +142,12 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         ra, ita, ea, _ta, err_a = _correr(m_a)
         rb, itb, eb, _tb, err_b = _correr(m_b)
     except Exception as exc:
-        st.error(f"Error ejecutando el duelo de raíces: {exc}")
+        render_excepcion_validacion(
+            exc,
+            campo="Ecuación o intervalo del duelo de raíces",
+            sugerencia_defecto="Verificá sintaxis Python en f(x), cambio de signo f(a)*f(b) < 0 o g(x) contractiva.",
+            ejemplo_defecto="f(x) = x**3 - 2*x - 5 en [2.0, 3.0]",
+        )
         return
 
     ca, cb = st.columns(2)
@@ -152,8 +163,8 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 y=err_a_s,
                 mode="lines+markers",
                 name=nombre_a,
-                line=dict(color=PALETA_ARANDU["oro"], width=2.5),
-                marker=dict(size=7, color=PALETA_ARANDU["oro"]),
+                line=dict(color=PALETA_ARANDU["oro"], width=2.5, dash="solid"),
+                marker=dict(size=7, symbol="circle", color=PALETA_ARANDU["oro"]),
             )
         )
     if err_b:
@@ -165,7 +176,7 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
                 mode="lines+markers",
                 name=nombre_b,
                 line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dot"),
-                marker=dict(size=7, color=PALETA_ARANDU["terracota"]),
+                marker=dict(size=7, symbol="diamond", color=PALETA_ARANDU["terracota"]),
             )
         )
     fig.update_yaxes(type="log")
@@ -175,12 +186,13 @@ def _duelo_raices(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 @st.fragment
 def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Sistemas Lineales $Ax = b$")
+    render_subtitulo_controles_vivo()
     default_mat = pd.DataFrame(
         [[18.72, 8.20, 8.76, 121.280], [6.40, 15.90, 7.18, 126.321], [5.22, 6.40, 14.31, 118.522]],
         columns=["a_1", "a_2", "a_3", "b"],
     )
     st.caption(r"Modifica la matriz $A$ o el vector $b$ para ensayar matrices con y sin dominancia diagonal:")
-    df_ed = st.data_editor(default_mat, use_container_width=True, hide_index=True, key="vs_sis_mat")
+    df_ed = render_data_editor_arandu(default_mat, use_container_width=True, hide_index=True, key="vs_sis_mat")
     A = df_ed[["a_1", "a_2", "a_3"]].astype(float).values.tolist()
     b = df_ed["b"].astype(float).tolist()
     tol = st.number_input("Tolerancia $E$ (si participa Gauss-Seidel):", value=1e-4, format="%.6f", key="vs_sis_tol")
@@ -206,7 +218,12 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         sa, na, _ta, d_a = _correr(m_a)
         sb, nb, _tb, d_b = _correr(m_b)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A y vector b",
+            sugerencia_defecto="Ingresá una matriz cuadrada invertible A (sin ceros insalvables en diagonal) y vector b compatible.",
+            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]], b = [2, 6, 2]",
+        )
         return
 
     ca, cb = st.columns(2)
@@ -224,11 +241,12 @@ def _duelo_sistemas(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
 @st.fragment
 def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown("## Arena en Vivo — Autovalores de una Matriz Cuadrada")
+    render_subtitulo_controles_vivo()
     default_a = pd.DataFrame(
         [[3.556, -1.778, 0.0], [-1.778, 3.556, -1.778], [0.0, -1.778, 3.556]],
         columns=["c_1", "c_2", "c_3"],
     )
-    df_ed = st.data_editor(default_a, use_container_width=True, hide_index=True, key="vs_aut_mat")
+    df_ed = render_data_editor_arandu(default_a, use_container_width=True, hide_index=True, key="vs_aut_mat")
     A = df_ed.astype(float).values.tolist()
 
     def _correr(clave: str):
@@ -247,7 +265,12 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         va, ita, sa = _correr(m_a)
         vb, itb, sb = _correr(m_b)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A y vector b",
+            sugerencia_defecto="Ingresá una matriz cuadrada invertible A (sin ceros insalvables en diagonal) y vector b compatible.",
+            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]], b = [2, 6, 2]",
+        )
         return
 
     ca, cb = st.columns(2)
@@ -281,20 +304,42 @@ def _duelo_autovalores(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
         render_plotly_arandu(fig, key="plot_vs_aut_fad")
     else:
         fig = crear_figura_base_plotly("Trayectoria de Potencias λ_k", "Iteración", "λ_k")
-        fig.add_trace(go.Scatter(x=list(range(1, len(sa) + 1)), y=limpiar_valores_plotly(sa), mode="lines+markers", name=nombre_a, line=dict(color=PALETA_ARANDU["salvia"], width=2.5)))
-        fig.add_trace(go.Scatter(x=list(range(1, len(sb) + 1)), y=limpiar_valores_plotly(sb), mode="lines+markers", name=nombre_b, line=dict(color=PALETA_ARANDU["terracota"], width=2.5)))
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, len(sa) + 1)),
+                y=limpiar_valores_plotly(sa),
+                mode="lines+markers",
+                name=nombre_a,
+                line=dict(color=PALETA_ARANDU["salvia"], width=2.5, dash="solid"),
+                marker=dict(symbol="circle", size=7),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, len(sb) + 1)),
+                y=limpiar_valores_plotly(sb),
+                mode="lines+markers",
+                name=nombre_b,
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dashdot"),
+                marker=dict(symbol="diamond", size=7),
+            )
+        )
         render_plotly_arandu(fig, key="plot_vs_aut_pot")
 
 
 @st.fragment
 def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown("## Arena en Vivo — Interpolación sobre Tabla Discreta")
+    render_subtitulo_controles_vivo()
     df_def = pd.DataFrame({"x": [0.2, 0.5, 0.8, 1.1, 1.4], "y": [0.258, 2.535, 4.902, 6.722, 10.704]})
     st.caption(r"Modifica cualquier nodo $x_i$ para comprobar qué ocurre con Newton-Gregory cuando se rompe la equidistancia:")
-    df_ed = st.data_editor(df_def, use_container_width=True, hide_index=True, num_rows="dynamic", key="vs_int_tbl")
+    df_ed = render_data_editor_arandu(df_def, use_container_width=True, hide_index=True, num_rows="dynamic", key="vs_int_tbl")
     df_c = df_ed.dropna()
     xs, ys = df_c["x"].astype(float).tolist(), df_c["y"].astype(float).tolist()
-    x_eval = st.number_input("Punto $x^*$ a evaluar:", value=0.35, format="%.4f", key="vs_int_xe")
+    c_xe, c_gr = st.columns([1.2, 1])
+    x_eval = c_xe.number_input("Punto $x^*$ a evaluar:", value=0.90 if ("gauss_prog" in (m_a, m_b) or "gauss_reg" in (m_a, m_b)) else 0.35, format="%.4f", key="vs_int_xe")
+    max_g = max(len(xs) - 1, 1)
+    grado_vs = c_gr.slider("Grado de truncamiento $k$ (solo diferencias finitas):", 0, max_g, max_g, key="vs_int_k")
 
     diag = diagnosticar_espaciamiento_nodos(xs)
     if not diag["es_equiespaciado"]:
@@ -303,12 +348,18 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
     def _correr(clave: str):
         if clave == "lagrange":
             r = interpolar_lagrange(xs, ys, x_eval)
-            return r["y_interpolado"], r["duracion"], "Válido siempre", None
+            return r["y_interpolado"], r["duracion"], f"Grado completo {max_g} (siempre válido)", None
         if clave == "gregory_asc":
-            r = interpolar_newton_gregory_ascendente(xs, ys, x_eval)
-            return r["y_interpolado"], r["duracion"], f"u = {r['u']:.4f}", "ascendente"
-        r = interpolar_newton_gregory_descendente(xs, ys, x_eval)
-        return r["y_interpolado"], r["duracion"], f"v = {r['v']:.4f}", "descendente"
+            r = interpolar_newton_gregory_ascendente(xs, ys, x_eval, grado_max=grado_vs)
+            return r["y_interpolado"], r["duracion"], f"u = {r['u']:.4f} (k={grado_vs})", "ascendente"
+        if clave == "gregory_desc":
+            r = interpolar_newton_gregory_descendente(xs, ys, x_eval, grado_max=grado_vs)
+            return r["y_interpolado"], r["duracion"], f"v = {r['v']:.4f} (k={grado_vs})", "descendente"
+        if clave == "gauss_prog":
+            r = interpolar_gauss_progresiva(xs, ys, x_eval, grado_max=grado_vs)
+            return r["y_interpolado"], r["duracion"], f"u_c = {r['u']:.4f} (ancla x={r['x0_central']:g}, k={grado_vs})", "gauss_progresiva"
+        r = interpolar_gauss_regresiva(xs, ys, x_eval, grado_max=grado_vs)
+        return r["y_interpolado"], r["duracion"], f"u_c = {r['u']:.4f} (ancla x={r['x0_central']:g}, k={grado_vs})", "gauss_regresiva"
 
     ca, cb = st.columns(2)
     x_grid = np.linspace(min(xs), max(xs), 220)
@@ -323,12 +374,15 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
         )
     )
 
-    for col, clave, nombre, color in ((ca, m_a, nombre_a, PALETA_ARANDU["salvia"]), (cb, m_b, nombre_b, PALETA_ARANDU["terracota"])):
+    for col, clave, nombre, color, estilo in (
+        (ca, m_a, nombre_a, PALETA_ARANDU["salvia"], "solid"),
+        (cb, m_b, nombre_b, PALETA_ARANDU["terracota"], "dash"),
+    ):
         try:
             val, _dur, nota, modo_g = _correr(clave)
             col.metric(nombre, f"{val:.6f}", nota)
             if modo_g:
-                yg_raw = evaluar_curva_gregory_parcial(xs, ys, x_grid, grado=len(xs) - 1, modo=modo_g)
+                yg_raw = evaluar_curva_gregory_parcial(xs, ys, x_grid, grado=grado_vs, modo=modo_g)
             else:
                 yg_raw = evaluar_curva_lagrange(xs, ys, x_grid)
             fig.add_trace(
@@ -337,11 +391,17 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
                     y=limpiar_valores_plotly(yg_raw, limite_abs=1e9),
                     mode="lines",
                     name=nombre,
-                    line=dict(color=color, width=2.4),
+                    line=dict(color=color, width=2.4, dash=estilo),
                 )
             )
         except Exception as exc:
-            col.error(f"{nombre}: {exc}")
+            with col:
+                render_excepcion_validacion(
+                    exc,
+                    campo=f"Interpolación ({nombre})",
+                    sugerencia_defecto="Verificá nodos x crecientes sin duplicar; Newton-Gregory exige paso h constante.",
+                    ejemplo_defecto="x = [0.0, 1.0, 2.0, 3.0]",
+                )
 
     render_plotly_arandu(fig, key="plot_vs_interp")
 
@@ -349,6 +409,7 @@ def _duelo_interpolacion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> No
 @st.fragment
 def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Cuadratura Numérica con Paso $\Delta h$ Variable")
+    render_subtitulo_controles_vivo()
     x_base = [0.5, 5.5, 10.5, 15.5, 20.5, 25.5]
     y_base = [0.05, 6.05, 22.05, 48.05, 84.05, 130.05]
     c1, c2 = st.columns(2)
@@ -406,6 +467,7 @@ def _duelo_integracion(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None
 @st.fragment
 def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     st.markdown(r"## Arena en Vivo — Trayectorias de EDO ($y' = f(x, y)$)")
+    render_subtitulo_controles_vivo()
     c1, c2 = st.columns(2)
     f_str = c1.text_input("EDO $y' = f(x, y)$:", value="6*x**2 / y", key="vs_edo_f")
     y_ex_str = c2.text_input("Exacta $y(x)$:", value="2*x*sqrt(x)", key="vs_edo_yex")
@@ -415,23 +477,27 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
     xf = c5.number_input(r"$x_f$:", value=4.4, format="%.4f", key="vs_edo_xf")
     h = c6.number_input(r"Paso $\Delta h$:", value=0.1, min_value=0.01, step=0.05, format="%.4f", key="vs_edo_h")
 
-    comp_f = compilar_funcion_edo(f_str)
-    comp_ex = compilar_exacta_edo(y_ex_str) if y_ex_str.strip() else None
-    y_ex_fn = comp_ex["fn"] if comp_ex else None
-
-    runners = {
-        "euler": lambda: metodo_euler(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
-        "heun": lambda: metodo_euler_modificado(comp_f["fn"], x0, y0, h, xf=xf, iterar_corrector=True, y_exacta_fn=y_ex_fn),
-        "rk2": lambda: metodo_runge_kutta_2(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
-        "rk4": lambda: metodo_runge_kutta_4(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
-        "milne": lambda: metodo_milne(comp_f["fn"], x0, y0, h, xf=xf, n_correcciones=2, y_exacta_fn=y_ex_fn),
-    }
-
     try:
+        comp_f = compilar_funcion_edo(f_str)
+        comp_ex = compilar_exacta_edo(y_ex_str) if y_ex_str.strip() else None
+        y_ex_fn = comp_ex["fn"] if comp_ex else None
+
+        runners = {
+            "euler": lambda: metodo_euler(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
+            "heun": lambda: metodo_euler_modificado(comp_f["fn"], x0, y0, h, xf=xf, iterar_corrector=True, y_exacta_fn=y_ex_fn),
+            "rk2": lambda: metodo_runge_kutta_2(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
+            "rk4": lambda: metodo_runge_kutta_4(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn),
+            "milne": lambda: metodo_milne(comp_f["fn"], x0, y0, h, xf=xf, n_correcciones=2, y_exacta_fn=y_ex_fn),
+        }
         ra = runners[m_a]()
         rb = runners[m_b]()
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="EDO y' = f(x, y) o intervalo PVI",
+            sugerencia_defecto="Revisá sintaxis Python en y'=f(x,y), x_f != x_0 y al menos 4 pasos en Milne.",
+            ejemplo_defecto="y' = 6*x**2 / y con x0 = 4.0, y0 = 16.0, xf = 4.4, h = 0.1",
+        )
         return
 
     ea = ra["tabla"][-1].get("error_abs") or 0.0
@@ -456,8 +522,26 @@ def _duelo_edo(m_a: str, m_b: str, nombre_a: str, nombre_b: str) -> None:
         )
     pares_a = muestrear_para_grafico(list(zip(ra["x"], ra["y"])), max_puntos=300)
     pares_b = muestrear_para_grafico(list(zip(rb["x"], rb["y"])), max_puntos=300)
-    fig.add_trace(go.Scatter(x=[p[0] for p in pares_a], y=[p[1] for p in pares_a], mode="lines+markers", name=nombre_a, line=dict(color=PALETA_ARANDU["salvia"], width=2.4)))
-    fig.add_trace(go.Scatter(x=[p[0] for p in pares_b], y=[p[1] for p in pares_b], mode="lines+markers", name=nombre_b, line=dict(color=PALETA_ARANDU["terracota"], width=2.4)))
+    fig.add_trace(
+        go.Scatter(
+            x=[p[0] for p in pares_a],
+            y=[p[1] for p in pares_a],
+            mode="lines+markers",
+            name=nombre_a,
+            line=dict(color=PALETA_ARANDU["salvia"], width=2.4, dash="solid"),
+            marker=dict(symbol="circle", size=7),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[p[0] for p in pares_b],
+            y=[p[1] for p in pares_b],
+            mode="lines+markers",
+            name=nombre_b,
+            line=dict(color=PALETA_ARANDU["terracota"], width=2.4, dash="dot"),
+            marker=dict(symbol="diamond", size=7),
+        )
+    )
     render_plotly_arandu(fig, key="plot_vs_edo")
 
 

@@ -24,7 +24,7 @@ PALETA_ARANDU: dict[str, str] = {
     "terracota": "#C86D44",
     "texto_principal": "#EDE4D3",
     "texto_secundario": "#C7BFA9",
-    "borde": "#2E2920",
+    "borde": "#736958",
     "salvia_borde": "#687D5B",
     "terracota_oscuro": "#B5673F",
     "marfil_nodo": "#FFFDF9",
@@ -181,6 +181,7 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
     import plotly.io as pio
 
     paleta = PALETA_ARANDU_CLARO if modo == "claro" else PALETA_ARANDU
+    grid_suave = hex_a_rgba(paleta["grilla"], 0.42 if modo == "oscuro" else 0.52)
     colorway = [
         paleta["oro"],
         paleta["salvia"],
@@ -193,24 +194,32 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
         layout=go.Layout(
             paper_bgcolor=hex_a_rgba(paleta["bg_principal"], 0),
             plot_bgcolor=paleta["bg_lienzo"],
+            margin=dict(l=50, r=30, t=60, b=50),
             font=dict(
                 color=paleta["texto_principal"],
                 family="'Inter', sans-serif",
                 size=13,
             ),
             title=dict(
+                y=0.98,
+                yanchor="top",
                 font=dict(
                     color=paleta["texto_principal"],
                     family="'Outfit', sans-serif",
                     size=17,
-                )
+                ),
             ),
             colorway=colorway,
             legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="left",
+                x=0,
                 bgcolor=hex_a_rgba(paleta["bg_secundario"], 0.78),
                 bordercolor=paleta["borde"],
                 borderwidth=1,
-                font=dict(color=paleta["texto_principal"], size=12),
+                font=dict(color=paleta["texto_principal"], size=13),
             ),
             hoverlabel=dict(
                 bgcolor=paleta["bg_secundario"],
@@ -222,7 +231,8 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
                 ),
             ),
             xaxis=dict(
-                gridcolor=paleta["grilla"],
+                gridcolor=grid_suave,
+                minor=dict(showgrid=False),
                 linecolor=paleta["borde"],
                 zeroline=True,
                 zerolinecolor=paleta["terracota_oscuro"],
@@ -230,11 +240,17 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
                 tickfont=dict(
                     color=paleta["texto_principal"],
                     family="'JetBrains Mono', monospace",
-                    size=11,
+                    size=13,
+                ),
+                title_font=dict(
+                    color=paleta["texto_principal"],
+                    family="'Inter', sans-serif",
+                    size=14,
                 ),
             ),
             yaxis=dict(
-                gridcolor=paleta["grilla"],
+                gridcolor=grid_suave,
+                minor=dict(showgrid=False),
                 linecolor=paleta["borde"],
                 zeroline=True,
                 zerolinecolor=paleta["terracota_oscuro"],
@@ -242,7 +258,12 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
                 tickfont=dict(
                     color=paleta["texto_principal"],
                     family="'JetBrains Mono', monospace",
-                    size=11,
+                    size=13,
+                ),
+                title_font=dict(
+                    color=paleta["texto_principal"],
+                    family="'Inter', sans-serif",
+                    size=14,
                 ),
             ),
         )
@@ -264,28 +285,42 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     """Aplica la plantilla y colores orgánicos de Arandú según el tema activo."""
     modo = obtener_modo_tema()
     paleta = obtener_paleta_activa(modo)
+    grid_suave = hex_a_rgba(paleta["grilla"], 0.42 if modo == "oscuro" else 0.52)
     template = obtener_plotly_arandu_template(modo)
     fig.update_layout(
         template=template,
         paper_bgcolor=hex_a_rgba(paleta["bg_principal"], 0),
         plot_bgcolor=paleta["bg_lienzo"],
-        font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif"),
+        margin=dict(l=50, r=30, t=60, b=50),
+        font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=13),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+            font=dict(color=paleta["texto_principal"], size=13),
+        ),
     )
     fig.update_xaxes(
         showgrid=True,
-        gridcolor=paleta["grilla"],
+        gridcolor=grid_suave,
+        minor=dict(showgrid=False),
         zeroline=True,
         zerolinecolor=paleta["terracota_oscuro"],
         zerolinewidth=1.6,
-        tickfont=dict(color=paleta["texto_principal"]),
+        tickfont=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=13),
+        title_font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=14),
     )
     fig.update_yaxes(
         showgrid=True,
-        gridcolor=paleta["grilla"],
+        gridcolor=grid_suave,
+        minor=dict(showgrid=False),
         zeroline=True,
         zerolinecolor=paleta["terracota_oscuro"],
         zerolinewidth=1.6,
-        tickfont=dict(color=paleta["texto_principal"]),
+        tickfont=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=13),
+        title_font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=14),
     )
     return fig
 
@@ -395,8 +430,12 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         "--arandu-sage-18": hex_a_rgba(paleta["salvia_borde"], 0.18),
         "--arandu-sage-22": hex_a_rgba(paleta["salvia_borde"], 0.22),
         "--arandu-sage-55": hex_a_rgba(paleta["salvia"], 0.55),
+        "--arandu-terracotta-12": hex_a_rgba(paleta["terracota"], 0.12),
         "--arandu-terracotta-18": hex_a_rgba(paleta["terracota_oscuro"], 0.18),
         "--arandu-terracotta-26": hex_a_rgba(paleta["terracota_oscuro"], 0.26),
+        "--arandu-terracotta-45": hex_a_rgba(paleta["terracota"], 0.45),
+        "--arandu-text-10": hex_a_rgba(paleta["texto_principal"], 0.10),
+        "--arandu-text-45": hex_a_rgba(paleta["texto_principal"], 0.45),
         "--arandu-surface-92": hex_a_rgba(paleta["bg_secundario"], 0.92),
         "--arandu-bg-55": hex_a_rgba(paleta["bg_principal"], 0.55),
         "--arandu-shadow-30": hex_a_rgba(paleta["negro_sombra"], 0.14 if modo == "claro" else 0.30),
@@ -438,17 +477,22 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         [data-testid="stLinkButton"] a {
             background-color: var(--arandu-canvas) !important;
             color: var(--arandu-text) !important;
-            border: 1px solid var(--arandu-border) !important;
+            border: 1px solid var(--arandu-gold) !important;
+            border-radius: 8px !important;
         }
         button[kind="primary"], [data-testid="stBaseButton-primary"] {
             background-color: var(--arandu-gold) !important;
             color: var(--arandu-canvas) !important;
             border-color: var(--arandu-gold) !important;
+            border-radius: 8px !important;
         }
         [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stExpander"],
-        [data-testid="stMetric"], [data-testid="stAlert"] {
+        [data-testid="stMetric"] {
             background-color: var(--arandu-surface) !important;
             border-color: var(--arandu-border) !important;
+            color: var(--arandu-text) !important;
+        }
+        [data-testid="stAlert"] {
             color: var(--arandu-text) !important;
         }
         [data-testid="stExpander"] summary, [data-testid="stExpander"] summary p {
@@ -469,13 +513,38 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         html, body, [class*="css"] {{
             font-family: 'Inter', sans-serif;
             color: var(--arandu-text);
-            line-height: 1.65;
+            line-height: 1.7;
         }}
         [data-testid="stMarkdownContainer"] p,
         [data-testid="stMarkdownContainer"] li {{
             font-family: 'Inter', sans-serif;
             color: var(--arandu-text);
-            line-height: 1.65;
+            font-size: 1.08rem;
+            line-height: 1.7;
+        }}
+        .stMain [data-testid="stMarkdownContainer"] > p,
+        .stMain [data-testid="stMarkdownContainer"] > ul,
+        .stMain [data-testid="stMarkdownContainer"] > ol {{
+            max-width: 74ch;
+        }}
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] li {{
+            font-size: 0.94rem;
+            line-height: 1.55;
+            max-width: none;
+        }}
+        .katex {{
+            font-size: 1.15em !important;
+        }}
+        .katex-display,
+        [data-testid="stLatex"] .katex-display {{
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.25rem 0;
+        }}
+        .katex-display > .katex,
+        [data-testid="stLatex"] .katex {{
+            font-size: 1.22em !important;
         }}
         h1, h2, h3, .arandu-brand-title {{
             font-family: 'Outfit', sans-serif !important;
@@ -489,8 +558,116 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             letter-spacing: -0.01em;
             color: var(--arandu-text);
         }}
-        code, pre, .stCode, [data-testid="stMetricValue"], [data-testid="stDataFrame"], [data-testid="stTable"] {{
+        code, pre, .stCode, [data-testid="stMetricValue"] {{
             font-family: 'JetBrains Mono', monospace !important;
+        }}
+        [data-testid="stDataFrame"],
+        [data-testid="stDataFrame"] *,
+        [data-testid="stDataEditor"],
+        [data-testid="stDataEditor"] *,
+        [data-testid="stTable"],
+        [data-testid="stTable"] * {{
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.98rem !important;
+            --gdg-font-family: 'JetBrains Mono', monospace;
+            --gdg-base-font-style: 0.98rem 'JetBrains Mono', monospace;
+            --gdg-header-font-style: 600 0.98rem 'JetBrains Mono', monospace;
+        }}
+        [data-testid="stDataFrame"] {{
+            border: 1px solid var(--arandu-border) !important;
+            border-radius: 6px !important;
+            padding: 0.35rem !important;
+            background-color: var(--arandu-surface) !important;
+        }}
+        .arandu-eyebrow {{
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-gold);
+            margin-bottom: 0.28rem;
+            text-align: left;
+        }}
+        .arandu-tbl-tag-edit {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--arandu-gold);
+            margin: 0.45rem 0 0.28rem 0;
+            text-align: left;
+        }}
+        .arandu-tbl-tag-readonly {{
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--arandu-muted);
+            margin: 0.45rem 0 0.25rem 0;
+            text-align: left;
+        }}
+        .arandu-ctrl-hint {{
+            font-family: 'Inter', sans-serif;
+            font-size: 0.94rem;
+            font-weight: 500;
+            color: var(--arandu-muted);
+            margin: 0.15rem 0 0.5rem 0;
+            text-align: left;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContainer"] {{
+            border: none !important;
+            border-top: none !important;
+            border-right: none !important;
+            border-bottom: none !important;
+            border-left: 4px solid var(--arandu-sage) !important;
+            border-radius: 0 4px 4px 0 !important;
+            background-color: var(--arandu-sage-14) !important;
+            box-shadow: none !important;
+            text-align: left !important;
+            padding: 0.9rem 1.1rem !important;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) {{
+            border-left-color: var(--arandu-sage) !important;
+            background-color: var(--arandu-sage-14) !important;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContentInfo"]::before {{
+            content: "AYUDA DE USO";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-sage);
+            margin-bottom: 0.28rem;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContainer"]:has([data-testid="stAlertContentSuccess"]) {{
+            border-left-color: var(--arandu-gold) !important;
+            background-color: var(--arandu-gold-09) !important;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContentSuccess"]::before {{
+            content: "NOTA DE CÁTEDRA";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-gold);
+            margin-bottom: 0.28rem;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContainer"]:has([data-testid="stAlertContentWarning"]),
+        [data-testid="stAlert"] [data-testid="stAlertContainer"]:has([data-testid="stAlertContentError"]) {{
+            border-left-color: var(--arandu-terracotta) !important;
+            background-color: var(--arandu-terracotta-18) !important;
+        }}
+        [data-testid="stAlert"] [data-testid="stAlertContentWarning"]::before,
+        [data-testid="stAlert"] [data-testid="stAlertContentError"]::before {{
+            content: "CRITERIO TÉCNICO";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-terracotta);
+            margin-bottom: 0.28rem;
         }}
 
         div[data-testid="stHorizontalBlock"] {{
@@ -498,17 +675,28 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         }}
 
         .arandu-wasm-banner {{
-            padding: 0.65rem 0.85rem;
-            border-radius: 10px;
-            background-color: var(--arandu-sage-22);
-            border: 1px solid var(--arandu-sage-border);
+            padding: 0.72rem 0.95rem;
+            border-radius: 0 4px 4px 0;
+            background-color: var(--arandu-sage-14);
+            border: none;
             border-left: 4px solid var(--arandu-sage);
             color: var(--arandu-text);
             font-family: 'Inter', sans-serif;
-            font-size: 0.86rem;
-            font-weight: 600;
-            line-height: 1.5;
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.55;
+            text-align: left;
             margin-top: 0.5rem;
+        }}
+        .arandu-wasm-banner::before {{
+            content: "AYUDA DE USO";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-sage);
+            margin-bottom: 0.22rem;
         }}
 
         .arandu-sidebar-brand {{
@@ -597,14 +785,25 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         }}
 
         .arandu-abstract {{
-            padding: 0.85rem 1.15rem;
-            border-radius: 10px;
-            border: 1px solid var(--arandu-border);
+            padding: 0.9rem 1.15rem;
+            border-radius: 0 4px 4px 0;
+            border: none;
             border-left: 4px solid var(--arandu-gold);
-            background: linear-gradient(90deg, var(--arandu-gold-10), var(--arandu-surface-92));
+            background-color: var(--arandu-gold-09);
+            text-align: left;
             margin: 0.35rem 0 0.85rem 0;
-            font-size: 0.98rem;
-            line-height: 1.65;
+            font-size: 1.02rem;
+            line-height: 1.7;
+        }}
+        .arandu-abstract::before {{
+            content: "NOTA DE CÁTEDRA";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-gold);
+            margin-bottom: 0.25rem;
         }}
         .arandu-verdict-card {{
             padding: 0.95rem 1.15rem;
@@ -649,26 +848,49 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
 
         .arandu-ejemplo-box {{
             padding: 1rem 1.2rem;
-            border-radius: 12px;
-            border: 1px solid var(--arandu-border);
-            border-left: 4px solid var(--arandu-sage-border);
-            background-color: var(--arandu-surface);
+            border-radius: 0 4px 4px 0;
+            border: none;
+            border-left: 4px solid var(--arandu-sage);
+            background-color: var(--arandu-sage-14);
+            text-align: left;
             margin: 0.6rem 0 1rem 0;
         }}
+        .arandu-ejemplo-box::before {{
+            content: "NOTA DE CÁTEDRA";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-sage);
+            margin-bottom: 0.25rem;
+        }}
         .arandu-edit-banner {{
-            padding: 0.8rem 1.05rem;
-            border-radius: 10px;
-            border: 2px dashed var(--arandu-gold);
-            background-color: var(--arandu-gold-10);
+            padding: 0.85rem 1.05rem;
+            border-radius: 0 4px 4px 0;
+            border: none;
+            border-left: 4px solid var(--arandu-gold);
+            background-color: var(--arandu-gold-09);
             color: var(--arandu-text);
-            font-weight: 600;
+            font-weight: 500;
+            text-align: left;
             margin: 0.65rem 0 0.85rem 0;
         }}
+        .arandu-edit-banner::before {{
+            content: "AYUDA DE USO";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-gold);
+            margin-bottom: 0.25rem;
+        }}
         div[data-testid="stDataEditor"] {{
-            border: 2px dashed var(--arandu-gold) !important;
-            border-radius: 10px !important;
-            padding: 0.35rem !important;
-            background-color: var(--arandu-surface) !important;
+            border: 1px dashed var(--arandu-gold) !important;
+            border-radius: 6px !important;
+            padding: 0.4rem !important;
+            background-color: var(--arandu-gold-09) !important;
         }}
 
         .arandu-versus-card {{
@@ -697,11 +919,13 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             border: 1px solid var(--arandu-gold) !important;
             background-color: var(--arandu-elevated) !important;
             color: var(--arandu-text) !important;
-            border-radius: 10px !important;
+            border-radius: 8px !important;
             min-height: 44px !important;
-            font-family: 'Inter', sans-serif !important;
+            font-family: 'Outfit', sans-serif !important;
             font-weight: 600 !important;
-            transition: all 0.2s ease !important;
+            cursor: pointer !important;
+            box-shadow: 0 3px 10px var(--arandu-shadow-30) !important;
+            transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
         }}
         div.stButton > button[kind="primary"],
         div.stButton > [data-testid="stBaseButton-primary"] {{
@@ -713,10 +937,11 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         div.stLinkButton > a:hover,
         div.stButton > button[kind="primary"]:hover,
         div.stButton > [data-testid="stBaseButton-primary"]:hover {{
+            transform: translateY(-2px) !important;
             background-color: var(--arandu-terracotta-26) !important;
             border-color: var(--arandu-terracotta-dark) !important;
             color: var(--arandu-text) !important;
-            box-shadow: 0 0 12px var(--arandu-gold-24) !important;
+            box-shadow: 0 6px 16px var(--arandu-gold-24) !important;
         }}
 
         button[data-baseweb="tab"] {{
@@ -871,10 +1096,10 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         .arandu-nav-card-desc {{
             margin: 0;
             font-family: 'Inter', sans-serif;
-            font-size: 0.88rem;
+            font-size: 0.96rem;
             font-weight: 400;
-            line-height: 1.55;
-            color: var(--arandu-muted);
+            line-height: 1.58;
+            color: var(--arandu-text);
         }}
         .arandu-mini-grid {{
             display: grid;
@@ -904,10 +1129,10 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         }}
         .arandu-mini-card-desc {{
             font-family: 'Inter', sans-serif;
-            font-size: 0.82rem;
+            font-size: 0.96rem;
             font-weight: 400;
-            line-height: 1.5;
-            color: var(--arandu-muted);
+            line-height: 1.55;
+            color: var(--arandu-text);
             margin: 0;
         }}
         @media (max-width: 768px) {{
@@ -1058,16 +1283,16 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         }}
         .arandu-ficha-desc {{
             font-family: 'Inter', sans-serif;
-            font-size: 0.83rem;
+            font-size: 0.96rem;
             font-weight: 400;
-            line-height: 1.52;
-            color: var(--arandu-muted);
+            line-height: 1.58;
+            color: var(--arandu-text);
             text-align: center;
             margin: 0 0 0.6rem 0;
         }}
         .arandu-ficha-foot {{
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
+            font-size: 0.76rem;
             color: var(--arandu-gold);
             border-top: 1px solid var(--arandu-gold-24);
             padding-top: 0.45rem;
@@ -1077,17 +1302,17 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             margin-top: auto;
         }}
         .arandu-ficha-activa-banner {{
-            padding: 0.65rem 1.05rem;
-            border-radius: 10px;
-            border: 1px solid var(--arandu-border);
+            padding: 0.85rem 1.1rem;
+            border-radius: 0 4px 4px 0;
+            border: none;
             border-left: 4px solid var(--arandu-gold);
-            background: linear-gradient(90deg, var(--arandu-gold-12), var(--arandu-surface) 55%);
+            background-color: var(--arandu-gold-09);
+            text-align: left;
             margin: 0.55rem 0 0.9rem 0;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.2rem;
         }}
         .arandu-ficha-activa-titulo {{
             font-family: 'Outfit', sans-serif;
@@ -1144,20 +1369,34 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             100% {{ background-position: -200% 0; }}
         }}
         .arandu-ng-banner {{
-            padding: 0.65rem 0.95rem;
-            border-radius: 10px;
-            border: 1px solid var(--arandu-border);
-            font-size: 0.88rem;
-            line-height: 1.5;
+            padding: 0.85rem 1.05rem;
+            border-radius: 0 4px 4px 0;
+            border: none;
+            font-size: 0.96rem;
+            line-height: 1.6;
+            text-align: left;
             color: var(--arandu-text);
             margin: 0.45rem 0 0.85rem 0;
+        }}
+        .arandu-ng-banner::before {{
+            content: "CRITERIO TÉCNICO";
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--arandu-gold);
+            margin-bottom: 0.25rem;
         }}
         .arandu-ng-banner-asc {{
             background-color: var(--arandu-sage-14);
             border-left: 4px solid var(--arandu-sage);
         }}
+        .arandu-ng-banner-asc::before {{
+            color: var(--arandu-sage);
+        }}
         .arandu-ng-banner-desc {{
-            background-color: var(--arandu-gold-12);
+            background-color: var(--arandu-gold-09);
             border-left: 4px solid var(--arandu-gold);
         }}
         .arandu-ng-summary-grid {{
@@ -1239,7 +1478,7 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             border-collapse: collapse;
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
+            font-size: 0.92rem;
         }}
         .arandu-ng-diff-th {{
             background-color: var(--arandu-surface);
@@ -1385,8 +1624,271 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         .arandu-ng-step-total-desc {{
             background-color: var(--arandu-gold);
         }}
+        .arandu-ng-banner-gprog {{
+            background-color: var(--arandu-terracotta-12);
+            border-left: 4px solid var(--arandu-terracotta);
+        }}
+        .arandu-ng-banner-gprog::before {{
+            color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-banner-greg {{
+            background-color: var(--arandu-text-10);
+            border-left: 4px solid var(--arandu-text);
+        }}
+        .arandu-ng-banner-greg::before {{
+            color: var(--arandu-text);
+        }}
+        .arandu-ng-cell-gprog {{
+            background-color: var(--arandu-terracotta-18);
+            border: 2px solid var(--arandu-terracotta);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-greg {{
+            background-color: var(--arandu-text-10);
+            border: 2px double var(--arandu-text);
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-cell-anchor {{
+            box-shadow: inset 0 0 0 2px var(--arandu-gold-65);
+        }}
+        .arandu-ng-badge-gprog,
+        .arandu-ng-badge-greg {{
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin-bottom: 0.12rem;
+        }}
+        .arandu-ng-badge-gprog {{
+            color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-badge-greg {{
+            color: var(--arandu-text);
+        }}
+        .arandu-ng-formula-card-gprog {{
+            border-color: var(--arandu-terracotta-45);
+        }}
+        .arandu-ng-formula-card-greg {{
+            border-color: var(--arandu-text-45);
+        }}
+        .arandu-ng-formula-icon-gprog,
+        .arandu-ng-formula-icon-greg {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--arandu-canvas);
+            flex-shrink: 0;
+        }}
+        .arandu-ng-formula-icon-gprog {{
+            background-color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-formula-icon-greg {{
+            background-color: var(--arandu-text);
+        }}
+        .arandu-ng-step-val-gprog {{
+            color: var(--arandu-terracotta);
+            font-weight: 700;
+        }}
+        .arandu-ng-step-val-greg {{
+            color: var(--arandu-text);
+            font-weight: 700;
+        }}
+        .arandu-ng-step-total-gprog,
+        .arandu-ng-step-total-greg {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.55rem 0.75rem;
+            border-radius: 9px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            color: var(--arandu-canvas);
+        }}
+        .arandu-ng-step-total-gprog {{
+            background-color: var(--arandu-terracotta);
+        }}
+        .arandu-ng-step-total-greg {{
+            background-color: var(--arandu-text);
+        }}
+        .arandu-gauss-path-strip {{
+            padding: 0.6rem 0.9rem;
+            border-radius: 0 4px 4px 0;
+            border: none;
+            border-left: 4px solid var(--arandu-gold);
+            background-color: var(--arandu-surface);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--arandu-text);
+            margin-bottom: 0.85rem;
+        }}
+        .arandu-gauss-comp-wrap {{
+            overflow-x: auto;
+            border: 1px solid var(--arandu-border);
+            border-radius: 10px;
+            background-color: var(--arandu-surface);
+            margin: 0.4rem 0 0.85rem 0;
+        }}
+        .arandu-gauss-comp-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.86rem;
+            text-align: left;
+        }}
+        .arandu-gauss-comp-table th {{
+            padding: 0.5rem 0.65rem;
+            background-color: var(--arandu-canvas);
+            color: var(--arandu-gold);
+            border-bottom: 1px solid var(--arandu-border);
+            font-weight: 600;
+        }}
+        .arandu-gauss-comp-table td {{
+            padding: 0.45rem 0.65rem;
+            border-bottom: 1px solid var(--arandu-grid);
+            color: var(--arandu-text);
+        }}
+        .arandu-gauss-comp-row-active {{
+            background-color: var(--arandu-gold-10);
+            font-weight: 700;
+        }}
+        .arandu-gauss-comp-best {{
+            display: inline-block;
+            padding: 0.1rem 0.45rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background-color: var(--arandu-sage-22);
+            color: var(--arandu-text);
+            border: 1px solid var(--arandu-sage-55);
+            margin-left: 0.35rem;
+        }}
+        a.arandu-skip-link {{
+            position: fixed;
+            top: -120px;
+            left: 1rem;
+            z-index: 9999;
+            padding: 0.65rem 1.1rem;
+            border-radius: 8px;
+            background-color: var(--arandu-surface-elevated);
+            color: var(--arandu-gold) !important;
+            border: 2px solid var(--arandu-gold);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 0.96rem;
+            text-decoration: none;
+            box-shadow: 0 6px 18px var(--arandu-black-35);
+        }}
+        a.arandu-skip-link:focus,
+        a.arandu-skip-link:focus-visible {{
+            top: 0.75rem;
+        }}
+        [data-baseweb="checkbox"] span,
+        [data-baseweb="radio"] div[role="radio"],
+        [data-baseweb="select"] > div {{
+            border-color: var(--arandu-text-faint) !important;
+        }}
+        .stMain,
+        .arandu-hero,
+        .arandu-nav-card,
+        .arandu-ficha-card,
+        .arandu-callout,
+        .arandu-error-callout,
+        .arandu-chart-desc {{
+            overflow-wrap: break-word;
+            word-break: normal;
+        }}
+        .arandu-chart-desc {{
+            border-left: 3px solid var(--arandu-sage);
+            background-color: var(--arandu-sage-14);
+            padding: 0.5rem 0.85rem;
+            margin: 0.3rem 0 0.55rem 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.92rem;
+            color: var(--arandu-text);
+            line-height: 1.5;
+            text-align: left;
+        }}
+        .arandu-chart-table-wrap {{
+            overflow-x: auto;
+            max-width: 100%;
+            border: 1px solid var(--arandu-border);
+            border-radius: 6px;
+            padding: 0.25rem;
+            background-color: var(--arandu-surface);
+        }}
+        table.arandu-chart-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            color: var(--arandu-text);
+        }}
+        table.arandu-chart-table caption {{
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--arandu-gold);
+            padding: 0.35rem 0.5rem;
+        }}
+        table.arandu-chart-table th {{
+            background-color: var(--arandu-surface-elevated);
+            color: var(--arandu-gold);
+            font-weight: 700;
+            text-align: left;
+            padding: 0.4rem 0.55rem;
+            border-bottom: 2px solid var(--arandu-gold);
+        }}
+        table.arandu-chart-table td {{
+            padding: 0.35rem 0.55rem;
+            border-bottom: 1px solid var(--arandu-border);
+        }}
+        .arandu-error-callout {{
+            border: none;
+            border-left: 4px solid var(--arandu-terracotta);
+            border-radius: 0 4px 4px 0;
+            background-color: var(--arandu-terr-18);
+            padding: 0.8rem 1.05rem;
+            margin: 0.5rem 0 0.9rem 0;
+            color: var(--arandu-text);
+            line-height: 1.58;
+            text-align: left;
+        }}
+        .arandu-error-tag {{
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--arandu-terracotta);
+            margin-bottom: 0.25rem;
+        }}
+        .arandu-footer {{
+            margin-top: 1.1rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid var(--arandu-border);
+            font-size: 0.86rem;
+            color: var(--arandu-muted);
+            line-height: 1.45;
+        }}
         @media (max-width: 900px) {{
             .arandu-ng-summary-grid {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+        @media (max-width: 640px) {{
+            .arandu-hero {{
+                padding: 1rem 1.05rem;
+            }}
+            .arandu-pillars {{
                 grid-template-columns: 1fr;
             }}
         }}
@@ -1592,16 +2094,16 @@ def _construir_html_tarjeta_catalogo_cached(
         else ""
     )
     return (
-        '<div class="arandu-nav-card">'
+        f'<article class="arandu-nav-card" aria-label="{html.escape(titulo)}">'
         f'<div class="arandu-nav-card-header">{media_html}</div>'
         '<div class="arandu-nav-card-body">'
         '<div class="arandu-nav-card-top">'
         f"{tag_html}"
-        f'<div class="arandu-nav-card-title">{html.escape(titulo)}</div>'
+        f'<h3 class="arandu-nav-card-title">{html.escape(titulo)}</h3>'
         "</div>"
         f'<p class="arandu-nav-card-desc">{html.escape(descripcion)}</p>'
         "</div>"
-        "</div>"
+        "</article>"
     )
 
 
@@ -1808,6 +2310,19 @@ _BORRADOR_METODO_SVGS: dict[str, tuple[str, str]] = {
         '<circle cx="44" cy="128" r="4" fill="{texto}"/><circle cx="74" cy="110" r="4" fill="{texto}"/>'
         '<circle cx="106" cy="86" r="4" fill="{texto}"/><circle cx="138" cy="56" r="4.5" fill="{terracota}"/>',
     ),
+    "formula_gauss": (
+        "Esquema Fórmula de Gauss Central en Zig-Zag",
+        '<line x1="34" y1="142" x2="146" y2="142" stroke="{borde}" stroke-width="1.2"/>'
+        '<line x1="90" y1="54" x2="90" y2="142" stroke="{oro}" stroke-width="1.3" stroke-dasharray="3 2"/>'
+        '<path d="M42,126 C64,112 76,102 90,94 C106,84 120,76 138,60" fill="none" stroke="{oro}" stroke-width="2.4"/>'
+        '<polyline points="90,94 106,104 122,86 138,96" fill="none" stroke="{terracota}" stroke-width="1.8"/>'
+        '<polyline points="90,94 74,82 58,100 42,88" fill="none" stroke="{salvia}" stroke-width="1.5" stroke-dasharray="3 2"/>'
+        '<circle cx="42" cy="126" r="3.4" fill="{texto}"/>'
+        '<circle cx="66" cy="110" r="3.6" fill="{salvia}"/>'
+        '<circle cx="90" cy="94" r="5.2" fill="{oro}" stroke="{lienzo}" stroke-width="1.5"/>'
+        '<circle cx="114" cy="78" r="3.6" fill="{terracota}"/>'
+        '<circle cx="138" cy="60" r="3.4" fill="{texto}"/>',
+    ),
     "diferenciacion": (
         "Esquema Diferenciación Gregory",
         '<path d="M36,138 C64,72 108,128 144,62" fill="none" stroke="{texto}" stroke-width="2.4"/>'
@@ -1906,18 +2421,17 @@ def _construir_html_ficha_metodo_cached(
     else:
         media_html = obtener_svg_borrador_metodo(clave_svg, modo=modo)
     return (
-        f'<div class="arandu-ficha-card{clase_activa}">'
+        f'<article class="arandu-ficha-card{clase_activa}" aria-label="Método {html.escape(numero)}: {html.escape(titulo)}">'
         '<div class="arandu-ficha-main">'
         '<div class="arandu-ficha-top">'
         f'<span class="arandu-ficha-num">{html.escape(numero)}</span>{badge}'
         "</div>"
-        f'<div class="arandu-ficha-tag">{html.escape(subtitulo)}</div>'
         f'<div class="arandu-ficha-art">{media_html}</div>'
         f'<div class="arandu-ficha-title">{html.escape(titulo)}</div>'
         f'<p class="arandu-ficha-desc">{html.escape(resumen)}</p>'
         "</div>"
         f'<div class="arandu-ficha-foot">{html.escape(pista)}</div>'
-        "</div>"
+        "</article>"
     )
 
 

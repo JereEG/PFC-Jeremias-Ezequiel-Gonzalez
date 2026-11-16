@@ -268,6 +268,23 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
     .splash-retry.visible {{
       display: inline-block;
     }}
+    a.arandu-skip-link {{
+      position: fixed;
+      top: -120px;
+      left: 1rem;
+      z-index: 9999;
+      padding: 0.65rem 1.05rem;
+      border-radius: 8px;
+      background: var(--arandu-elevated);
+      color: var(--arandu-gold);
+      border: 2px solid var(--arandu-gold);
+      font-weight: 700;
+      text-decoration: none;
+    }}
+    a.arandu-skip-link:focus,
+    a.arandu-skip-link:focus-visible {{
+      top: 0.75rem;
+    }}
     a:focus-visible,
     button:focus-visible,
     [tabindex]:focus-visible {{
@@ -318,6 +335,7 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
   </style>
 </head>
 <body>
+  <a class="arandu-skip-link" href="#root">Saltar al contenido principal</a>
   <div id="arandu-splash" role="status" aria-live="polite" aria-busy="true">
     <img src="./assets/svg/arandu.svg" class="splash-logo" alt="Isotipo de Arandú" />
     <h1 class="splash-title">Arandú — Métodos Computacionales</h1>

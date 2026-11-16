@@ -28,6 +28,7 @@ from views.ui_shared import (
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
     render_dataframe_acotado,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
@@ -41,12 +42,14 @@ def _inputs_pvi(clave_state: str, solo_lectura: bool) -> tuple[str, float, float
         "EDO $y' = f(x, y)$:",
         value=str(st.session_state[f"{clave_state}_f_str"]),
         disabled=solo_lectura,
+        help="Expresión en variables x, y con operadores Python (*, **). Ej: 6*x**2 / y",
         key=f"ui_{clave_state}_f",
     )
     y_ex_str = c2.text_input(
         "Solución exacta $y(x)$ (opcional):",
         value=str(st.session_state[f"{clave_state}_y_exacta_str"]),
         disabled=solo_lectura,
+        help="Expresión analítica en variable x para medir error real. Ej: 2*x*sqrt(x)",
         key=f"ui_{clave_state}_yex",
     )
 
@@ -56,6 +59,7 @@ def _inputs_pvi(clave_state: str, solo_lectura: bool) -> tuple[str, float, float
         value=float(st.session_state[f"{clave_state}_x0"]),
         format="%.4f",
         disabled=solo_lectura,
+        help="Abscisa inicial (real, distinta de x_final).",
         key=f"ui_{clave_state}_x0",
     )
     y0 = c4.number_input(
@@ -63,6 +67,7 @@ def _inputs_pvi(clave_state: str, solo_lectura: bool) -> tuple[str, float, float
         value=float(st.session_state[f"{clave_state}_y0"]),
         format="%.4f",
         disabled=solo_lectura,
+        help="Condición inicial y(x_0) dentro del dominio de f(x, y).",
         key=f"ui_{clave_state}_y0",
     )
     xf = c5.number_input(
@@ -70,6 +75,7 @@ def _inputs_pvi(clave_state: str, solo_lectura: bool) -> tuple[str, float, float
         value=float(st.session_state[f"{clave_state}_xf"]),
         format="%.4f",
         disabled=solo_lectura,
+        help="Extremo de integración final; en Milne debe cubrir al menos 4 pasos h.",
         key=f"ui_{clave_state}_xf",
     )
     h = c6.number_input(
@@ -80,6 +86,7 @@ def _inputs_pvi(clave_state: str, solo_lectura: bool) -> tuple[str, float, float
         step=0.05,
         format="%.4f",
         disabled=solo_lectura,
+        help="Incremento de malla Δh en rango [0.005, 2.0].",
         key=f"ui_{clave_state}_h",
     )
 
@@ -138,7 +145,9 @@ def _plot_edo_paso_a_paso(
         except Exception:
             pass
 
-    for nombre, xs, ys, color in series:
+    estilos_dash = ("solid", "dot", "dashdot")
+    simbolos = ("circle", "diamond", "square")
+    for idx, (nombre, xs, ys, color) in enumerate(series):
         pares = muestrear_para_grafico(list(zip(xs[: k_vis + 1], ys[: k_vis + 1])), max_puntos=300)
         fig.add_trace(
             go.Scatter(
@@ -146,8 +155,8 @@ def _plot_edo_paso_a_paso(
                 y=[p[1] for p in pares],
                 mode="lines+markers",
                 name=nombre,
-                line=dict(color=color, width=2.4),
-                marker=dict(size=7),
+                line=dict(color=color, width=2.4, dash=estilos_dash[idx % len(estilos_dash)]),
+                marker=dict(size=7, symbol=simbolos[idx % len(simbolos)]),
             )
         )
     render_plotly_arandu(fig, key=chart_key)
@@ -171,7 +180,12 @@ def _frag_euler_heun(defaults: dict) -> None:
             comp_f["fn"], x0, y0, h, xf=xf, iterar_corrector=iterar_corr, y_exacta_fn=y_ex_fn
         )
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="EDO f(x, y), condiciones iniciales o paso Δh",
+            sugerencia_defecto="Verificá sintaxis Python de f(x,y), evitá división por cero en (x_0, y_0) y asegurate de que x_final != x_0.",
+            ejemplo_defecto="f(x, y) = 6*x**2 / y, x0 = 4.0, y0 = 16.0, xf = 4.4, h = 0.1",
+        )
         return
 
     for av in res_he["avisos"]:
@@ -230,7 +244,12 @@ def _frag_runge_kutta(defaults: dict) -> None:
         res_rk2 = metodo_runge_kutta_2(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn)
         res_rk4 = metodo_runge_kutta_4(comp_f["fn"], x0, y0, h, xf=xf, y_exacta_fn=y_ex_fn)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="EDO f(x, y), condiciones iniciales o paso Δh",
+            sugerencia_defecto="Verificá sintaxis Python de f(x,y), evitá división por cero en (x_0, y_0) y asegurate de que x_final != x_0.",
+            ejemplo_defecto="f(x, y) = 6*x**2 / y, x0 = 4.0, y0 = 16.0, xf = 4.4, h = 0.1",
+        )
         return
 
     for av in res_rk4["avisos"]:
@@ -289,7 +308,12 @@ def _frag_milne(defaults: dict) -> None:
         comp_f, y_ex_fn, y_ex_fn_np = _compilar_pvi(f_str, y_ex_str)
         res = metodo_milne(comp_f["fn"], x0, y0, h, xf=xf, n_correcciones=2, y_exacta_fn=y_ex_fn)
     except Exception as exc:
-        st.warning(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Intervalo de Milne [x_0, x_final] o f(x, y)",
+            sugerencia_defecto="Milne requiere al menos 4 pasos completos desde x_0 (|x_final - x_0| >= 4*Δh). Reducí Δh o ampliá x_final.",
+            ejemplo_defecto="x0 = 4.0, xf = 4.4, h = 0.1 (4 pasos)",
+        )
         return
 
     for av in res["avisos"]:

@@ -155,21 +155,21 @@ with st.sidebar:
     if _sidebar_uri:
         st.markdown(
             f"""
-            <div class="arandu-sidebar-brand">
+            <header class="arandu-sidebar-brand">
                 <img src="{_sidebar_uri}" alt="Arandú Logo" />
                 <p class="arandu-sidebar-brand-name">Arandú</p>
                 <p class="arandu-sidebar-brand-sub">Organización de Sabiduría Computacional<br>FaCENA — UNNE</p>
-            </div>
+            </header>
             """,
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
             """
-            <div class="arandu-sidebar-brand">
+            <header class="arandu-sidebar-brand">
                 <p class="arandu-sidebar-brand-name">Arandú</p>
                 <p class="arandu-sidebar-brand-sub">Organización de Sabiduría Computacional • FaCENA - UNNE</p>
-            </div>
+            </header>
             """,
             unsafe_allow_html=True,
         )
@@ -209,7 +209,19 @@ with st.sidebar:
                 OFFLINE_PWA_URL,
                 use_container_width=True,
             )
-    st.caption(f"**Arandú v{APP_VERSION}** • Dark Botanical & Golden Wisdom")
-    st.caption("Proyecto Final de Carrera • FaCENA — UNNE")
+    st.markdown(
+        f"""
+        <footer class="arandu-footer" aria-label="Pie de página institucional">
+            <strong>Arandú v{APP_VERSION}</strong> • Dark Botanical &amp; Golden Wisdom<br/>
+            Proyecto Final de Carrera • FaCENA — UNNE
+        </footer>
+        """,
+        unsafe_allow_html=True,
+    )
 
+st.markdown(
+    '<a class="arandu-skip-link" href="#arandu-contenido-principal">Saltar al contenido principal</a>'
+    '<div id="arandu-contenido-principal" tabindex="-1" class="arandu-sr-only">Contenido principal de Arandú</div>',
+    unsafe_allow_html=True,
+)
 nav.run()

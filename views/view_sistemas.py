@@ -28,7 +28,9 @@ from views.ui_shared import (
     muestrear_para_grafico,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
@@ -47,7 +49,7 @@ def _editor_sistema(clave_state: str, solo_lectura: bool, incluir_x0: bool = Fal
         x0 = st.session_state[f"{clave_state}_x0"]
         df_mat["x0"] = x0
 
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_mat,
         use_container_width=True,
         hide_index=True,
@@ -80,7 +82,12 @@ def _frag_gauss(defaults: dict) -> None:
     try:
         res = eliminacion_gauss(A, b)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A y vector b (Gauss)",
+            sugerencia_defecto="Verificá que A sea cuadrada no singular y sin ceros insalvables tras pivoteo parcial.",
+            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]], b = [2, 6, 2]",
+        )
         return
 
     cols = st.columns(len(res["solucion"]) + 1)
@@ -149,7 +156,12 @@ def _frag_gauss_jordan(defaults: dict) -> None:
     try:
         res = gauss_jordan(A, b if modo_gj.startswith("Resolver") else None)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A (Gauss-Jordan)",
+            sugerencia_defecto="La matriz A debe ser cuadrada e invertible (determinante distinto de cero).",
+            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]]",
+        )
         return
 
     if res["modo"] == "sistema":
@@ -203,7 +215,12 @@ def _frag_lu(defaults: dict) -> None:
     try:
         res = factorizacion_lu(A, b)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A (Factorización LU)",
+            sugerencia_defecto="Doolittle sin pivoteo requiere menores principales no nulos (u_kk != 0); reordená filas si u_kk = 0.",
+            ejemplo_defecto="A = [[4, -2, 1], [20, -7, 12], [-8, 13, 17]]",
+        )
         return
 
     c1, c2 = st.columns(2)
@@ -282,7 +299,12 @@ def _frag_gauss_seidel(defaults: dict) -> None:
     try:
         res = gauss_seidel(A, b, x0=x0, tol=tol_val, max_iter=max_it)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A, vector b o tolerancia (Gauss-Seidel)",
+            sugerencia_defecto="Asegurate de que ningún elemento diagonal a_ii sea 0; preferentemente usá una matriz diagonalmente dominante.",
+            ejemplo_defecto="Diagonal dominante: |a_ii| > suma |a_ij|",
+        )
         return
 
     cols = st.columns(len(res["solucion"]) + 2)
@@ -353,7 +375,7 @@ def _frag_potencias(defaults: dict) -> None:
     cols_A = [f"a_{i+1}" for i in range(len(A))]
     df_in = pd.DataFrame(A, columns=cols_A)
     df_in["x0"] = x0
-    df_edit = st.data_editor(df_in, use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_pot__editor_df")
+    df_edit = render_data_editor_arandu(df_in, use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_pot__editor_df")
     if not solo_lectura:
         A = df_edit[cols_A].astype(float).values.tolist()
         x0 = df_edit["x0"].astype(float).tolist()
@@ -375,7 +397,12 @@ def _frag_potencias(defaults: dict) -> None:
             res = metodo_potencias_min(A, x0=x0, tol=tol_pct, max_iter=int(st.session_state["sis_pot_max_iter"]))
             lam_final = res["autovalor_min"]
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A o vector inicial v0 (Potencias)",
+            sugerencia_defecto="Ingresá una matriz cuadrada y un vector semilla no nulo; en Potencias Inversa, A debe ser invertible.",
+            ejemplo_defecto="v0 = [1.0, 1.0, 1.0]",
+        )
         return
 
     m1, m2, m3 = st.columns(3)
@@ -435,7 +462,7 @@ def _frag_faddeev(defaults: dict) -> None:
 
     A = st.session_state["sis_fad_A"]
     cols_A = [f"c_{i+1}" for i in range(len(A))]
-    df_edit = st.data_editor(pd.DataFrame(A, columns=cols_A), use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_fad__editor_df")
+    df_edit = render_data_editor_arandu(pd.DataFrame(A, columns=cols_A), use_container_width=True, hide_index=True, disabled=solo_lectura, key="sis_fad__editor_df")
     if not solo_lectura:
         A = df_edit[cols_A].astype(float).values.tolist()
         st.session_state["sis_fad_A"] = A
@@ -444,7 +471,12 @@ def _frag_faddeev(defaults: dict) -> None:
     try:
         res = metodo_faddeev_leverrier(A)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Matriz A (Faddeev-Leverrier)",
+            sugerencia_defecto="Ingresá una matriz cuadrada numérica finita de orden n >= 2.",
+            ejemplo_defecto="A = [[4, 1, 0], [1, 4, 1], [0, 1, 4]]",
+        )
         return
 
     st.info(f"**Polinomio característico:** `{res['polinomio_texto']}`")

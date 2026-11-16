@@ -26,11 +26,14 @@ from views.ui_shared import (
     limpiar_valores_plotly,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
     render_slider_paso_k,
+    render_subtitulo_controles_vivo,
     rerun_fragmento_seguro,
 )
 
@@ -45,7 +48,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
     solo_lectura = modo == "catedra"
 
     df_in = pd.DataFrame({"x": st.session_state["int_deriv_x"], "y": st.session_state["int_deriv_y"]})
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_in,
         use_container_width=True,
         hide_index=True,
@@ -81,7 +84,12 @@ def _frag_diferenciacion(defaults: dict) -> None:
             param = res["v"]
             param_name = "v"
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla de nodos o punto x* de derivación",
+            sugerencia_defecto="Ingresá nodos x crecientes equidistantes (h > 0) y un punto x* dentro o próximo a la tabla.",
+            ejemplo_defecto="x = [0.0, 0.2, 0.4, 0.6], x* = 0.2",
+        )
         return
 
     m1, m2, m3 = st.columns(3)
@@ -157,7 +165,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
     col_tbl, col_ctrl = st.columns([1.4, 1.3])
     with col_tbl:
         df_in = pd.DataFrame({"x": st.session_state[f"{clave_state}_x"], "y": st.session_state[f"{clave_state}_y"]})
-        df_edit = st.data_editor(
+        df_edit = render_data_editor_arandu(
             df_in,
             use_container_width=True,
             hide_index=True,
@@ -186,6 +194,7 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         n_actual = max(1, len(xs_act) - 1)
 
         st.markdown(r"**Ajuste de Paso $\Delta h$ y Subintervalos $n$ en Vivo:**")
+        render_subtitulo_controles_vivo()
         nuevo_h = st.number_input(
             r"Paso $\Delta h$ deseado (prueba cambiarlo para observar adaptación de paridad):",
             value=float(round(h_actual, 4)),
@@ -238,7 +247,12 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
             f_str=f_str.strip() or None,
         )
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla de nodos o f(x) de integración",
+            sugerencia_defecto="Asegurá al menos 2 nodos crecientes sin repetir en x y sintaxis Python válida si activaste f(x).",
+            ejemplo_defecto="x = [0.0, 0.25, 0.5, 0.75, 1.0], f(x) = exp(x)",
+        )
         return
 
     for aviso in res["avisos_pedagogicos"]:
@@ -292,6 +306,11 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
         "Simpson 1/3": PALETA_ARANDU["salvia"],
         "Simpson 3/8": PALETA_ARANDU["oro"],
     }
+    dash_por_regla = {
+        "Trapecio": "dash",
+        "Simpson 1/3": "solid",
+        "Simpson 3/8": "dot",
+    }
     for idx, b in enumerate(bloques[:k_vis], start=1):
         fig.add_trace(
             go.Scatter(
@@ -301,7 +320,11 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
                 fill="tozeroy",
                 fillcolor=fill_por_regla.get(b["regla"], PALETA_ARANDU["salvia_fill"]),
                 name=f"B{idx}: {b['regla']} (A={b['area']:.3f})",
-                line=dict(color=color_por_regla.get(b["regla"], PALETA_ARANDU["salvia"]), width=2.4),
+                line=dict(
+                    color=color_por_regla.get(b["regla"], PALETA_ARANDU["salvia"]),
+                    width=2.4,
+                    dash=dash_por_regla.get(b["regla"], "solid"),
+                ),
             )
         )
     fig.add_trace(
@@ -371,6 +394,7 @@ def _frag_laboratorio_paso_variable() -> None:
             st.session_state[f"lab_dh_{idx}"] = 0.5
         rerun_fragmento_seguro()
 
+    render_subtitulo_controles_vivo()
     fila_1 = st.columns(3)
     for offset, col in enumerate(fila_1):
         idx = offset + 1
@@ -413,6 +437,7 @@ def _frag_laboratorio_paso_variable() -> None:
         es_simpson = tramo["metodo"].startswith("Simpson")
         color_linea = PALETA_ARANDU["salvia"] if es_simpson else PALETA_ARANDU["terracota"]
         color_relleno = PALETA_ARANDU["salvia_fill"] if es_simpson else PALETA_ARANDU["terracota_fill"]
+        estilo_linea = "solid" if es_simpson else "dash"
         fig_lab.add_trace(
             go.Scatter(
                 x=tramo["x_curva"],
@@ -421,7 +446,7 @@ def _frag_laboratorio_paso_variable() -> None:
                 fill="tozeroy",
                 fillcolor=color_relleno,
                 name=f"Tramo {tramo['tramo_id']}: {tramo['metodo']} ({tramo['nodos']})",
-                line=dict(color=color_linea, width=2.4),
+                line=dict(color=color_linea, width=2.4, dash=estilo_linea),
             )
         )
 

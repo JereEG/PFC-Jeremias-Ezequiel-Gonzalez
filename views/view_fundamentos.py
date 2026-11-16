@@ -26,7 +26,9 @@ from views.ui_shared import (
     muestrear_para_grafico,
     render_bloque_1_teoria_y_ejemplo,
     render_controles_edicion_practica,
+    render_data_editor_arandu,
     render_dataframe_acotado,
+    render_excepcion_validacion,
     render_plotly_arandu,
     render_practica_catedra_info,
     render_selector_fichas_metodos,
@@ -303,7 +305,12 @@ def _frag_cancelacion_cuadratica(defaults: dict) -> None:
     try:
         res = analizar_cancelacion_cuadratica(a=a_val, b=b_val, c=c_val, k=k_dig)
     except Exception as exc:
-        st.error(str(exc))
+        render_excepcion_validacion(
+            exc,
+            campo="Coeficientes cuadráticos (a, b, c)",
+            sugerencia_defecto="Usá un coeficiente principal a distinto de 0 y valores finitos reales (b² - 4ac >= 0 para raíces reales).",
+            ejemplo_defecto="a = 1.0, b = 62.10, c = 1.0",
+        )
         return
 
     st.markdown("### Bloque 3 — Resolvente Clásica vs Racionalizada")
@@ -318,10 +325,16 @@ def _frag_cancelacion_cuadratica(defaults: dict) -> None:
         go.Bar(
             x=[r["metodo"] for r in sub_comp],
             y=[r["error_relativo_pct"] for r in sub_comp],
-            marker_color=[
-                PALETA_ARANDU["terracota"] if r["sufre_cancelacion"] else PALETA_ARANDU["salvia"]
-                for r in sub_comp
-            ],
+            name="Error relativo (%)",
+            text=["CANCELACIÓN" if r["sufre_cancelacion"] else "ESTABLE" for r in sub_comp],
+            textposition="auto",
+            marker=dict(
+                color=[
+                    PALETA_ARANDU["terracota"] if r["sufre_cancelacion"] else PALETA_ARANDU["salvia"]
+                    for r in sub_comp
+                ],
+                pattern_shape=["/" if r["sufre_cancelacion"] else "" for r in sub_comp],
+            ),
         )
     )
     render_plotly_arandu(fig, key="plot_fund_canc")
@@ -361,7 +374,7 @@ def _frag_horner(defaults: dict) -> None:
     df_in = pd.DataFrame(
         {"Potencia": [f"x^{len(coefs_curr) - 1 - i}" for i in range(len(coefs_curr))], "Coeficiente": coefs_curr}
     )
-    df_edit = st.data_editor(
+    df_edit = render_data_editor_arandu(
         df_in,
         use_container_width=True,
         hide_index=True,
