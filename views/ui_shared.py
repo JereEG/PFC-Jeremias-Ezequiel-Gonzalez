@@ -249,10 +249,7 @@ def render_controles_edicion_practica(
             rerun_fragmento_seguro(scope_rerun)
 
     if modo == "manual":
-        st.markdown(
-            f'<div class="arandu-edit-banner">{mensaje_edicion}</div>',
-            unsafe_allow_html=True,
-        )
+        st.info(mensaje_edicion)
     render_subtitulo_controles_vivo()
     return modo
 

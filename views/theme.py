@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import html
+import math
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -359,17 +360,41 @@ def _adaptar_colores_figura_al_tema(fig: go.Figure, modo: str) -> None:
             anotacion.font.color = _remapear_color(anotacion.font.color, mapa_linea)
 
 
+def _calcular_margen_superior_arandu(fig: go.Figure) -> int:
+    """Reserva margen superior suficiente para evitar solape entre título y leyendas multilínea."""
+    nombres = [
+        str(getattr(tr, "name", "") or "")
+        for tr in (getattr(fig, "data", ()) or ())
+        if getattr(tr, "showlegend", True) is not False and getattr(tr, "name", None)
+    ]
+    if not nombres:
+        return 60
+    ancho_estimado = sum(54 + len(nom) * 8 for nom in nombres)
+    filas = min(max(1, math.ceil(ancho_estimado / 440)), 4)
+    return 60 + filas * 34
+
+
 def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     """Aplica la plantilla y colores orgánicos de Arandú según el tema activo."""
     modo = obtener_modo_tema()
     paleta = obtener_paleta_activa(modo)
     grid_suave = hex_a_rgba(paleta["grilla"], 0.42 if modo == "oscuro" else 0.52)
     template = obtener_plotly_arandu_template(modo)
+    margen_prev = getattr(getattr(fig.layout, "margin", None), "t", None)
+    t_prev = int(margen_prev) if isinstance(margen_prev, (int, float)) else 60
+    margen_calc = _calcular_margen_superior_arandu(fig)
+    margen_sup = max(margen_calc, t_prev)
+    delta_t = max(margen_sup - t_prev, 0)
+    h_actual = getattr(fig.layout, "height", None)
+    layout_kwargs: dict[str, object] = {}
+    if isinstance(h_actual, (int, float)) and delta_t > 0:
+        layout_kwargs["height"] = int(h_actual) + delta_t
+
     fig.update_layout(
         template=template,
         paper_bgcolor=hex_a_rgba(paleta["bg_principal"], 0),
         plot_bgcolor=paleta["bg_lienzo"],
-        margin=dict(l=50, r=30, t=60, b=50),
+        margin=dict(l=50, r=30, t=margen_sup, b=50),
         font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=13),
         title=dict(
             y=0.98,
@@ -394,6 +419,7 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
             bordercolor=paleta["terracota_oscuro"],
             font=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=12),
         ),
+        **layout_kwargs,
     )
     fig.update_xaxes(
         showgrid=True,
