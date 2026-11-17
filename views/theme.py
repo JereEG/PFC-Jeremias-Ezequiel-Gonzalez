@@ -76,9 +76,51 @@ PALETA_ARANDU_CLARO: dict[str, str] = {
 }
 
 
+_PREFERENCIAS_TEMA = ("sistema", "oscuro", "claro")
+
+
+def _detectar_modo_sistema() -> str:
+    """Detecta la preferencia del sistema ('claro' o 'oscuro') desde cookie de navegador o estado."""
+    estado_sys = st.session_state.get("arandu_tema_sistema")
+    if estado_sys in ("claro", "oscuro"):
+        return str(estado_sys)
+    try:
+        cookies = getattr(st.context, "cookies", None)
+        if cookies is not None:
+            ck = cookies.get("arandu_sys_tema")
+            if ck == "claro":
+                return "claro"
+            if ck == "oscuro":
+                return "oscuro"
+    except Exception:
+        pass
+    return "oscuro"
+
+
+def obtener_preferencia_tema() -> str:
+    """Retorna la preferencia elegida por el usuario ('sistema', 'oscuro' o 'claro')."""
+    pref = st.session_state.get("arandu_tema_pref")
+    if pref in _PREFERENCIAS_TEMA:
+        return str(pref)
+    modo_legacy = st.session_state.get("arandu_tema_modo")
+    if modo_legacy in ("oscuro", "claro"):
+        return str(modo_legacy)
+    return "sistema"
+
+
+def resolver_modo_tema(preferencia: str | None = None) -> str:
+    """Resuelve la preferencia ('sistema', 'oscuro', 'claro') al tema efectivo ('oscuro' o 'claro')."""
+    pref_eff = preferencia if preferencia in _PREFERENCIAS_TEMA else obtener_preferencia_tema()
+    if pref_eff == "claro":
+        return "claro"
+    if pref_eff == "oscuro":
+        return "oscuro"
+    return _detectar_modo_sistema()
+
+
 def obtener_modo_tema() -> str:
-    """Retorna el tema activo ('oscuro' o 'claro') desde session_state."""
-    return "claro" if st.session_state.get("arandu_tema_modo") == "claro" else "oscuro"
+    """Retorna el tema efectivo activo ('oscuro' o 'claro') considerando preferencia y sistema."""
+    return resolver_modo_tema(obtener_preferencia_tema())
 
 
 def obtener_paleta_activa(modo: str | None = None) -> dict[str, str]:
@@ -502,11 +544,9 @@ def obtener_logos_app() -> tuple[bytes | str | None, str | bytes]:
     return sidebar_logo, page_icon
 
 
-@st.cache_data(show_spinner=False)
-def obtener_css_arandu(modo: str = "oscuro") -> str:
-    """Genera y cachea la hoja CSS y variables de diseño de Arandú para el tema ('oscuro' o 'claro')."""
-    paleta = PALETA_ARANDU_CLARO if modo == "claro" else PALETA_ARANDU
-    tokens_root = {
+def _construir_tokens_css(paleta: dict[str, str], es_claro: bool) -> str:
+    """Construye las declaraciones de variables CSS de Arandú sin duplicar lógica."""
+    tokens = {
         "--arandu-bg": paleta["bg_principal"],
         "--arandu-surface": paleta["bg_secundario"],
         "--arandu-canvas": paleta["bg_lienzo"],
@@ -558,15 +598,15 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         "--arandu-text-45": hex_a_rgba(paleta["texto_principal"], 0.45),
         "--arandu-surface-92": hex_a_rgba(paleta["bg_secundario"], 0.92),
         "--arandu-bg-55": hex_a_rgba(paleta["bg_principal"], 0.55),
-        "--arandu-shadow-30": hex_a_rgba(paleta["negro_sombra"], 0.14 if modo == "claro" else 0.30),
-        "--arandu-shadow-32": hex_a_rgba(paleta["negro_sombra"], 0.16 if modo == "claro" else 0.32),
-        "--arandu-shadow-44": hex_a_rgba(paleta["negro_sombra"], 0.20 if modo == "claro" else 0.44),
-        "--arandu-shadow-45": hex_a_rgba(paleta["negro_sombra"], 0.18 if modo == "claro" else 0.45),
+        "--arandu-shadow-30": hex_a_rgba(paleta["negro_sombra"], 0.14 if es_claro else 0.30),
+        "--arandu-shadow-32": hex_a_rgba(paleta["negro_sombra"], 0.16 if es_claro else 0.32),
+        "--arandu-shadow-44": hex_a_rgba(paleta["negro_sombra"], 0.20 if es_claro else 0.44),
+        "--arandu-shadow-45": hex_a_rgba(paleta["negro_sombra"], 0.18 if es_claro else 0.45),
     }
-    root_lines = "\n".join(f"            {clave}: {valor};" for clave, valor in tokens_root.items())
-    css_claro_streamlit = ""
-    if modo == "claro":
-        css_claro_streamlit = """
+    return "\n".join(f"            {clave}: {valor};" for clave, valor in tokens.items())
+
+
+_CSS_STREAMLIT_CLARO = """
         :root, html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
             background-color: var(--arandu-bg) !important;
             color: var(--arandu-text) !important;
@@ -683,7 +723,59 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {
             color: var(--arandu-text) !important;
         }
+"""
+
+_CSS_PLOTLY_SISTEMA_CLARO = """
+        [data-testid="stPlotlyChart"] svg.main-svg > rect:first-child,
+        [data-testid="stPlotlyChart"] .bglayer rect.bg {
+            fill: var(--arandu-canvas) !important;
+        }
+        [data-testid="stPlotlyChart"] g.legend rect.bg {
+            fill: var(--arandu-surface) !important;
+            stroke: var(--arandu-border) !important;
+            stroke-width: 1px !important;
+            stroke-opacity: 1 !important;
+        }
+        [data-testid="stPlotlyChart"] svg.main-svg text {
+            fill: var(--arandu-text) !important;
+        }
+        [data-testid="stPlotlyChart"] .gridlayer path {
+            stroke: var(--arandu-grid) !important;
+        }
+"""
+
+
+@st.cache_data(show_spinner=False)
+def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> str:
+    """Genera y cachea la hoja CSS de Arandú con soporte para Sistema, Oscuro y Claro."""
+    pref_eff = preferencia if preferencia in _PREFERENCIAS_TEMA else ("claro" if modo == "claro" else "oscuro")
+    paleta_base = PALETA_ARANDU_CLARO if modo == "claro" else PALETA_ARANDU
+    root_lines = _construir_tokens_css(paleta_base, es_claro=(modo == "claro"))
+
+    if pref_eff == "sistema":
+        root_claro = _construir_tokens_css(PALETA_ARANDU_CLARO, es_claro=True)
+        root_oscuro = _construir_tokens_css(PALETA_ARANDU, es_claro=False)
+        plotly_fb = _CSS_PLOTLY_SISTEMA_CLARO if modo != "claro" else ""
+        css_claro_streamlit = f"""
+        @media (prefers-color-scheme: light) {{
+            :root {{
+{root_claro}
+                color-scheme: light;
+            }}
+{_CSS_STREAMLIT_CLARO}
+{plotly_fb}
+        }}
+        @media (prefers-color-scheme: dark) {{
+            :root {{
+{root_oscuro}
+                color-scheme: dark;
+            }}
+        }}
         """
+    elif modo == "claro":
+        css_claro_streamlit = _CSS_STREAMLIT_CLARO
+    else:
+        css_claro_streamlit = ""
     return f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap');
@@ -2085,35 +2177,80 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             color: var(--arandu-muted);
             line-height: 1.45;
         }}
-        div[data-testid="stHorizontalBlock"]:has(.arandu-theme-corner-badge) {{
+        div[data-testid="stElementContainer"]:has(iframe[height="0"]) {{
+            display: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(.st-key-ui_tema_modo) {{
             justify-content: flex-end !important;
             align-items: center !important;
-            margin-top: -0.6rem;
+            margin-top: -0.55rem;
             margin-bottom: 0.35rem;
         }}
-        div[data-testid="stColumn"]:has(.arandu-theme-corner-badge) > div[data-testid="stVerticalBlock"] {{
+        div[data-testid="stColumn"]:has(.st-key-ui_tema_modo) {{
             display: flex !important;
-            flex-direction: row !important;
             justify-content: flex-end !important;
-            align-items: center !important;
-            gap: 0.65rem !important;
-            flex-wrap: wrap;
+        }}
+        .st-key-ui_tema_modo {{
+            display: flex !important;
+            justify-content: flex-end !important;
             width: fit-content !important;
+            max-width: 100% !important;
             margin-left: auto !important;
-            padding: 0.3rem 0.85rem !important;
-            border-radius: 999px;
-            background-color: var(--arandu-surface);
-            border: 1px solid var(--arandu-border);
-            border-left: 3px solid var(--arandu-gold);
+        }}
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] {{
+            display: inline-flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 0.25rem !important;
+            width: fit-content !important;
+            max-width: 100% !important;
+            padding: 0.24rem 0.34rem !important;
+            border-radius: 999px !important;
+            background-color: var(--arandu-surface) !important;
+            border: 1px solid var(--arandu-border) !important;
+            border-left: 3px solid var(--arandu-gold) !important;
             box-shadow: 0 4px 12px var(--arandu-shadow-30);
         }}
-        div[data-testid="stColumn"]:has(.arandu-theme-corner-badge) [data-testid="stElementContainer"] {{
-            width: auto !important;
-            margin-bottom: 0 !important;
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button {{
+            border-radius: 999px !important;
+            border: 1px solid transparent !important;
+            background-color: transparent !important;
+            color: var(--arandu-muted) !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.84rem !important;
+            font-weight: 600 !important;
+            min-height: 36px !important;
+            padding: 0.22rem 0.68rem !important;
+            transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+        }}
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button p,
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button span {{
+            font-size: 0.84rem !important;
+            line-height: 1.2 !important;
+            color: inherit !important;
+        }}
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button:hover {{
+            background-color: var(--arandu-gold-10) !important;
+            color: var(--arandu-text) !important;
+        }}
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button:focus-visible {{
+            outline: 2px solid var(--arandu-gold) !important;
+            outline-offset: 2px !important;
+        }}
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button[kind="segmented_controlActive"],
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button[aria-pressed="true"],
+        .st-key-ui_tema_modo [data-testid="stButtonGroup"] button[aria-checked="true"] {{
+            background-color: var(--arandu-gold) !important;
+            border-color: var(--arandu-gold) !important;
+            color: var(--arandu-canvas) !important;
+            font-weight: 700 !important;
         }}
         .arandu-theme-corner-badge {{
             display: inline-flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 0.35rem;
             font-family: 'Inter', sans-serif;
             font-size: 0.82rem;
@@ -2131,9 +2268,9 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
             transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }}
         .arandu-theme-pill-item.is-active {{
-            color: var(--arandu-gold);
-            background-color: var(--arandu-gold-15);
-            border-color: var(--arandu-gold-45);
+            color: var(--arandu-canvas);
+            background-color: var(--arandu-gold);
+            border-color: var(--arandu-gold);
         }}
         .arandu-theme-icon {{
             display: inline-block;
@@ -2802,11 +2939,20 @@ def construir_html_ficha_metodo(
     )
 
 
-def construir_html_control_tema_esquina(modo: str = "oscuro") -> str:
-    """Construye el indicador visual de tema (Luna/Sol SVG inline) para la esquina superior derecha."""
-    es_claro = modo == "claro"
-    clase_osc = "arandu-theme-pill-item" + ("" if es_claro else " is-active")
-    clase_clr = "arandu-theme-pill-item" + (" is-active" if es_claro else "")
+def construir_html_control_tema_esquina(modo: str = "sistema") -> str:
+    """Construye el indicador visual de tema (Sistema/Luna/Sol SVG inline) para la esquina superior derecha."""
+    pref_eff = modo if modo in _PREFERENCIAS_TEMA else "sistema"
+    clase_sys = "arandu-theme-pill-item" + (" is-active" if pref_eff == "sistema" else "")
+    clase_osc = "arandu-theme-pill-item" + (" is-active" if pref_eff == "oscuro" else "")
+    clase_clr = "arandu-theme-pill-item" + (" is-active" if pref_eff == "claro" else "")
+    icono_sis = (
+        '<svg class="arandu-theme-icon" viewBox="0 0 24 24" width="15" height="15" '
+        'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+        'stroke-linejoin="round" aria-hidden="true">'
+        '<rect x="2" y="3" width="20" height="14" rx="2"/>'
+        '<path d="M8 21h8M12 17v4"/>'
+        "</svg>"
+    )
     icono_luna = (
         '<svg class="arandu-theme-icon" viewBox="0 0 24 24" width="15" height="15" '
         'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
@@ -2825,6 +2971,7 @@ def construir_html_control_tema_esquina(modo: str = "oscuro") -> str:
     )
     return (
         '<div class="arandu-theme-corner-badge" role="status" aria-label="Indicador visual de tema">'
+        f'<span class="{clase_sys}">{icono_sis}<span>Sistema</span></span>'
         f'<span class="{clase_osc}">{icono_luna}<span>Oscuro</span></span>'
         f'<span class="{clase_clr}">{icono_sol}<span>Claro</span></span>'
         "</div>"
@@ -2832,6 +2979,8 @@ def construir_html_control_tema_esquina(modo: str = "oscuro") -> str:
 
 
 def aplicar_estilo_arandu() -> None:
-    """Inyecta tipografías, tarjetas Guru, tablas doradas y controles orgánicos de Arandú."""
-    st.markdown(obtener_css_arandu(obtener_modo_tema()), unsafe_allow_html=True)
+    """Inyecta tipografías, tarjetas, tablas y controles orgánicos de Arandú."""
+    pref = obtener_preferencia_tema()
+    modo_eff = resolver_modo_tema(pref)
+    st.markdown(obtener_css_arandu(modo_eff, preferencia=pref), unsafe_allow_html=True)
 

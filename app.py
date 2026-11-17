@@ -7,6 +7,7 @@ Navegación moderna con st.navigation + st.Page agrupada por metodología y Aren
 from __future__ import annotations
 
 import importlib
+import inspect
 import sys
 from pathlib import Path
 
@@ -15,6 +16,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 def _sincronizar_modulos_locales() -> None:
@@ -33,6 +35,8 @@ def _sincronizar_modulos_locales() -> None:
         for simbolo in (
             "construir_html_tarjeta_catalogo",
             "construir_html_control_tema_esquina",
+            "obtener_preferencia_tema",
+            "resolver_modo_tema",
             "PALETA_ARANDU",
             "hex_a_rgba",
         )
@@ -55,9 +59,10 @@ from core.version import APP_VERSION, OFFLINE_PWA_URL, es_entorno_offline_wasm
 from views.theme import (
     FEEDBACK_FORMS_URL,
     aplicar_estilo_arandu,
-    construir_html_control_tema_esquina,
     obtener_logo_arandu_src,
     obtener_logos_app,
+    obtener_preferencia_tema,
+    resolver_modo_tema,
 )
 from views.ui_shared import mostrar_dialogo_copiar_ia
 
@@ -77,6 +82,11 @@ if _SIDEBAR_LOGO is not None:
     icon_image=_SIDEBAR_LOGO if (isinstance(_PAGE_ICON, str) and _PAGE_ICON.startswith(":material/")) else _PAGE_ICON,
 )
 
+if "arandu_tema_pref" not in st.session_state:
+    st.session_state["arandu_tema_pref"] = obtener_preferencia_tema()
+st.session_state["arandu_tema_modo"] = resolver_modo_tema(st.session_state["arandu_tema_pref"])
+st.session_state.setdefault("ui_tema_modo", st.session_state["arandu_tema_pref"])
+
 aplicar_estilo_arandu()
 
 def _vista_nosenomeimporta() -> None:
@@ -88,7 +98,7 @@ def _vista_nosenomeimporta() -> None:
             background: rgb(128, 128, 128) !important;
         }
         [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="stToolbar"],
-        .arandu-theme-corner-badge, [data-testid="stToggle"] {
+        .arandu-theme-corner-badge, .st-key-ui_tema_modo, [data-testid="stButtonGroup"] {
             display: none !important;
         }
         .arandu-pantalla-gris {
@@ -184,16 +194,22 @@ nav = st.navigation(
 
 _sidebar_uri = obtener_logo_arandu_src(prefer_svg=False)
 
+_OPCIONES_TEMA = ("sistema", "oscuro", "claro")
+_ETIQUETAS_TEMA = {
+    "sistema": ":material/computer: Sistema",
+    "oscuro": ":material/dark_mode: Oscuro",
+    "claro": ":material/light_mode: Claro",
+}
+
+
 def _al_cambiar_tema_arandu() -> None:
-    st.session_state["arandu_tema_modo"] = (
-        "claro" if st.session_state.get("ui_tema_claro", False) else "oscuro"
-    )
-
-
-st.session_state.setdefault(
-    "ui_tema_claro",
-    st.session_state.get("arandu_tema_modo", "oscuro") == "claro",
-)
+    sel = st.session_state.get("ui_tema_modo")
+    if sel not in _OPCIONES_TEMA:
+        prev = st.session_state.get("arandu_tema_pref", "sistema")
+        st.session_state["ui_tema_modo"] = prev
+        sel = prev
+    st.session_state["arandu_tema_pref"] = str(sel)
+    st.session_state["arandu_tema_modo"] = resolver_modo_tema(str(sel))
 
 with st.sidebar:
     if _sidebar_uri:
@@ -260,24 +276,59 @@ st.markdown(
     '<div id="arandu-contenido-principal" tabindex="-1" class="arandu-sr-only">Contenido principal de Arandú</div>',
     unsafe_allow_html=True,
 )
-_, _col_tema_der = st.columns([5.6, 2.8])
+_, _col_tema_der = st.columns([4.2, 4.8])
 with _col_tema_der:
-    st.markdown(
-        construir_html_control_tema_esquina(st.session_state.get("arandu_tema_modo", "oscuro")),
-        unsafe_allow_html=True,
-    )
-    st.toggle(
-        ":material/dark_mode: / :material/light_mode: Modo claro",
-        key="ui_tema_claro",
-        on_change=_al_cambiar_tema_arandu,
-        help="Alternar entre Modo Oscuro Botánico y Modo Claro Suave.",
-    )
+    if hasattr(st, "segmented_control"):
+        _seg_kwargs: dict[str, object] = {
+            "options": _OPCIONES_TEMA,
+            "format_func": lambda k_t: _ETIQUETAS_TEMA[k_t],
+            "key": "ui_tema_modo",
+            "on_change": _al_cambiar_tema_arandu,
+            "label_visibility": "collapsed",
+            "help": "Alternar entre tema del Sistema, Oscuro Botánico o Claro Suave.",
+        }
+        if "required" in inspect.signature(st.segmented_control).parameters:
+            _seg_kwargs["required"] = True
+        st.segmented_control("Tema de interfaz", **_seg_kwargs)
+    else:
+        st.radio(
+            "Tema de interfaz",
+            options=_OPCIONES_TEMA,
+            format_func=lambda k_t: _ETIQUETAS_TEMA[k_t],
+            horizontal=True,
+            key="ui_tema_modo",
+            on_change=_al_cambiar_tema_arandu,
+            label_visibility="collapsed",
+        )
 _pg_activa = nav.run()
 _titulo_pg_ia = getattr(_pg_activa, "title", None) or "Arandú"
 
 _clic_ia_sidebar = False
 _clic_ia_pie = False
+_JS_SYNC_SISTEMA = """
+<style>[data-testid="stElementContainer"]:has(.arandu-sys-sync){display:none !important;margin:0 !important;padding:0 !important;}</style>
+<span class="arandu-sys-sync" aria-hidden="true"></span>
+<script>
+(function () {
+  try {
+    var mq = window.matchMedia('(prefers-color-scheme: light)');
+    var sync = function () {
+      var modo = mq && mq.matches ? 'claro' : 'oscuro';
+      var doc = (window.parent && window.parent.document) ? window.parent.document : document;
+      doc.cookie = 'arandu_sys_tema=' + modo + '; path=/; max-age=2592000; SameSite=Lax';
+    };
+    sync();
+    if (mq && mq.addEventListener) { mq.addEventListener('change', sync); }
+  } catch (e) {}
+})();
+</script>
+"""
+
 if _pg_activa != pg_nosenomeimporta:
+    if hasattr(st, "html") and "unsafe_allow_javascript" in inspect.signature(st.html).parameters:
+        st.html(_JS_SYNC_SISTEMA, unsafe_allow_javascript=True)
+    else:
+        components.html(_JS_SYNC_SISTEMA, height=0)
     with _slot_sidebar_ia:
         with st.container(border=True):
             st.markdown('<h2 class="arandu-sidebar-heading">Asistente IA</h2>', unsafe_allow_html=True)
