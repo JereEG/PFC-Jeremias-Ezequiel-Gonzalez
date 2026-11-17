@@ -507,6 +507,38 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
     # Determinante: det(A) = (-1)^n * coef_poly[-1] = (-1)^(n-1) * b_n
     det_A = float(((-1) ** n) * coef_poly[-1])
     b_n = b_coefs[-1]
+    norma_cayley_hamilton = float(np.linalg.norm(np.array(B_matrices[-1], dtype=float) - b_n * I))
+
+    # Regla de los Signos de Descartes sobre P(+λ) y P(-λ)
+    raices_nulas = 0
+    for c_tail in reversed(coef_poly):
+        if abs(c_tail) < 1e-11:
+            raices_nulas += 1
+        else:
+            break
+    signos_pos = [1 if c > 0 else -1 for c in coef_poly if abs(c) >= 1e-11]
+    var_pos = sum(1 for a_s, b_s in zip(signos_pos, signos_pos[1:]) if a_s != b_s)
+    signos_neg = [
+        1 if (c * ((-1) ** (n - idx))) > 0 else -1
+        for idx, c in enumerate(coef_poly)
+        if abs(c) >= 1e-11
+    ]
+    var_neg = sum(1 for a_s, b_s in zip(signos_neg, signos_neg[1:]) if a_s != b_s)
+    posibles_pos = list(range(var_pos, -1, -2))
+    posibles_neg = list(range(var_neg, -1, -2))
+    descartes_polinomio = {
+        "raices_nulas": raices_nulas,
+        "cambios_signo_pos": var_pos,
+        "cambios_signo_neg": var_neg,
+        "posibles_positivas": posibles_pos,
+        "posibles_negativas": posibles_neg,
+        "resumen": (
+            f"P(+λ): {var_pos} cambios de signo (reales positivas posibles: {posibles_pos}); "
+            f"P(-λ): {var_neg} cambios de signo (reales negativas posibles: {posibles_neg})"
+            + (f"; {raices_nulas} raíz/raíces λ = 0" if raices_nulas > 0 else "")
+            + "."
+        ),
+    }
 
     if abs(b_n) > 1e-12:
         if n == 1:
@@ -579,6 +611,8 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
         "es_invertible": abs(det_A) > 1e-12,
         "inversa": A_inv_list,
         "error_inversa": error_inversa,
+        "norma_cayley_hamilton": norma_cayley_hamilton,
+        "descartes_polinomio": descartes_polinomio,
         "autovalores": [
             float(v.real) if abs(v.imag) < 1e-10 else complex(round(v.real, 6), round(v.imag, 6))
             for v in autovalores

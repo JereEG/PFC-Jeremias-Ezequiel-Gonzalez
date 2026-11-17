@@ -13,10 +13,13 @@ import streamlit as st
 
 from core.fundamentos_errores import (
     analizar_cancelacion_cuadratica,
+    analizar_ffe_propagacion,
+    calcular_epsilon_maquina,
     calcular_pi_leibniz_historial,
     calcular_serie_euler,
     comparar_asociatividad_personalizada,
     evaluar_polinomio_horner,
+    obtener_catalogo_escenarios_ffe,
     operar_en_maquina,
 )
 from views.theme import PALETA_ARANDU
@@ -316,6 +319,25 @@ def _frag_aritmetica_maquina(defaults: dict) -> None:
         res_op = operar_en_maquina(ox, oy, oper, k=k_dig)
         st.json(res_op)
 
+    with st.expander("Simulador de Épsilon de la Computadora (fl(1 + ε) > 1)"):
+        res_eps = calcular_epsilon_maquina(k_digitos=k_dig)
+        st.markdown(
+            rf"El **épsilon de máquina ($\varepsilon_M$)** es el menor número positivo tal que en la mantisa de $k = {k_dig}$ dígitos "
+            r"se cumple $fl(1 + \varepsilon) > 1$. Por debajo de ese umbral se produce absorción en la suma con $1$."
+        )
+        e1, e2, e3, e4 = st.columns(4)
+        e1.metric(f"ε empírico (k={k_dig})", f"{res_eps['eps_empirico_biseccion']:.3e}")
+        e2.metric("Cota redondeo (0.5·10^(1-k))", f"{res_eps['eps_teorico_redondeo']:.3e}")
+        e3.metric("IEEE 754 float32 (2⁻²³)", f"{res_eps['eps_ieee754_float32']:.3e}")
+        e4.metric("IEEE 754 float64 (2⁻⁵²)", f"{res_eps['eps_ieee754_float64']:.3e}")
+        registrar_contexto_ia(
+            "Épsilon de la Computadora",
+            f"- **Mantisa:** `k = {k_dig}` dígitos | **Último ε distinguido (bisección):** `{res_eps['eps_empirico_biseccion']:.4e}` | "
+            f"**Absorción en 1:** `{res_eps['eps_absorcion_biseccion']:.4e}` | **Cota teórica redondeo:** `{res_eps['eps_teorico_redondeo']:.4e}`",
+            clave="fund_eps_res",
+        )
+        render_dataframe_acotado(res_eps["historial"], max_filas=100, key_prefix="tbl_fund_eps")
+
 
 def _tab_aritmetica_maquina() -> None:
     meta = render_bloque_1_teoria_y_ejemplo("aritmetica_maquina")
@@ -530,6 +552,158 @@ def _tab_horner() -> None:
     _frag_horner(defaults)
 
 
+@st.fragment
+def _frag_laboratorio_ffe_errores() -> None:
+    st.markdown("## Laboratorio FFE: Propagación de Errores y Problema Inverso")
+    st.markdown(
+        r"Evalúa la **Fórmula Fundamental del Cálculo de Errores (FFE)** tanto en su forma directa "
+        r"($\Delta u \le \sum \left|\frac{\partial f}{\partial x_i}\right| \Delta x_i$) como en el "
+        r"**Problema Inverso por Igual Efecto** ($\Delta x_{i,\text{máx}} \le \frac{\Delta u_{\text{adm}}}{m \cdot |\partial f / \partial x_i|}$)."
+    )
+    catalogo_ffe = obtener_catalogo_escenarios_ffe()
+    ids_ffe = list(catalogo_ffe.keys())
+    if "ui_ffe_esc" not in st.session_state or st.session_state["ui_ffe_esc"] not in ids_ffe:
+        st.session_state["ui_ffe_esc"] = ids_ffe[0]
+
+    c_sel, c_mod = st.columns([1.4, 1.3])
+    esc_id = c_sel.selectbox(
+        "Modelo físico / matemático FFE:",
+        options=ids_ffe,
+        format_func=lambda k_e: catalogo_ffe[k_e]["nombre"],
+        key="ui_ffe_esc",
+    )
+    modo_ffe = c_mod.radio(
+        "Modo de cálculo:",
+        ["Problema Directo (Δxᵢ → Δu)", "Problema Inverso por Igual Efecto (Δu_adm → Δxᵢ máx)"],
+        horizontal=True,
+        key="ui_ffe_modo",
+    )
+    meta = catalogo_ffe[esc_id]
+    st.latex(meta["formula_tex"])
+
+    es_directo = modo_ffe.startswith("Problema Directo")
+    cols_v = st.columns(len(meta["variables"]) + (0 if es_directo else 1))
+    vals_in: dict[str, float] = {}
+    deltas_in: dict[str, float] = {}
+    for idx_v, var in enumerate(meta["variables"]):
+        with cols_v[idx_v]:
+            vals_in[var] = st.number_input(
+                f"Valor {var}:",
+                value=float(meta["defaults"][var]),
+                format="%.5f",
+                help=f"Valor nominal de la variable {var}.",
+                key=f"ui_ffe_v_{esc_id}_{var}",
+            )
+            if es_directo:
+                deltas_in[var] = st.number_input(
+                    f"Cota Δ{var}:",
+                    value=float(meta["deltas"][var]),
+                    min_value=0.0,
+                    format="%.5f",
+                    help=f"Error absoluto de entrada para {var}.",
+                    key=f"ui_ffe_d_{esc_id}_{var}",
+                )
+    if es_directo:
+        du_adm = float(meta["delta_u_adm"])
+    else:
+        with cols_v[-1]:
+            du_adm = st.number_input(
+                f"Δu admisible ({meta['unidad']}):",
+                value=float(meta["delta_u_adm"]),
+                min_value=1e-7,
+                format="%.5f",
+                help="Tolerancia máxima admitida en el resultado final u.",
+                key=f"ui_ffe_adm_{esc_id}",
+            )
+
+    try:
+        res_ffe = analizar_ffe_propagacion(
+            escenario_id=esc_id,
+            valores=vals_in,
+            deltas=deltas_in if es_directo else meta["deltas"],
+            delta_u_adm=du_adm,
+        )
+    except Exception as exc:
+        render_excepcion_validacion(
+            exc,
+            campo="Parámetros de entrada FFE",
+            sugerencia_defecto="Ingresá valores finitos positivos donde la función y sus derivadas parciales existan (por ejemplo z != 0, L > 0, g > 0).",
+            ejemplo_defecto="r = 2.5, h = 10.0, Δr = 0.01",
+        )
+        return
+
+    tabla_v = res_ffe["tabla_variables"]
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(f"Valor nominal u ({res_ffe['unidad']})", f"{res_ffe['u_nominal']:.5f}")
+    if es_directo:
+        m2.metric(f"Cota Δu ({res_ffe['unidad']})", f"{res_ffe['delta_u_directo']:.5f}")
+        m3.metric("Error relativo Er(u)", f"{res_ffe['error_porcentual_directo']:.4f}%")
+        var_crit = max(tabla_v, key=lambda r: r["peso_porcentual"])
+        m4.metric("Mayor sensibilidad", f"{var_crit['variable']} ({var_crit['peso_porcentual']:.1f}%)")
+    else:
+        m2.metric(f"Cuota por variable (Δu/m)", f"{res_ffe['cuota_igual_efecto']:.5f}")
+        min_cif = max(r["cifras_req_inverso"] for r in tabla_v)
+        var_estr = min(tabla_v, key=lambda r: r["delta_x_max_inverso"])
+        m3.metric("Variable más exigente", f"Δ{var_estr['variable']} <= {var_estr['delta_x_max_inverso']:.3e}")
+        m4.metric("Cifras sig. mín. sugeridas", f"{min_cif}")
+
+    pasos_ffe = [
+        f"**Función nominal:** `{res_ffe['nombre']}` evaluada en `{res_ffe['valores']}` $\\implies u = {res_ffe['u_nominal']:.6f}\\,\\text{{{res_ffe['unidad']}}}$."
+    ]
+    if es_directo:
+        for row_v in tabla_v:
+            pasos_ffe.append(
+                f"**Término `{row_v['variable']}`:** `{row_v['expresion_derivada']}` $\\implies \\left|\\frac{{\\partial u}}{{\\partial {row_v['variable']}}}\\right| = {row_v['sensibilidad_abs']:.5g}$; "
+                f"aporte $= {row_v['sensibilidad_abs']:.5g} \\times {row_v['delta_x']:.5g} = {row_v['aporte_delta_u']:.6f}$ ({row_v['peso_porcentual']:.1f}% del error)."
+            )
+        pasos_ffe.append(
+            f"**Suma FFE directa:** $\\Delta u \\le {res_ffe['delta_u_directo']:.6f}$ ($E_r = {res_ffe['error_porcentual_directo']:.4f}\\%)$."
+        )
+        y_key_bar = "aporte_delta_u"
+        tit_bar = f"Aporte de cada variable al error Δu ({res_ffe['unidad']})"
+        y_lbl_bar = f"Aporte |∂u/∂xᵢ|·Δxᵢ ({res_ffe['unidad']})"
+    else:
+        pasos_ffe.append(
+            f"**Criterio de igual efecto ($m = {res_ffe['m_variables']}$ variables):** Cada variable recibe una cuota máxima de error $\\frac{{\\Delta u_{{\\text{{adm}}}}}}{{m}} = \\frac{{{res_ffe['delta_u_adm']:.5g}}}{{{res_ffe['m_variables']}}} = {res_ffe['cuota_igual_efecto']:.6f}$."
+        )
+        for row_v in tabla_v:
+            pasos_ffe.append(
+                f"**Cota máxima para `{row_v['variable']}`:** $\\Delta {row_v['variable']}_{{\\text{{máx}}}} = \\frac{{{res_ffe['cuota_igual_efecto']:.5g}}}{{{row_v['sensibilidad_abs']:.5g}}} = {row_v['delta_x_max_inverso']:.5e}$ "
+                f"($E_r \\le {row_v['error_rel_inverso']:.3e}$, exige al menos `{row_v['cifras_req_inverso']}` cifras significativas)."
+            )
+        y_key_bar = "delta_x_max_inverso"
+        tit_bar = "Cota máxima admisible Δxᵢ por Igual Efecto"
+        y_lbl_bar = "Δxᵢ máxima admisible"
+
+    registrar_contexto_ia(
+        f"Laboratorio FFE ({esc_id})",
+        f"- **Modo:** {modo_ffe} | **$u$:** `{res_ffe['u_nominal']:.6f}` | **Δu directo:** `{res_ffe['delta_u_directo']:.6f}` | **Δu_adm:** `{res_ffe['delta_u_adm']:.6f}`",
+        clave="fund_ffe_res",
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"FFE — {res_ffe['nombre']}",
+        pasos_ffe,
+        clave_ia="fund_ffe_viva",
+    )
+    render_dataframe_acotado(tabla_v, max_filas=50, key_prefix=f"tbl_fund_ffe_{esc_id}")
+
+    fig_ffe = crear_figura_base_plotly(tit_bar, "Variable", y_lbl_bar, altura=330)
+    fig_ffe.add_trace(
+        go.Bar(
+            x=[r["variable"] for r in tabla_v],
+            y=[r[y_key_bar] for r in tabla_v],
+            name=y_lbl_bar,
+            text=[f"{r[y_key_bar]:.4g}" for r in tabla_v],
+            textposition="auto",
+            marker=dict(
+                color=[PALETA_ARANDU["terracota"] if i == 0 else (PALETA_ARANDU["oro"] if i == 1 else PALETA_ARANDU["salvia"]) for i in range(len(tabla_v))],
+                pattern_shape=["/", "\\", "x"][:len(tabla_v)],
+            ),
+        )
+    )
+    render_plotly_arandu(fig_ffe, key=f"plot_fund_ffe")
+
+
 def vista_fundamentos() -> None:
     inject_arandu_css()
     st.title("Fundamentos, Series y Teoría de Errores")
@@ -580,6 +754,8 @@ def vista_fundamentos() -> None:
         _tab_cancelacion_cuadratica,
         _tab_horner,
     )[activo]()
+    st.divider()
+    _frag_laboratorio_ffe_errores()
 
 
 vista_fundamentos()

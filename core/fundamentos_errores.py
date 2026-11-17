@@ -720,3 +720,235 @@ def evaluar_polinomio_horner(
         "tabla_errores": tabla_errores,
     }
 
+
+def calcular_epsilon_maquina(k_digitos: int = 4) -> dict[str, Any]:
+    """
+    Calcula el épsilon de máquina para mantisa decimal normalizada de k dígitos
+    mediante búsqueda por bisección de fl(1 + eps) > 1 y cotas teóricas.
+    """
+    if k_digitos < 1 or k_digitos > 15:
+        raise ValueError("La cantidad de dígitos de mantisa k debe estar entre 1 y 15.")
+
+    eps_cur = 1.0
+    ultimo_distinto = 1.0
+    historial: list[dict[str, Any]] = []
+    for paso in range(1, 61):
+        sum_r = fl_round(1.0 + eps_cur, k_digitos)[0]
+        sum_t = fl_trunc(1.0 + eps_cur, k_digitos)[0]
+        distinto = sum_r > 1.0
+        historial.append(
+            {
+                "paso": paso,
+                "epsilon": eps_cur,
+                "epsilon_norm": format_norm(eps_cur, k_digitos),
+                "fl_1_mas_eps_redondeo": format_norm(sum_r, k_digitos),
+                "fl_1_mas_eps_trunc": format_norm_trunc(sum_t, k_digitos),
+                "estado": "Distingue (fl(1 + ε) > 1)" if distinto else "Absorbido (fl(1 + ε) = 1)",
+            }
+        )
+        if not distinto:
+            break
+        ultimo_distinto = eps_cur
+        eps_cur *= 0.5
+
+    return {
+        "k_digitos": k_digitos,
+        "eps_teorico_redondeo": 0.5 * (10.0 ** (1 - k_digitos)),
+        "eps_teorico_truncamiento": 10.0 ** (1 - k_digitos),
+        "eps_empirico_biseccion": ultimo_distinto,
+        "eps_absorcion_biseccion": eps_cur,
+        "eps_ieee754_float32": 2.0 ** -23,
+        "eps_ieee754_float64": 2.0 ** -52,
+        "historial": historial,
+    }
+
+
+def _validar_z_no_nulo(v: dict[str, float]) -> None:
+    if abs(v["z"]) < 1e-12:
+        raise ValueError("El denominador z no puede ser cero.")
+
+
+def _validar_pendulo_positivo(v: dict[str, float]) -> None:
+    if v["L"] <= 0.0 or v["g"] <= 0.0:
+        raise ValueError("El péndulo simple requiere L > 0 y gravedad g > 0.")
+
+
+_ESCENARIOS_FFE: dict[str, dict[str, Any]] = {
+    "cilindro": {
+        "nombre": "Volumen de Cilindro: V(π, r, h) = π · r² · h",
+        "formula_tex": r"V(\pi, r, h) = \pi r^2 h",
+        "variables": ("pi", "r", "h"),
+        "defaults": {"pi": 3.1416, "r": 2.5, "h": 10.0},
+        "deltas": {"pi": 0.0001, "r": 0.01, "h": 0.02},
+        "delta_u_adm": 0.5,
+        "unidad": "cm³",
+        "partial_labels": {"pi": "∂V/∂π = r²·h", "r": "∂V/∂r = 2π·r·h", "h": "∂V/∂h = π·r²"},
+        "eval_fn": lambda v: v["pi"] * (v["r"] ** 2) * v["h"],
+        "partials_fn": lambda v: {
+            "pi": (v["r"] ** 2) * v["h"],
+            "r": 2.0 * v["pi"] * v["r"] * v["h"],
+            "h": v["pi"] * (v["r"] ** 2),
+        },
+        "validar_fn": None,
+    },
+    "cociente": {
+        "nombre": "Expresión Racional: u(x, y, z) = x² · y / z",
+        "formula_tex": r"u(x, y, z) = \frac{x^2 y}{z}",
+        "variables": ("x", "y", "z"),
+        "defaults": {"x": 4.0, "y": 3.0, "z": 2.0},
+        "deltas": {"x": 0.02, "y": 0.01, "z": 0.01},
+        "delta_u_adm": 0.1,
+        "unidad": "u",
+        "partial_labels": {"x": "∂u/∂x = 2xy/z", "y": "∂u/∂y = x²/z", "z": "∂u/∂z = -x²y/z²"},
+        "eval_fn": lambda v: (v["x"] ** 2) * v["y"] / v["z"],
+        "partials_fn": lambda v: {
+            "x": 2.0 * v["x"] * v["y"] / v["z"],
+            "y": (v["x"] ** 2) / v["z"],
+            "z": -((v["x"] ** 2) * v["y"]) / (v["z"] ** 2),
+        },
+        "validar_fn": _validar_z_no_nulo,
+    },
+    "potencia": {
+        "nombre": "Energía Disipada (Joule): W(I, R, t) = I² · R · t",
+        "formula_tex": r"W(I, R, t) = I^2 R t",
+        "variables": ("I", "R", "t"),
+        "defaults": {"I": 2.0, "R": 10.0, "t": 5.0},
+        "deltas": {"I": 0.02, "R": 0.05, "t": 0.01},
+        "delta_u_adm": 1.0,
+        "unidad": "J",
+        "partial_labels": {"I": "∂W/∂I = 2·I·R·t", "R": "∂W/∂R = I²·t", "t": "∂W/∂t = I²·R"},
+        "eval_fn": lambda v: (v["I"] ** 2) * v["R"] * v["t"],
+        "partials_fn": lambda v: {
+            "I": 2.0 * v["I"] * v["R"] * v["t"],
+            "R": (v["I"] ** 2) * v["t"],
+            "t": (v["I"] ** 2) * v["R"],
+        },
+        "validar_fn": None,
+    },
+    "pendulo": {
+        "nombre": "Período de Péndulo Simple: T(π, L, g) = 2π·√(L/g)",
+        "formula_tex": r"T(\pi, L, g) = 2\pi \sqrt{\frac{L}{g}}",
+        "variables": ("pi", "L", "g"),
+        "defaults": {"pi": 3.1416, "L": 1.0, "g": 9.81},
+        "deltas": {"pi": 0.0001, "L": 0.005, "g": 0.01},
+        "delta_u_adm": 0.01,
+        "unidad": "s",
+        "partial_labels": {
+            "pi": "∂T/∂π = 2·√(L/g)",
+            "L": "∂T/∂L = π/√(L·g)",
+            "g": "∂T/∂g = -π·√L / g^(3/2)",
+        },
+        "eval_fn": lambda v: 2.0 * v["pi"] * math.sqrt(v["L"] / v["g"]),
+        "partials_fn": lambda v: {
+            "pi": 2.0 * math.sqrt(v["L"] / v["g"]),
+            "L": v["pi"] / math.sqrt(v["L"] * v["g"]),
+            "g": -v["pi"] * math.sqrt(v["L"]) / (v["g"] ** 1.5),
+        },
+        "validar_fn": _validar_pendulo_positivo,
+    },
+}
+
+
+def obtener_catalogo_escenarios_ffe() -> dict[str, dict[str, Any]]:
+    """Devuelve metadatos seguros de los escenarios precomputados para la FFE."""
+    return {
+        k_esc: {
+            "nombre": meta["nombre"],
+            "formula_tex": meta["formula_tex"],
+            "variables": meta["variables"],
+            "defaults": dict(meta["defaults"]),
+            "deltas": dict(meta["deltas"]),
+            "delta_u_adm": float(meta["delta_u_adm"]),
+            "unidad": meta["unidad"],
+        }
+        for k_esc, meta in _ESCENARIOS_FFE.items()
+    }
+
+
+def analizar_ffe_propagacion(
+    escenario_id: str,
+    valores: dict[str, float] | None = None,
+    deltas: dict[str, float] | None = None,
+    delta_u_adm: float | None = None,
+) -> dict[str, Any]:
+    """
+    Aplica la Fórmula Fundamental del Cálculo de Errores (FFE):
+    - Problema directo: Δu <= sum |∂f/∂x_i| Δx_i, Er(u) = Δu / |u|.
+    - Problema inverso por igual efecto: Δx_{i,max} <= Δu_adm / (m · |∂f/∂x_i|).
+    """
+    if escenario_id not in _ESCENARIOS_FFE:
+        raise ValueError(f"Escenario FFE desconocido: {escenario_id!r}.")
+    meta = _ESCENARIOS_FFE[escenario_id]
+    vars_tupla: tuple[str, ...] = meta["variables"]
+    vals = {v: float((valores or {}).get(v, meta["defaults"][v])) for v in vars_tupla}
+    dlts = {v: abs(float((deltas or {}).get(v, meta["deltas"][v]))) for v in vars_tupla}
+    du_adm = float(meta["delta_u_adm"] if delta_u_adm is None else delta_u_adm)
+    if du_adm <= 0.0:
+        raise ValueError("El error máximo admisible Δu_adm debe ser estrictamente positivo.")
+    if meta["validar_fn"] is not None:
+        meta["validar_fn"](vals)
+
+    u_nominal = float(meta["eval_fn"](vals))
+    derivs = meta["partials_fn"](vals)
+    m = len(vars_tupla)
+    cuota_igual_efecto = du_adm / float(m)
+
+    tabla_variables: list[dict[str, Any]] = []
+    delta_u_total = 0.0
+    for var in vars_tupla:
+        df_dx = float(derivs[var])
+        sensibilidad = abs(df_dx)
+        dx_i = dlts[var]
+        aporte_abs = sensibilidad * dx_i
+        delta_u_total += aporte_abs
+
+        if sensibilidad > 1e-15:
+            dx_max_inverso = cuota_igual_efecto / sensibilidad
+        else:
+            dx_max_inverso = float("inf")
+
+        er_inverso = (
+            (dx_max_inverso / abs(vals[var]))
+            if (abs(vals[var]) > 1e-15 and math.isfinite(dx_max_inverso))
+            else float("inf")
+        )
+        cifras_req = estimar_cifras_significativas(er_inverso) if math.isfinite(er_inverso) else 0
+
+        tabla_variables.append(
+            {
+                "variable": var,
+                "valor": vals[var],
+                "expresion_derivada": meta["partial_labels"][var],
+                "derivada_parcial": df_dx,
+                "sensibilidad_abs": sensibilidad,
+                "delta_x": dx_i,
+                "aporte_delta_u": aporte_abs,
+                "delta_x_max_inverso": dx_max_inverso,
+                "error_rel_inverso": er_inverso,
+                "cifras_req_inverso": cifras_req,
+            }
+        )
+
+    for fila in tabla_variables:
+        fila["peso_porcentual"] = (
+            (fila["aporte_delta_u"] / delta_u_total * 100.0) if delta_u_total > 1e-15 else 0.0
+        )
+
+    er_u = (delta_u_total / abs(u_nominal)) if abs(u_nominal) > 1e-15 else float("inf")
+    return {
+        "escenario_id": escenario_id,
+        "nombre": meta["nombre"],
+        "formula_tex": meta["formula_tex"],
+        "unidad": meta["unidad"],
+        "valores": vals,
+        "deltas": dlts,
+        "m_variables": m,
+        "u_nominal": u_nominal,
+        "delta_u_directo": delta_u_total,
+        "error_relativo_directo": er_u,
+        "error_porcentual_directo": er_u * 100.0 if math.isfinite(er_u) else float("inf"),
+        "delta_u_adm": du_adm,
+        "cuota_igual_efecto": cuota_igual_efecto,
+        "tabla_variables": tabla_variables,
+    }
+

@@ -61,6 +61,55 @@ def validar_equiespaciado(x_values: list[float] | np.ndarray) -> float:
 # 1. DIFERENCIACIÓN NUMÉRICA (NEWTON-GREGORY ASCENDENTE Y DESCENDENTE)
 # ==============================================================================
 
+_POLY_PARAM_NG: dict[str, dict[int, str]] = {
+    "u": {
+        1: "u",
+        2: "(u² - u) / 2",
+        3: "(u³ - 3u² + 2u) / 6",
+        4: "(u⁴ - 6u³ + 11u² - 6u) / 24",
+    },
+    "v": {
+        1: "v",
+        2: "(v² + v) / 2",
+        3: "(v³ + 3v² + 2v) / 6",
+        4: "(v⁴ + 6v³ + 11v² + 6v) / 24",
+    },
+}
+
+
+def _evaluar_terminos_derivada_ng(
+    tabla: np.ndarray,
+    idx_punto: int,
+    n: int,
+    param_sym: str,
+    orden_derivada: int,
+    coefs_specs: list[tuple[int, float, str]],
+    es_ascendente: bool,
+) -> tuple[float, list[dict[str, Any]]]:
+    """Evalúa los términos distribuidos de la derivada NG Ascendente (u) o Descendente (v)."""
+    suma_diff = 0.0
+    terminos_detalle: list[dict[str, Any]] = []
+    poly_map = _POLY_PARAM_NG[param_sym]
+    for k_idx, coef, deriv_expr in coefs_specs:
+        disponible = (idx_punto + k_idx) < n if es_ascendente else idx_punto >= k_idx
+        if k_idx < n and disponible:
+            diff_val = float(tabla[idx_punto, k_idx])
+            aporte = coef * diff_val
+            suma_diff += aporte
+            terminos_detalle.append(
+                {
+                    "orden_diff": k_idx,
+                    "coeficiente": coef,
+                    "diferencia": diff_val,
+                    "aporte": aporte,
+                    "polinomio_param": poly_map[k_idx],
+                    "derivada_param_expr": deriv_expr,
+                    "orden_derivada": orden_derivada,
+                }
+            )
+    return suma_diff, terminos_detalle
+
+
 def derivada_newton_gregory_ascendente(
     x_values: list[float] | np.ndarray,
     y_values: list[float] | np.ndarray,
@@ -93,43 +142,28 @@ def derivada_newton_gregory_ascendente(
         for i in range(n - j):
             tabla[i, j] = tabla[i + 1, j - 1] - tabla[i, j - 1]
 
-    terminos_detalle = []
     if orden_derivada == 1:
-        coefs_u = [
-            (1, 1.0),
-            (2, (2.0 * u - 1.0) / 2.0),
-            (3, (3.0 * u**2 - 6.0 * u + 2.0) / 6.0),
-            (4, (4.0 * u**3 - 18.0 * u**2 + 22.0 * u - 6.0) / 24.0),
+        specs = [
+            (1, 1.0, "1"),
+            (2, (2.0 * u - 1.0) / 2.0, "(2u - 1) / 2"),
+            (3, (3.0 * u**2 - 6.0 * u + 2.0) / 6.0, "(3u² - 6u + 2) / 6"),
+            (4, (4.0 * u**3 - 18.0 * u**2 + 22.0 * u - 6.0) / 24.0, "(4u³ - 18u² + 22u - 6) / 24"),
         ]
-        suma_diff = 0.0
-        for k_idx, coef in coefs_u:
-            if k_idx < n and (idx_punto + k_idx) < n:
-                diff_val = float(tabla[idx_punto, k_idx])
-                aporte = coef * diff_val
-                suma_diff += aporte
-                terminos_detalle.append({
-                    "orden_diff": k_idx, "coeficiente": coef,
-                    "diferencia": diff_val, "aporte": aporte,
-                })
+        suma_diff, terminos_detalle = _evaluar_terminos_derivada_ng(
+            tabla, idx_punto, n, "u", 1, specs, es_ascendente=True
+        )
         derivada = suma_diff / h
     else:
         if n - idx_punto < 3:
             raise ValueError("Se requieren al menos 3 puntos hacia adelante para la 2da derivada.")
-        coefs_u2 = [
-            (2, 1.0),
-            (3, u - 1.0),
-            (4, (6.0 * u**2 - 18.0 * u + 11.0) / 12.0),
+        specs = [
+            (2, 1.0, "1"),
+            (3, u - 1.0, "u - 1"),
+            (4, (6.0 * u**2 - 18.0 * u + 11.0) / 12.0, "(6u² - 18u + 11) / 12"),
         ]
-        suma_diff = 0.0
-        for k_idx, coef in coefs_u2:
-            if k_idx < n and (idx_punto + k_idx) < n:
-                diff_val = float(tabla[idx_punto, k_idx])
-                aporte = coef * diff_val
-                suma_diff += aporte
-                terminos_detalle.append({
-                    "orden_diff": k_idx, "coeficiente": coef,
-                    "diferencia": diff_val, "aporte": aporte,
-                })
+        suma_diff, terminos_detalle = _evaluar_terminos_derivada_ng(
+            tabla, idx_punto, n, "u", 2, specs, es_ascendente=True
+        )
         derivada = suma_diff / (h**2)
 
     return {
@@ -151,11 +185,18 @@ def derivada_newton_gregory_descendente(
     orden_derivada: int = 1,
     x_eval_libre: float | None = None,
 ) -> dict[str, Any]:
+    """Calcula f'(x) o f''(x) por diferencias regresivas de Newton-Gregory en v = (x - x[idx_punto]) / h."""
     x = np.array(x_values, dtype=float)
     y = np.array(y_values, dtype=float)
     n = len(y)
+    if n != len(x):
+        raise ValueError("x e y deben tener igual longitud.")
+    if orden_derivada not in (1, 2):
+        raise ValueError("Solo se admiten orden_derivada = 1 o 2.")
     if idx_punto < 0:
         idx_punto = n + idx_punto
+    if idx_punto < 0 or idx_punto >= n:
+        raise IndexError(f"Índice {idx_punto} fuera de rango [0, {n-1}].")
     h = validar_equiespaciado(x)
     v = 0.0 if x_eval_libre is None else float((x_eval_libre - x[idx_punto]) / h)
     x_objetivo = float(x[idx_punto]) if x_eval_libre is None else float(x_eval_libre)
@@ -166,43 +207,28 @@ def derivada_newton_gregory_descendente(
         for i in range(j, n):
             tabla[i, j] = tabla[i, j - 1] - tabla[i - 1, j - 1]
 
-    terminos_detalle = []
     if orden_derivada == 1:
-        coefs_v = [
-            (1, 1.0),
-            (2, (2.0 * v + 1.0) / 2.0),
-            (3, (3.0 * v**2 + 6.0 * v + 2.0) / 6.0),
-            (4, (4.0 * v**3 + 18.0 * v**2 + 22.0 * v + 6.0) / 24.0),
+        specs = [
+            (1, 1.0, "1"),
+            (2, (2.0 * v + 1.0) / 2.0, "(2v + 1) / 2"),
+            (3, (3.0 * v**2 + 6.0 * v + 2.0) / 6.0, "(3v² + 6v + 2) / 6"),
+            (4, (4.0 * v**3 + 18.0 * v**2 + 22.0 * v + 6.0) / 24.0, "(4v³ + 18v² + 22v + 6) / 24"),
         ]
-        suma_diff = 0.0
-        for k_idx, coef in coefs_v:
-            if k_idx < n and idx_punto >= k_idx:
-                diff_val = float(tabla[idx_punto, k_idx])
-                aporte = coef * diff_val
-                suma_diff += aporte
-                terminos_detalle.append({
-                    "orden_diff": k_idx, "coeficiente": coef,
-                    "diferencia": diff_val, "aporte": aporte,
-                })
+        suma_diff, terminos_detalle = _evaluar_terminos_derivada_ng(
+            tabla, idx_punto, n, "v", 1, specs, es_ascendente=False
+        )
         derivada = suma_diff / h
     else:
         if idx_punto < 2:
             raise ValueError("Se requieren al menos 3 puntos hacia atrás para la 2da derivada retrógrada.")
-        coefs_v2 = [
-            (2, 1.0),
-            (3, v + 1.0),
-            (4, (6.0 * v**2 + 18.0 * v + 11.0) / 12.0),
+        specs = [
+            (2, 1.0, "1"),
+            (3, v + 1.0, "v + 1"),
+            (4, (6.0 * v**2 + 18.0 * v + 11.0) / 12.0, "(6v² + 18v + 11) / 12"),
         ]
-        suma_diff = 0.0
-        for k_idx, coef in coefs_v2:
-            if k_idx < n and idx_punto >= k_idx:
-                diff_val = float(tabla[idx_punto, k_idx])
-                aporte = coef * diff_val
-                suma_diff += aporte
-                terminos_detalle.append({
-                    "orden_diff": k_idx, "coeficiente": coef,
-                    "diferencia": diff_val, "aporte": aporte,
-                })
+        suma_diff, terminos_detalle = _evaluar_terminos_derivada_ng(
+            tabla, idx_punto, n, "v", 2, specs, es_ascendente=False
+        )
         derivada = suma_diff / (h**2)
 
     return {

@@ -256,6 +256,51 @@ def _construir_md_tabla_nodal(pond: dict[str, Any]) -> str:
     return "\n".join(lineas)
 
 
+_ESCENARIOS_DIFERENCIACION: tuple[dict[str, Any], ...] = (
+    {
+        "id": "tp5_catedra",
+        "nombre": "TP5 Ej. Cátedra: f'(12.4) desde tabla trigonométrica (h=1, u=0.4)",
+        "x": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
+        "y": [0.96262, 0.94718, 0.93108, 0.92221, 0.91181, 0.90151],
+        "x_eval": 12.4,
+        "nota": "Ejercicio oficial de cátedra: diferencia progresiva evaluada en el punto no tabular x* = 12.4.",
+    },
+    {
+        "id": "parcial2_2026",
+        "nombre": "Modelo 2do Parcial 2026: f(x) = ln(x), estimar f'(1.2) con Gregory Ascendente",
+        "x": [1.0, 1.5, 2.0, 2.5, 3.0],
+        "y": [0.0, 0.40547, 0.69315, 0.91629, 1.09861],
+        "x_eval": 1.2,
+        "nota": "Tema evaluado en 2do Parcial 2026: distribuir las potencias de u = (1.2 - 1.0)/0.5 = 0.4 antes de derivar.",
+    },
+    {
+        "id": "cubica_exacta",
+        "nombre": "Verificación Cúbica Exacta: f(x) = 0.5x³ - 1.5x² + x + 2 en x* = 1.2",
+        "x": [0.0, 1.0, 2.0, 3.0, 4.0],
+        "y": [2.0, 2.0, 2.0, 5.0, 14.0],
+        "x_eval": 1.2,
+        "nota": "En polinomios cúbicos, Δ⁴y = 0 y Gregory hasta 3er orden arroja exactitud analítica: f'(1.2) = -0.44 y f''(1.2) = 0.60.",
+    },
+)
+
+
+def _al_cambiar_preset_diferenciacion(defaults: dict) -> None:
+    id_sel = st.session_state.get("ui_der_preset", "tp5_catedra")
+    esc = next((e for e in _ESCENARIOS_DIFERENCIACION if e["id"] == id_sel), None)
+    if esc is None:
+        return
+    if id_sel == "tp5_catedra":
+        st.session_state["int_deriv_x"] = list(defaults["x"])
+        st.session_state["int_deriv_y"] = list(defaults["y"])
+        st.session_state["int_deriv_x_eval"] = float(defaults["x_eval"])
+    else:
+        st.session_state["int_deriv_x"] = list(esc["x"])
+        st.session_state["int_deriv_y"] = list(esc["y"])
+        st.session_state["int_deriv_x_eval"] = float(esc["x_eval"])
+    st.session_state.pop("int_deriv__editor_df", None)
+    st.session_state.pop("ui_der_xe", None)
+
+
 @st.fragment
 def _frag_diferenciacion(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
@@ -263,7 +308,21 @@ def _frag_diferenciacion(defaults: dict) -> None:
         defaults_dict=defaults,
         mensaje_edicion=r"Edita la tabla $(x_i, y_i)$, alterna el sentido de diferencias o cambia $x^*$ (incluso fuera de nodos tabulados).",
     )
-    solo_lectura = modo == "catedra"
+    ids_der = [e["id"] for e in _ESCENARIOS_DIFERENCIACION]
+    nom_der = {e["id"]: e["nombre"] for e in _ESCENARIOS_DIFERENCIACION}
+    if "ui_der_preset" not in st.session_state or st.session_state["ui_der_preset"] not in ids_der:
+        st.session_state["ui_der_preset"] = ids_der[0]
+    der_id = st.selectbox(
+        "Escenario de diferenciación:",
+        options=ids_der,
+        format_func=lambda k_d: nom_der[k_d],
+        key="ui_der_preset",
+        on_change=_al_cambiar_preset_diferenciacion,
+        args=(defaults,),
+    )
+    esc_der = next(e for e in _ESCENARIOS_DIFERENCIACION if e["id"] == der_id)
+    st.caption(esc_der["nota"])
+    solo_lectura = (modo == "catedra") and (der_id == ids_der[0])
 
     df_in = pd.DataFrame({"x": st.session_state["int_deriv_x"], "y": st.session_state["int_deriv_y"]})
     df_edit = render_data_editor_arandu(
@@ -316,7 +375,7 @@ def _frag_diferenciacion(defaults: dict) -> None:
     m3.metric("Paso h", f"{res['h']:.4g}")
     registrar_contexto_ia(
         "Derivada Numérica (Newton-Gregory)",
-        f"- **Orden:** `{orden}` | **$x^*$:** `{x_eval:g}` | **{param_name}:** `{param:.4f}` | **Paso `h`:** `{res['h']:.4g}`\n"
+        f"- **Escenario:** {esc_der['nombre']} | **Orden:** `{orden}` | **$x^*$:** `{x_eval:g}` | **{param_name}:** `{param:.4f}` | **Paso `h`:** `{res['h']:.4g}`\n"
         f"- **Derivada estimada:** `{res['derivada']:.6f}`",
         clave="ing_deriv_res",
     )
@@ -333,7 +392,8 @@ def _frag_diferenciacion(defaults: dict) -> None:
         suma_aportes += td["aporte"]
         pasos_der_vivos.append(
             f"**Diferencia de orden {td['orden_diff']} (${simb_diff}^{{{td['orden_diff']}}} y$):** "
-            f"Coeficiente en ${param_name}$ = `{td['coeficiente']:.6f}` $\\times$ diferencia `{td['diferencia']:.6g}` "
+            f"Polinomio distribuido `{td['polinomio_param']}` $\\implies$ derivada en ${param_name}$ = "
+            f"`{td['derivada_param_expr']}` $= {td['coeficiente']:.6f}$ $\\times$ `{td['diferencia']:.6g}` "
             f"$= {td['aporte']:.6f}$."
         )
     denom_h = f"h = {res['h']:.4g}" if orden == 1 else f"h^2 = {res['h']**2:.4g}"
@@ -384,6 +444,238 @@ def _frag_diferenciacion(defaults: dict) -> None:
     render_plotly_arandu(fig, key="plot_int_deriv")
 
 
+_ESCENARIOS_SECANTE_TANGENTE: tuple[dict[str, Any], ...] = (
+    {
+        "id": "sec_parab",
+        "nombre": "Clásico: f(x) = 0.5·x² (f'(x) = x, P en x₁ = 1.0)",
+        "expr": "0.5·x²",
+        "deriv_expr": "x",
+        "fn": lambda x: 0.5 * np.power(x, 2),
+        "dfn": lambda x: np.asarray(x, dtype=float),
+        "x1": 1.0,
+        "x2": 3.0,
+        "xmin": -1.0,
+        "xmax": 4.5,
+    },
+    {
+        "id": "sec_sin",
+        "nombre": "Onda Senoidal: f(x) = sin(x) + 1.5 (P en x₁ = 1.0)",
+        "expr": "sin(x) + 1.5",
+        "deriv_expr": "cos(x)",
+        "fn": lambda x: np.sin(x) + 1.5,
+        "dfn": lambda x: np.cos(x),
+        "x1": 1.0,
+        "x2": 2.6,
+        "xmin": -0.5,
+        "xmax": 4.5,
+    },
+    {
+        "id": "sec_cub",
+        "nombre": "Polinomio Cúbico: f(x) = 0.2x³ - x² + 3 (P en x₁ = 1.5)",
+        "expr": "0.2x³ - x² + 3",
+        "deriv_expr": "0.6x² - 2x",
+        "fn": lambda x: 0.2 * np.power(x, 3) - np.power(x, 2) + 3.0,
+        "dfn": lambda x: 0.6 * np.power(x, 2) - 2.0 * np.asarray(x, dtype=float),
+        "x1": 1.5,
+        "x2": 3.2,
+        "xmin": -0.5,
+        "xmax": 4.2,
+    },
+    {
+        "id": "sec_exp",
+        "nombre": "Crecimiento Exponencial: f(x) = e^(0.5x) (P en x₁ = 0.8)",
+        "expr": "e^(0.5x)",
+        "deriv_expr": "0.5·e^(0.5x)",
+        "fn": lambda x: np.exp(0.5 * np.asarray(x, dtype=float)),
+        "dfn": lambda x: 0.5 * np.exp(0.5 * np.asarray(x, dtype=float)),
+        "x1": 0.8,
+        "x2": 2.5,
+        "xmin": -0.5,
+        "xmax": 3.5,
+    },
+)
+
+
+def _al_cambiar_preset_sectan() -> None:
+    id_sel = st.session_state.get("ui_sectan_preset", "sec_parab")
+    esc = next((e for e in _ESCENARIOS_SECANTE_TANGENTE if e["id"] == id_sel), _ESCENARIOS_SECANTE_TANGENTE[0])
+    st.session_state["ui_sectan_x1"] = float(esc["x1"])
+    st.session_state["ui_sectan_x2"] = float(esc["x2"])
+
+
+@st.fragment
+def _frag_secante_tangente() -> None:
+    st.markdown("## Simulador Geométrico: Recta Secante y Recta Tangente")
+    st.markdown(
+        r"Cómo el límite de las pendientes secantes entre $P(x_1, f(x_1))$ y un punto móvil $Q(x_2, f(x_2))$ "
+        r"define la derivada instantánea $f'(x_1) = \lim_{\Delta x \to 0} \frac{f(x_1+\Delta x)-f(x_1)}{\Delta x}$."
+    )
+    ids_st = [e["id"] for e in _ESCENARIOS_SECANTE_TANGENTE]
+    mapa_st = {e["id"]: e["nombre"] for e in _ESCENARIOS_SECANTE_TANGENTE}
+    if "ui_sectan_preset" not in st.session_state or st.session_state["ui_sectan_preset"] not in ids_st:
+        st.session_state["ui_sectan_preset"] = ids_st[0]
+
+    esc_id = st.selectbox(
+        "Función de estudio:",
+        options=ids_st,
+        format_func=lambda k_s: mapa_st[k_s],
+        key="ui_sectan_preset",
+        on_change=_al_cambiar_preset_sectan,
+    )
+    esc = next(e for e in _ESCENARIOS_SECANTE_TANGENTE if e["id"] == esc_id)
+
+    if "ui_sectan_x1" not in st.session_state:
+        st.session_state["ui_sectan_x1"] = float(esc["x1"])
+    if "ui_sectan_x2" not in st.session_state:
+        st.session_state["ui_sectan_x2"] = float(esc["x2"])
+
+    c1, c2 = st.columns([1.0, 2.0])
+    x1_val = c1.number_input(
+        "Punto fijo P (x₁):",
+        min_value=float(esc["xmin"] + 0.1),
+        max_value=float(esc["xmax"] - 0.1),
+        step=0.1,
+        format="%.2f",
+        help="Coordenada fija P(x₁, f(x₁)) donde se evalúa la recta tangente.",
+        key="ui_sectan_x1",
+    )
+    x2_raw = c2.slider(
+        "Desplazar punto móvil Q (x₂) hacia x₁:",
+        min_value=float(esc["xmin"]),
+        max_value=float(esc["xmax"]),
+        step=0.02,
+        format="%.2f",
+        help="Acercá x₂ hacia x₁ para observar cómo la secante converge geométricamente hacia la tangente.",
+        key="ui_sectan_x2",
+    )
+
+    x2_eff = float(x2_raw)
+    if abs(x2_eff - x1_val) < 0.015:
+        x2_eff = x1_val + 0.02 if x1_val + 0.02 <= esc["xmax"] else x1_val - 0.02
+
+    y1 = float(esc["fn"](x1_val))
+    y2 = float(esc["fn"](x2_eff))
+    dx = x2_eff - x1_val
+    dy = y2 - y1
+    m_sec = dy / dx
+    m_tan = float(esc["dfn"](x1_val))
+    diff_m = abs(m_sec - m_tan)
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Pendiente Secante (m_sec)", f"{m_sec:.5f}")
+    m2.metric("Pendiente Tangente (m_tan)", f"{m_tan:.5f}")
+    m3.metric("Diferencia |m_sec - m_tan|", f"{diff_m:.5f}")
+    m4.metric("Incremento Δx = x₂ - x₁", f"{dx:+.3f}")
+
+    xs_grid = np.linspace(esc["xmin"], esc["xmax"], 220)
+    ys_grid = esc["fn"](xs_grid)
+    ys_tan = m_tan * (xs_grid - x1_val) + y1
+    ys_sec = m_sec * (xs_grid - x1_val) + y1
+
+    fig_sec = crear_figura_base_plotly(
+        f"Convergencia Secante → Tangente: f(x) = {esc['expr']} (x₁={x1_val:.2f}, x₂={x2_eff:.2f})",
+        "x",
+        "f(x)",
+    )
+    fig_sec.add_trace(
+        go.Scatter(
+            x=xs_grid.tolist(),
+            y=limpiar_valores_plotly(ys_grid, limite_abs=1e6),
+            mode="lines",
+            name=f"f(x) = {esc['expr']}",
+            line=dict(color=PALETA_ARANDU["salvia"], width=2.8),
+        )
+    )
+    fig_sec.add_trace(
+        go.Scatter(
+            x=xs_grid.tolist(),
+            y=limpiar_valores_plotly(ys_tan, limite_abs=1e6),
+            mode="lines",
+            name=f"Tangente en P (m={m_tan:.4f})",
+            line=dict(color=PALETA_ARANDU["oro"], width=2.3, dash="dash"),
+        )
+    )
+    fig_sec.add_trace(
+        go.Scatter(
+            x=xs_grid.tolist(),
+            y=limpiar_valores_plotly(ys_sec, limite_abs=1e6),
+            mode="lines",
+            name=f"Secante P-Q (m={m_sec:.4f})",
+            line=dict(color=PALETA_ARANDU["terracota"], width=2.5),
+        )
+    )
+    fig_sec.add_trace(
+        go.Scatter(
+            x=[x1_val, x2_eff, x2_eff],
+            y=[y1, y1, y2],
+            mode="lines",
+            name="Triángulo Δx / Δy",
+            line=dict(color=PALETA_ARANDU["texto_atenuado"], width=1.6, dash="dot"),
+        )
+    )
+    fig_sec.add_trace(
+        go.Scatter(
+            x=[x1_val],
+            y=[y1],
+            mode="markers",
+            name=f"P({x1_val:.2f}, {y1:.3f})",
+            marker=dict(
+                size=13,
+                symbol="star",
+                color=PALETA_ARANDU["oro"],
+                line=dict(color=PALETA_ARANDU["marfil_nodo"], width=1.6),
+            ),
+        )
+    )
+    fig_sec.add_trace(
+        go.Scatter(
+            x=[x2_eff],
+            y=[y2],
+            mode="markers",
+            name=f"Q({x2_eff:.2f}, {y2:.3f})",
+            marker=dict(
+                size=10,
+                symbol="circle",
+                color=PALETA_ARANDU["terracota"],
+                line=dict(color=PALETA_ARANDU["marfil_nodo"], width=1.6),
+            ),
+        )
+    )
+    render_plotly_arandu(fig_sec, key="plot_int_sectan")
+
+    pasos_st = [
+        f"**Función y derivada analítica:** $f(x) = {esc['expr']}$ con derivada $f'(x) = {esc['deriv_expr']}$.",
+        f"**Puntos de corte de la secante:** $P = ({x1_val:.2f}, {y1:.5f})$ y $Q = ({x2_eff:.2f}, {y2:.5f})$ ($\\Delta x = {dx:+.4f}$, $\\Delta y = {dy:+.5f}$).",
+        f"**Cociente incremental (pendiente secante):** $m_{{\\text{{sec}}}} = \\frac{{{y2:.5f} - ({y1:.5f})}}{{{x2_eff:.2f} - ({x1_val:.2f})}} = {m_sec:.5f}$ (tasa de cambio promedio).",
+        f"**Límite instantáneo (pendiente tangente):** En $x_1 = {x1_val:.2f}$, $m_{{\\text{{tan}}}} = f'({x1_val:.2f}) = {m_tan:.5f}$; la discrepancia actual es $|\\Delta m| = {diff_m:.5f}$.",
+    ]
+    registrar_contexto_ia(
+        "Simulador Geométrico Recta Secante y Tangente",
+        f"- **Función:** `{esc['expr']}` | **$P$:** `({x1_val:.2f}, {y1:.5f})` | **$Q$:** `({x2_eff:.2f}, {y2:.5f})`\n"
+        f"- **$m_{{\\text{{sec}}}}$:** `{m_sec:.5f}` | **$m_{{\\text{{tan}}}}$:** `{m_tan:.5f}` | **$|\\Delta m|$:** `{diff_m:.5f}`",
+        clave="ing_sectan_res",
+    )
+    render_deduccion_paso_a_paso_viva(
+        f"Convergencia Secante → Tangente ({esc['expr']})",
+        pasos_st,
+        clave_ia="ing_sectan_viva",
+    )
+
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        st.markdown("**La Recta Secante (*secare*)**")
+        st.caption("Corta la curva en dos puntos P y Q. Representa la tasa de cambio promedio en [x₁, x₂].")
+        st.latex(r"m_{\text{sec}} = \frac{f(x_2) - f(x_1)}{x_2 - x_1}")
+    with k2:
+        st.markdown("**La Recta Tangente (*tangere*)**")
+        st.caption("Posición límite a la que converge la secante cuando x₂ tiende a x₁ (tasa instantánea).")
+        st.latex(r"m_{\text{tan}} = f'(x_1) = \lim_{x_2 \to x_1} m_{\text{sec}}")
+    with k3:
+        st.markdown("**Función Trigonométrica `sec(θ)`**")
+        st.caption("En trigonometría es la recíproca del coseno: mide la secante desde el centro unitario hasta la tangente vertical.")
+        st.latex(r"\sec(\theta) = \frac{1}{\cos(\theta)}")
+
+
 def _tab_diferenciacion() -> None:
     meta = render_bloque_1_teoria_y_ejemplo("diferenciacion_numerica")
     practica = meta.get("practica_profesora", {})
@@ -400,6 +692,8 @@ def _tab_diferenciacion() -> None:
         solucion_referencia=practica.get("solucion_referencia"),
     )
     _frag_diferenciacion(defaults)
+    st.divider()
+    _frag_secante_tangente()
 
 
 @st.fragment

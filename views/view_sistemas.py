@@ -6,6 +6,8 @@ Separación Static-First con aislamiento mediante @st.fragment.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -344,6 +346,40 @@ def _tab_lu() -> None:
     _frag_lu(defaults)
 
 
+_ESCENARIOS_GAUSS_SEIDEL: tuple[dict[str, Any], ...] = (
+    {
+        "id": "tp4_catedra",
+        "nombre": "TP4 Ej. Cátedra: Sistema 3×3 diagonalmente dominante",
+        "nota": "Caso oficial de cátedra TP4 para Gauss-Seidel con x(0) = [1, 1, 1].",
+    },
+    {
+        "id": "parcial1_2026_bd",
+        "nombre": "1er Parcial 2026 (Tema 1): Tiempos BD / Actualización / Reporte (c=2, a=3, r=4)",
+        "A": [[5.0, 1.0, 1.0], [1.0, 6.0, 1.0], [1.0, 1.0, 7.0]],
+        "b": [17.0, 24.0, 33.0],
+        "x0": [0.0, 0.0, 0.0],
+        "tol": 1e-3,
+        "max_iter": 25,
+        "nota": "Sistema contextualizado del 1er Parcial 2026: 5c + a + r = 17, c + 6a + r = 24, c + a + 7r = 33 desde x(0) = [0, 0, 0].",
+    },
+)
+
+
+def _al_cambiar_preset_gs(defaults: dict) -> None:
+    id_sel = st.session_state.get("ui_gs_preset", "tp4_catedra")
+    esc = next((e for e in _ESCENARIOS_GAUSS_SEIDEL if e["id"] == id_sel), None)
+    if esc is None:
+        return
+    src = defaults if id_sel == "tp4_catedra" else esc
+    st.session_state["sis_gs_A"] = [list(fila) for fila in src["A"]]
+    st.session_state["sis_gs_b"] = list(src["b"])
+    st.session_state["sis_gs_x0"] = list(src["x0"])
+    st.session_state["sis_gs_tol"] = float(src.get("tol", defaults["tol"]))
+    st.session_state["sis_gs_max_iter"] = int(src.get("max_iter", defaults["max_iter"]))
+    for k_w in ("sis_gs__editor_df", "ui_gs_tol", "ui_gs_max"):
+        st.session_state.pop(k_w, None)
+
+
 @st.fragment
 def _frag_gauss_seidel(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
@@ -351,7 +387,21 @@ def _frag_gauss_seidel(defaults: dict) -> None:
         defaults_dict=defaults,
         mensaje_edicion=r"Ajusta la matriz $A$, el vector $b$, la semilla $x^{(0)}$ o los criterios del bucle.",
     )
-    solo_lectura = modo == "catedra"
+    ids_gs = [e["id"] for e in _ESCENARIOS_GAUSS_SEIDEL]
+    nom_gs = {e["id"]: e["nombre"] for e in _ESCENARIOS_GAUSS_SEIDEL}
+    if "ui_gs_preset" not in st.session_state or st.session_state["ui_gs_preset"] not in ids_gs:
+        st.session_state["ui_gs_preset"] = ids_gs[0]
+    gs_id = st.selectbox(
+        "Escenario de estudio (Gauss-Seidel):",
+        options=ids_gs,
+        format_func=lambda k_g: nom_gs[k_g],
+        key="ui_gs_preset",
+        on_change=_al_cambiar_preset_gs,
+        args=(defaults,),
+    )
+    esc_gs = next(e for e in _ESCENARIOS_GAUSS_SEIDEL if e["id"] == gs_id)
+    st.caption(esc_gs["nota"])
+    solo_lectura = (modo == "catedra") and (gs_id == ids_gs[0])
     A, b, x0 = _editor_sistema("sis_gs", solo_lectura, incluir_x0=True)
 
     c1, c2 = st.columns(2)
@@ -519,14 +569,23 @@ def _frag_potencias(defaults: dict) -> None:
     m1.metric("Autovalor estimado λ", f"{lam_final:.6f}")
     m2.metric("Iteraciones", res["iteraciones"])
     m3.metric("Error % final", f"{res['error_final_pct']:.4f}%")
+    vec_str = ", ".join(f"{v:.6f}" for v in res["autovector"])
+    st.info(
+        f"**Autovector normalizado asociado:** `[{vec_str}]` "
+        f"(error residual `||Ax - λx||₂ = {res['error_autovector']:.3e}`)"
+    )
     registrar_contexto_ia(
         "Resultado Método de las Potencias",
-        f"- **Tipo:** {tipo}\n- **Autovalor estimado $\\lambda$:** `{lam_final:.6f}` | **Iteraciones:** `{res['iteraciones']}` | **Error %:** `{res['error_final_pct']:.4f}%`",
+        f"- **Tipo:** {tipo}\n- **Autovalor estimado $\\lambda$:** `{lam_final:.6f}` | **Autovector:** `[{vec_str}]` | "
+        f"**Iteraciones:** `{res['iteraciones']}` | **Error %:** `{res['error_final_pct']:.4f}%`",
         clave="sis_pot_res",
     )
 
     hist = res["historial"]
     es_dir = tipo.startswith("Mayor")
+    if not es_dir and "A_inversa" in res:
+        with st.expander(r"Ver Matriz Inversa $A^{-1}$ empleada previamente (Potencia Inversa)"):
+            render_dataframe_acotado(res["A_inversa"], max_filas=100, key_prefix="tbl_sis_pot_inv", hide_index=False)
     pasos_pot_vivos = [
         f"**Planteo ({tipo}):** Partiendo de $x^{{(0)}} = {x0}$, en cada paso multiplicamos $Y_k = {'A' if es_dir else 'A^{-1}'} X_{{k-1}}$ y normalizamos por el componente de mayor módulo para aislar la dirección propia dominante."
     ]
@@ -590,6 +649,37 @@ def _tab_potencias() -> None:
     _frag_potencias(defaults)
 
 
+_ESCENARIOS_FADDEEV: tuple[dict[str, Any], ...] = (
+    {
+        "id": "tp4_catedra",
+        "nombre": "TP4 Ej. Cátedra: Matriz simétrica 3×3",
+        "nota": "Caso oficial TP4 para extraer polinomio característico, autovalores e inversa por trazas.",
+    },
+    {
+        "id": "parcial2_2026_t1",
+        "nombre": "2do Parcial 2026 (Tema 1): 3 raíces reales en (0, 1.5) y B₃ - b₃I = 0",
+        "A": [[1.0, 0.2, 0.0], [0.2, 0.8, 0.2], [0.0, 0.2, 0.5]],
+        "nota": "Modelo del 2do Parcial 2026 (Tema 1): matriz tridiagonal positiva con 3 variaciones de signo en Descartes.",
+    },
+    {
+        "id": "parcial2_2026_t3",
+        "nombre": "2do Parcial 2026 (Temas 3 y 4): Simétrica 3×3 [[4,3,0],[3,6,2],[0,2,1]]",
+        "A": [[4.0, 3.0, 0.0], [3.0, 6.0, 2.0], [0.0, 2.0, 1.0]],
+        "nota": "Matriz reportada en el 2do Parcial 2026 (Temas 3 y 4) para hallar autovalores y verificar Cayley-Hamilton.",
+    },
+)
+
+
+def _al_cambiar_preset_fad(defaults: dict) -> None:
+    id_sel = st.session_state.get("ui_fad_preset", "tp4_catedra")
+    esc = next((e for e in _ESCENARIOS_FADDEEV if e["id"] == id_sel), None)
+    if esc is None:
+        return
+    src_A = defaults["A"] if id_sel == "tp4_catedra" else esc["A"]
+    st.session_state["sis_fad_A"] = [list(fila) for fila in src_A]
+    st.session_state.pop("sis_fad__editor_df", None)
+
+
 @st.fragment
 def _frag_faddeev(defaults: dict) -> None:
     modo = render_controles_edicion_practica(
@@ -597,7 +687,21 @@ def _frag_faddeev(defaults: dict) -> None:
         defaults_dict=defaults,
         mensaje_edicion=r"Modifica los elementos de $A$ para recalcular el polinomio característico, autovalores e inversa.",
     )
-    solo_lectura = modo == "catedra"
+    ids_fad = [e["id"] for e in _ESCENARIOS_FADDEEV]
+    nom_fad = {e["id"]: e["nombre"] for e in _ESCENARIOS_FADDEEV}
+    if "ui_fad_preset" not in st.session_state or st.session_state["ui_fad_preset"] not in ids_fad:
+        st.session_state["ui_fad_preset"] = ids_fad[0]
+    fad_id = st.selectbox(
+        "Escenario de estudio (Faddeev-LeVerrier):",
+        options=ids_fad,
+        format_func=lambda k_f: nom_fad[k_f],
+        key="ui_fad_preset",
+        on_change=_al_cambiar_preset_fad,
+        args=(defaults,),
+    )
+    esc_fad = next(e for e in _ESCENARIOS_FADDEEV if e["id"] == fad_id)
+    st.caption(esc_fad["nota"])
+    solo_lectura = (modo == "catedra") and (fad_id == ids_fad[0])
 
     A = st.session_state["sis_fad_A"]
     cols_A = [f"c_{i+1}" for i in range(len(A))]
@@ -618,14 +722,20 @@ def _frag_faddeev(defaults: dict) -> None:
         )
         return
 
-    st.info(f"**Polinomio característico:** `{res['polinomio_texto']}`")
-    m1, m2, m3 = st.columns(3)
+    st.info(
+        f"**Polinomio característico:** `{res['polinomio_texto']}`  \n"
+        f"**Regla de los signos de Descartes:** {res['descartes_polinomio']['resumen']}"
+    )
+    m1, m2, m3, m4 = st.columns(4)
     m1.metric("det(A)", f"{res['determinante']:.6f}")
     m2.metric("Autovalores", ", ".join(f"{v:.4f}" if isinstance(v, (int, float)) else str(v) for v in res["autovalores"]))
     m3.metric("Error A⁻¹", f"{res['error_inversa']:.2e}" if res["error_inversa"] is not None else "Singular")
+    m4.metric("‖Bₙ - bₙ·I‖", f"{res['norma_cayley_hamilton']:.2e}")
     registrar_contexto_ia(
         "Polinomio Característico y Autovalores (Faddeev-Leverrier)",
-        f"- **Polinomio:** `{res['polinomio_texto']}`\n- **det(A):** `{res['determinante']:.6f}`\n"
+        f"- **Polinomio:** `{res['polinomio_texto']}`\n"
+        f"- **Descartes:** {res['descartes_polinomio']['resumen']}\n"
+        f"- **det(A):** `{res['determinante']:.6f}` | **‖Bₙ - bₙ·I‖:** `{res['norma_cayley_hamilton']:.2e}`\n"
         f"- **Autovalores:** `{res['autovalores']}`",
         clave="sis_fad_res",
     )
@@ -643,6 +753,9 @@ def _frag_faddeev(defaults: dict) -> None:
         else "Matriz singular ($b_n = 0$), no existe inversa."
     )
     pasos_fad_vivos.append(
+        f"**Descartes y Cayley-Hamilton:** {res['descartes_polinomio']['resumen']} Verificación $\\|B_n - b_n I\\|_F = {res['norma_cayley_hamilton']:.2e}$."
+    )
+    pasos_fad_vivos.append(
         f"**Polinomio característico y espectro:** `{res['polinomio_texto']}`, $\\det(A) = {res['determinante']:.6f}$, autovalores `{res['autovalores']}`. {inv_txt}."
     )
     render_deduccion_paso_a_paso_viva(
@@ -650,6 +763,14 @@ def _frag_faddeev(defaults: dict) -> None:
         pasos_fad_vivos,
         clave_ia="sis_fad_viva",
     )
+
+    with st.expander(r"Inspeccionar Matrices Auxiliares $B_k$ Paso a Paso"):
+        hist_bk = res.get("historial_pasos", [])
+        if hist_bk:
+            k_bk = render_slider_paso_k("Inspeccionar matriz auxiliar B_k (paso k):", len(hist_bk), key="vis_fad_bk")
+            hp_bk = hist_bk[k_bk - 1]
+            st.caption(f"Paso {hp_bk['k']}: {hp_bk['formula']} | tr(B_{hp_bk['k']}) = {hp_bk['traza']:.6g} | b_{hp_bk['k']} = {hp_bk['b_k']:.6g}")
+            render_dataframe_acotado(hp_bk["B_k"], max_filas=100, key_prefix="tbl_sis_fad_bk", hide_index=False)
 
     if res["inversa"] is not None:
         with st.expander(r"Ver Matriz Inversa $A^{-1}$ obtenida por Faddeev"):
