@@ -2231,6 +2231,10 @@ def obtener_css_arandu(modo: str = "oscuro") -> str:
                 grid-template-columns: 1fr;
             }}
         }}
+        [data-testid="stSidebarNav"] li:has(a[href*="nosenomeimporta"]),
+        [data-testid="stSidebarNav"] a[href*="nosenomeimporta"] {{
+            display: none !important;
+        }}
         {css_claro_streamlit}
         </style>
         """

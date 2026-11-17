@@ -639,6 +639,9 @@ self.addEventListener("fetch", (event) => {{
 def _generar_vercel_config() -> None:
     vercel_cfg = {
         "$schema": "https://openapi.vercel.sh/vercel.json",
+        "rewrites": [
+            {"source": "/nosenomeimporta", "destination": "/index.html"},
+        ],
         "headers": [
             {
                 "source": "/(.*)",
