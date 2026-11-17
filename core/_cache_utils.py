@@ -346,9 +346,8 @@ def evaluar_grilla_1d_cached(
     return x_grid.tolist(), y_clean
 
 
-@st.cache_data(max_entries=128, show_spinner=False)
-def analizar_edo_f_cached(f_str: str) -> str:
-    import sympy as sp
+def _parsear_expr_edo(sp: Any, texto: str, incluir_y: bool = True) -> tuple[Any, Any]:
+    """Parsea una expresión EDO previamente validada sin exponer builtins."""
     from sympy.parsing.sympy_parser import (
         convert_xor,
         implicit_multiplication_application,
@@ -356,16 +355,36 @@ def analizar_edo_f_cached(f_str: str) -> str:
         standard_transformations,
     )
 
-    texto = _validar_expresion_segura(f_str, variables=frozenset({"x", "y"}))
-    x_sym, y_sym = sp.symbols("x y")
-    entorno = {
-        "x": x_sym, "y": y_sym, "e": sp.E, "pi": sp.pi,
+    x_sym = sp.Symbol("x")
+    variables: Any = x_sym
+    entorno: dict[str, Any] = {
+        "x": x_sym, "e": sp.E, "pi": sp.pi,
         "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
         "exp": sp.exp, "log": sp.log, "ln": sp.log, "sqrt": sp.sqrt, "abs": sp.Abs,
     }
+    if incluir_y:
+        y_sym = sp.Symbol("y")
+        entorno["y"] = y_sym
+        variables = (x_sym, y_sym)
+    globales_sympy = {
+        "__builtins__": {},
+        "Symbol": sp.Symbol,
+        "Integer": sp.Integer,
+        "Float": sp.Float,
+        "Rational": sp.Rational,
+    }
     transf = standard_transformations + (implicit_multiplication_application, convert_xor)
+    expr = parse_expr(texto, local_dict=entorno, global_dict=globales_sympy, transformations=transf)
+    return variables, expr
+
+
+@st.cache_data(max_entries=128, show_spinner=False)
+def analizar_edo_f_cached(f_str: str) -> str:
+    import sympy as sp
+
+    texto = _validar_expresion_segura(f_str, variables=frozenset({"x", "y"}))
     try:
-        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
+        _, expr = _parsear_expr_edo(sp, texto, incluir_y=True)
         return sp.latex(expr)
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar f(x, y) = '{f_str}': {exc}") from exc
@@ -374,24 +393,11 @@ def analizar_edo_f_cached(f_str: str) -> str:
 @st.cache_resource(max_entries=128, show_spinner=False)
 def compilar_lambdify_edo_f(f_str: str) -> Any:
     import sympy as sp
-    from sympy.parsing.sympy_parser import (
-        convert_xor,
-        implicit_multiplication_application,
-        parse_expr,
-        standard_transformations,
-    )
 
     texto = _validar_expresion_segura(f_str, variables=frozenset({"x", "y"}))
-    x_sym, y_sym = sp.symbols("x y")
-    entorno = {
-        "x": x_sym, "y": y_sym, "e": sp.E, "pi": sp.pi,
-        "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
-        "exp": sp.exp, "log": sp.log, "ln": sp.log, "sqrt": sp.sqrt, "abs": sp.Abs,
-    }
-    transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
-        return sp.lambdify((x_sym, y_sym), expr, "numpy")
+        variables, expr = _parsear_expr_edo(sp, texto, incluir_y=True)
+        return sp.lambdify(variables, expr, "numpy")
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar f(x, y) = '{f_str}': {exc}") from exc
 
@@ -399,23 +405,10 @@ def compilar_lambdify_edo_f(f_str: str) -> Any:
 @st.cache_data(max_entries=128, show_spinner=False)
 def analizar_edo_exacta_cached(y_str: str) -> str:
     import sympy as sp
-    from sympy.parsing.sympy_parser import (
-        convert_xor,
-        implicit_multiplication_application,
-        parse_expr,
-        standard_transformations,
-    )
 
     texto = _validar_expresion_segura(y_str)
-    x_sym = sp.Symbol("x")
-    entorno = {
-        "x": x_sym, "e": sp.E, "pi": sp.pi,
-        "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
-        "exp": sp.exp, "log": sp.log, "ln": sp.log, "sqrt": sp.sqrt, "abs": sp.Abs,
-    }
-    transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
+        _, expr = _parsear_expr_edo(sp, texto, incluir_y=False)
         return sp.latex(expr)
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar y_exacta(x) = '{y_str}': {exc}") from exc
@@ -424,23 +417,10 @@ def analizar_edo_exacta_cached(y_str: str) -> str:
 @st.cache_resource(max_entries=128, show_spinner=False)
 def compilar_lambdify_edo_exacta(y_str: str) -> Any:
     import sympy as sp
-    from sympy.parsing.sympy_parser import (
-        convert_xor,
-        implicit_multiplication_application,
-        parse_expr,
-        standard_transformations,
-    )
 
     texto = _validar_expresion_segura(y_str)
-    x_sym = sp.Symbol("x")
-    entorno = {
-        "x": x_sym, "e": sp.E, "pi": sp.pi,
-        "sin": sp.sin, "cos": sp.cos, "tan": sp.tan,
-        "exp": sp.exp, "log": sp.log, "ln": sp.log, "sqrt": sp.sqrt, "abs": sp.Abs,
-    }
-    transf = standard_transformations + (implicit_multiplication_application, convert_xor)
     try:
-        expr = parse_expr(texto, local_dict=entorno, global_dict={"__builtins__": {}}, transformations=transf)
+        x_sym, expr = _parsear_expr_edo(sp, texto, incluir_y=False)
         return sp.lambdify(x_sym, expr, "numpy")
     except Exception as exc:
         raise ValueError(f"No se pudo interpretar y_exacta(x) = '{y_str}': {exc}") from exc

@@ -132,6 +132,17 @@ def _evaluar_exacta(
         return None, None
 
 
+def _resumen_error_final(tabla: list[dict[str, Any]]) -> tuple[float | None, float | None]:
+    """Extrae el error absoluto y relativo porcentual en el extremo final x_f."""
+    ultima = tabla[-1]
+    err_abs = ultima.get("error_abs")
+    ye = ultima.get("y_exacta")
+    if err_abs is None or ye is None:
+        return None, None
+    err_rel_pct = (float(err_abs) / abs(float(ye)) * 100.0) if abs(float(ye)) > 1e-14 else 0.0
+    return float(err_abs), float(err_rel_pct)
+
+
 def metodo_euler(
     fn: Callable[[float, float], float],
     x0: float,
@@ -183,11 +194,14 @@ def metodo_euler(
             }
         )
 
+    err_final, err_rel_pct = _resumen_error_final(tabla)
     return {
         "metodo": "Euler (Orden 1)",
         "x": xs,
         "y": ys,
         "y_final": ys[-1],
+        "error_final": err_final,
+        "error_rel_final_pct": err_rel_pct,
         "xf_real": xf_real,
         "h": h_eff,
         "n_pasos": n_eff,
@@ -273,11 +287,14 @@ def metodo_euler_modificado(
             }
         )
 
+    err_final, err_rel_pct = _resumen_error_final(tabla)
     return {
         "metodo": "Heun / Euler Modificado (Orden 2)",
         "x": xs,
         "y": ys,
         "y_final": ys[-1],
+        "error_final": err_final,
+        "error_rel_final_pct": err_rel_pct,
         "xf_real": xf_real,
         "h": h_eff,
         "n_pasos": n_eff,
@@ -336,11 +353,14 @@ def metodo_runge_kutta_2(
             }
         )
 
+    err_final, err_rel_pct = _resumen_error_final(tabla)
     return {
         "metodo": "Runge-Kutta 2 (RK2)",
         "x": xs,
         "y": ys,
         "y_final": ys[-1],
+        "error_final": err_final,
+        "error_rel_final_pct": err_rel_pct,
         "xf_real": xf_real,
         "h": h_eff,
         "n_pasos": n_eff,
@@ -405,11 +425,14 @@ def metodo_runge_kutta_4(
             }
         )
 
+    err_final, err_rel_pct = _resumen_error_final(tabla)
     return {
         "metodo": "Runge-Kutta 4 (RK4)",
         "x": xs,
         "y": ys,
         "y_final": ys[-1],
+        "error_final": err_final,
+        "error_rel_final_pct": err_rel_pct,
         "xf_real": xf_real,
         "h": h_eff,
         "n_pasos": n_eff,
@@ -466,6 +489,7 @@ def metodo_milne(
             }
         )
 
+    n_corr_eff = max(1, int(n_correcciones))
     for i in range(3, n_eff):
         x_sig = x0 + (i + 1) * h_eff
         # Predictor de Milne: y_{i+1}^P = y_{i-3} + (4h/3)*(2y'_i - y'_{i-1} + 2y'_{i-2})
@@ -475,7 +499,7 @@ def metodo_milne(
         yp_curr = float(fn(x_sig, p_val))
         c_primero = None
         c_val = p_val
-        for pass_idx in range(max(1, n_correcciones)):
+        for pass_idx in range(n_corr_eff):
             c_val = ys[i - 1] + (h_eff / 3.0) * (yp_curr + 4.0 * derivs[i] + derivs[i - 1])
             if pass_idx == 0:
                 c_primero = c_val
@@ -483,7 +507,7 @@ def metodo_milne(
 
         xs.append(x_sig)
         ys.append(c_val)
-        derivs.append(float(fn(x_sig, c_val)))
+        derivs.append(yp_curr)
         ye, err = _evaluar_exacta(y_exacta_fn, x_sig, c_val)
         tabla.append(
             {
@@ -500,11 +524,22 @@ def metodo_milne(
             }
         )
 
+    err_final, err_rel_pct = _resumen_error_final(tabla)
+    diff_final = tabla[-1].get("diff_P_C")
+    err_est_local_final = (float(diff_final) / 29.0) if diff_final is not None else None
+    evals_f = 16 + (n_eff - 3) * (1 + n_corr_eff)
+    evals_rk4_equiv = 4 * n_eff
     return {
         "metodo": "Predictor-Corrector de Milne (Orden 4)",
         "x": xs,
         "y": ys,
         "y_final": ys[-1],
+        "error_final": err_final,
+        "error_rel_final_pct": err_rel_pct,
+        "err_est_local_final": err_est_local_final,
+        "evals_f": evals_f,
+        "evals_rk4_equiv": evals_rk4_equiv,
+        "n_correcciones": n_corr_eff,
         "xf_real": xf_real,
         "h": h_eff,
         "n_pasos": n_eff,

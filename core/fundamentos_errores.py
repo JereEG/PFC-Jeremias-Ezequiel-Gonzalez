@@ -160,8 +160,10 @@ def calcular_serie_euler(
     Calcula la aproximación de e^x = sum_{k=0}^{n_max} x^k / k! término a término.
     Calcula también el error relativo porcentual aproximado E_rp respecto al criterio de Scarborough.
     """
-    if n_max < 0:
-        raise ValueError("n_max debe ser un entero no negativo.")
+    if n_max < 0 or n_max > 150:
+        raise ValueError("n_max debe ser un entero entre 0 y 150.")
+    if cifras_scarborough < 1:
+        raise ValueError("cifras_scarborough debe ser al menos 1.")
     getcontext().prec = precision_dec
     t_ini_clock = time.perf_counter()
     t_ini_cpu = time.process_time()
@@ -203,7 +205,12 @@ def calcular_serie_euler(
         if cumple_sc and termino_scarborough is None:
             termino_scarborough = k
 
-        expr_str = f"{x_val:g}^{k} / {k}!" if x_val != 1.0 else f"1 / {k}!"
+        if x_val == 1.0:
+            expr_str = f"1 / {k}!"
+        elif x_val < 0:
+            expr_str = f"({x_val:g})^{k} / {k}!"
+        else:
+            expr_str = f"{x_val:g}^{k} / {k}!"
         historial.append({
             "k": k,
             "expresion": expr_str,
@@ -216,6 +223,7 @@ def calcular_serie_euler(
             "cumple_scarborough": cumple_sc,
         })
 
+    cota_resto_lagrange = max(1.0, val_real) * (abs(x_val) ** (n_max + 1)) / (fact_float * (n_max + 1))
     return {
         "n_max": n_max,
         "x_val": x_val,
@@ -227,6 +235,7 @@ def calcular_serie_euler(
         "valor_exacto": val_real,
         "error_absoluto_final": abs(val_real - suma_float),
         "error_relativo_final_pct": (abs(val_real - suma_float) / abs(val_real) * 100.0) if val_real != 0 else 0.0,
+        "cota_resto_lagrange": cota_resto_lagrange,
         "t_clock": time.perf_counter() - t_ini_clock,
         "t_cpu": time.process_time() - t_ini_cpu,
         "historial": historial,
@@ -292,6 +301,7 @@ def calcular_pi_leibniz_historial(n_terminos: int, max_muestras: int = 200) -> d
         "pi_exacto": pi_ref,
         "error_absoluto": abs(pi_ref - pi_aprox),
         "error_relativo_pct": (abs(pi_ref - pi_aprox) / pi_ref) * 100.0,
+        "cota_leibniz": 4.0 / (2 * n_terminos + 1),
         "duracion": time.perf_counter() - t_ini,
         "historial": historial,
     }
@@ -406,7 +416,17 @@ def format_norm_trunc(val: float, k: int = 3) -> str:
     return f"{sign}{mantissa_t:.{k}f} x 10^{exp}"
 
 
+def _validar_parametros_maquina(k: int, *valores: float) -> None:
+    """Valida que la mantisa k esté en [1, 15] y todos los operandos sean finitos."""
+    if int(k) < 1 or int(k) > 15:
+        raise ValueError("La cantidad de dígitos de mantisa k debe estar entre 1 y 15.")
+    for val in valores:
+        if not math.isfinite(float(val)):
+            raise ValueError("Todos los operandos deben ser números reales finitos.")
+
+
 def operar_en_maquina(x: float, y: float, operacion: str, k: int = 3) -> dict[str, Any]:
+    _validar_parametros_maquina(k, x, y)
     op = operacion.strip()
     if op in ["÷", "/", "División (÷)"] and abs(y) < 1e-15:
         raise ZeroDivisionError("División por cero en máquina.")
@@ -456,6 +476,7 @@ def comparar_asociatividad_personalizada(
     k: int = 3,
 ) -> dict[str, Any]:
     """Evalúa (u - v) - w vs. (u - w) - v en aritmética normalizada de k dígitos."""
+    _validar_parametros_maquina(k, u, v, w)
     exacto = (u - v) - w
     ur, vr, wr = fl_round(u, k)[0], fl_round(v, k)[0], fl_round(w, k)[0]
     ut, vt, wt = fl_trunc(u, k)[0], fl_trunc(v, k)[0], fl_trunc(w, k)[0]
@@ -478,6 +499,8 @@ def comparar_asociatividad_personalizada(
     return {
         "exacto": exacto,
         "k_digitos": k,
+        "cota_rel_redondeo_pct": 0.5 * (10.0 ** (1 - k)) * 100.0,
+        "cota_rel_trunc_pct": (10.0 ** (1 - k)) * 100.0,
         "tabla": [
             {
                 "agrupacion": f"({u:g} - {v:g}) - {w:g}",
@@ -565,6 +588,7 @@ def analizar_cancelacion_cuadratica(
     c: float = 1.0,
     k: int = 4,
 ) -> dict[str, Any]:
+    _validar_parametros_maquina(k, a, b, c)
     if abs(a) < 1e-15:
         raise ValueError("El coeficiente 'a' no puede ser cero.")
     disc_real = b**2 - 4.0 * a * c
@@ -611,15 +635,41 @@ def analizar_cancelacion_cuadratica(
          "Inestable si b > 0: resta casi igual en denominador." if b > 0 else "Estable si b < 0."),
     ]
     tabla = []
+    por_clave: dict[str, dict[str, Any]] = {}
     for clave, nombre, ex, ap, cancel, diag in metodos:
         ea = abs(ex - ap) if not math.isnan(ap) else float("nan")
-        er_pct = (ea / abs(ex) * 100.0) if (abs(ex) > 1e-15 and not math.isnan(ea)) else float("nan")
-        tabla.append({
+        if abs(ex) > 1e-15 and not math.isnan(ea):
+            er_pct = ea / abs(ex) * 100.0
+        elif ea == 0.0:
+            er_pct = 0.0
+        else:
+            er_pct = float("nan")
+        fila = {
             "clave": clave, "metodo": nombre, "exacto": ex,
             "aprox_num": ap, "aprox_norm": format_norm(ap, k),
             "error_absoluto": ea, "error_absoluto_norm": format_norm(ea, k),
             "error_relativo_pct": er_pct, "sufre_cancelacion": cancel, "diagnostico": diag,
-        })
+        }
+        tabla.append(fila)
+        por_clave[clave] = fila
+
+    pareja_estable = (
+        {
+            "raiz_vulnerable": "x₁",
+            "trad_vulnerable": por_clave["x1_tradicional"],
+            "rat_rescatada": por_clave["x1_racionalizada"],
+            "raiz_directa": "x₂",
+            "trad_directa": por_clave["x2_tradicional"],
+        }
+        if b >= 0
+        else {
+            "raiz_vulnerable": "x₂",
+            "trad_vulnerable": por_clave["x2_tradicional"],
+            "rat_rescatada": por_clave["x2_racionalizada"],
+            "raiz_directa": "x₁",
+            "trad_directa": por_clave["x1_tradicional"],
+        }
+    )
 
     return {
         "coeficientes": {"a": a, "b": b, "c": c},
@@ -630,6 +680,7 @@ def analizar_cancelacion_cuadratica(
             "fl_sqrt_disc": fl_sqrt_disc, "fl_2a": fl_2a, "fl_neg_2c": fl_neg_2c,
         },
         "tabla_comparativa": tabla,
+        "pareja_estable": pareja_estable,
         "x1_exacto": x1_exact,
         "x2_exacto": x2_exact,
     }
@@ -649,6 +700,7 @@ def evaluar_polinomio_horner(
         coefs = [1.0, -6.0, 3.0, -0.149]
     if len(coefs) < 2:
         raise ValueError("El polinomio debe tener al menos grado 1 (2 coeficientes).")
+    _validar_parametros_maquina(k, x_val, *coefs)
 
     grado = len(coefs) - 1
 
@@ -677,12 +729,13 @@ def evaluar_polinomio_horner(
         acum = fl_fn(coefs[0], k)[0]
         pasos = [{"paso": 0, "operacion": f"Inicio b_{grado} = {acum:g}", "valor": acum}]
         for idx, c in enumerate(coefs[1:], start=1):
+            acum_prev = acum
             cf = fl_fn(c, k)[0]
-            prod = fl_fn(acum * xf, k)[0]
+            prod = fl_fn(acum_prev * xf, k)[0]
             acum = fl_fn(prod + cf, k)[0]
             pasos.append({
                 "paso": idx,
-                "operacion": f"fl(fl(acum × {xf:g}) + {cf:g})",
+                "operacion": f"fl(fl({acum_prev:g} × {xf:g}) + {cf:g})",
                 "valor": acum,
             })
         return acum, pasos
@@ -693,27 +746,36 @@ def evaluar_polinomio_horner(
     f_anid_rd, pasos_rd = _eval_horner(fl_round)
 
     casos_comparacion = [
-        ("Forma Estándar (Truncado)", f_trad_tr),
-        ("Forma Estándar (Redondeado)", f_trad_rd),
-        ("Forma Anidada de Horner (Truncado)", f_anid_tr),
-        ("Forma Anidada de Horner (Redondeado)", f_anid_rd),
+        ("Forma Estándar (Truncado)", f_trad_tr, True),
+        ("Forma Estándar (Redondeado)", f_trad_rd, False),
+        ("Forma Anidada de Horner (Truncado)", f_anid_tr, True),
+        ("Forma Anidada de Horner (Redondeado)", f_anid_rd, False),
     ]
     tabla_errores = []
-    for nombre, p_star in casos_comparacion:
+    for nombre, p_star, es_trunc in casos_comparacion:
         ea = abs(f_ex - p_star)
         er_pct = (ea / abs(f_ex) * 100.0) if abs(f_ex) > 1e-15 else 0.0
         tabla_errores.append({
             "metodo": nombre,
             "aproximacion": p_star,
-            "aproximacion_norm": format_norm(p_star, k),
+            "aproximacion_norm": format_norm_trunc(p_star, k) if es_trunc else format_norm(p_star, k),
             "error_absoluto": ea,
             "error_relativo_pct": er_pct,
         })
+
+    mults_ingenua = grado * (grado + 1) // 2
+    mults_horner = grado
+    ahorro_mult_pct = ((mults_ingenua - mults_horner) / mults_ingenua * 100.0) if mults_ingenua > 0 else 0.0
 
     return {
         "x": x_val,
         "k_digitos": k,
         "coefs": coefs,
+        "grado": grado,
+        "mults_ingenua": mults_ingenua,
+        "mults_horner": mults_horner,
+        "sumas": grado,
+        "ahorro_mult_pct": ahorro_mult_pct,
         "f_exacto": f_ex,
         "pasos_horner_trunc": pasos_tr,
         "pasos_horner_round": pasos_rd,
@@ -726,8 +788,7 @@ def calcular_epsilon_maquina(k_digitos: int = 4) -> dict[str, Any]:
     Calcula el épsilon de máquina para mantisa decimal normalizada de k dígitos
     mediante búsqueda por bisección de fl(1 + eps) > 1 y cotas teóricas.
     """
-    if k_digitos < 1 or k_digitos > 15:
-        raise ValueError("La cantidad de dígitos de mantisa k debe estar entre 1 y 15.")
+    _validar_parametros_maquina(k_digitos)
 
     eps_cur = 1.0
     ultimo_distinto = 1.0

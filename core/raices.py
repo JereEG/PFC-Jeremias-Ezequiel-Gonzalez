@@ -249,6 +249,34 @@ def barrido_tanteo(
     }
 
 
+def _validar_parametros_intervalo(
+    fn: Callable[[float], float],
+    x_a: float,
+    x_b: float,
+    tol: float,
+    max_iter: int,
+) -> tuple[float, float]:
+    """Valida extremos, tolerancia, iteraciones y condición de Bolzano sin reordenar los argumentos."""
+    if not (math.isfinite(float(x_a)) and math.isfinite(float(x_b))):
+        raise ValueError("Los extremos del intervalo deben ser valores reales finitos.")
+    if float(tol) <= 0:
+        raise ValueError("La tolerancia E debe ser estrictamente positiva.")
+    if int(max_iter) < 1:
+        raise ValueError("La cantidad máxima de iteraciones debe ser al menos 1.")
+    if abs(float(x_b) - float(x_a)) <= 1e-15:
+        raise ValueError("Los extremos a y b deben ser distintos para definir un intervalo válido.")
+
+    fa, fb = float(fn(float(x_a))), float(fn(float(x_b)))
+    if not (math.isfinite(fa) and math.isfinite(fb)):
+        raise ValueError("f(a) o f(b) produjo un valor no finito.")
+    if fa * fb >= 0:
+        raise ValueError(
+            f"No se cumple Bolzano en [{min(x_a, x_b):g}, {max(x_a, x_b):g}]: "
+            f"f({x_a:g})={fa:g}, f({x_b:g})={fb:g}."
+        )
+    return fa, fb
+
+
 def metodo_biseccion(
     fn: Callable[[float], float],
     a: float,
@@ -260,14 +288,10 @@ def metodo_biseccion(
     t_ini = time.perf_counter()
     a_act = float(min(a, b))
     b_act = float(max(a, b))
-    fa, fb = float(fn(a_act)), float(fn(b_act))
-
-    if fa * fb >= 0:
-        raise ValueError(
-            f"No se cumple Bolzano en [{a_act:g}, {b_act:g}]: f({a_act:g})={fa:g}, f({b_act:g})={fb:g}."
-        )
-
+    fa, fb = _validar_parametros_intervalo(fn, a_act, b_act, tol, max_iter)
     amplitud = b_act - a_act
+    evals_f = 2
+
     n_teorico_exacto = (math.log10(amplitud) - math.log10(tol)) / math.log10(2.0)
     n_teorico_entero = max(1, int(math.ceil(n_teorico_exacto)))
 
@@ -275,18 +299,17 @@ def metodo_biseccion(
     x_ant: float | None = None
     err: float | None = None
 
-    for k in range(1, max_iter + 1):
-        fa = float(fn(a_act))
-        fb = float(fn(b_act))
+    for k in range(1, int(max_iter) + 1):
         xk = 0.5 * (a_act + b_act)
         fxk = float(fn(xk))
+        evals_f += 1
         err = abs(xk - x_ant) if x_ant is not None else 0.5 * (b_act - a_act)
 
         if fa * fxk < 0:
-            nuevo_a, nuevo_b = a_act, xk
+            nuevo_a, nuevo_b, next_fa, next_fb = a_act, xk, fa, fxk
             decision = f"f({a_act:g})·f({xk:g}) < 0 ⇒ [{a_act:g} ; {xk:g}]"
         else:
-            nuevo_a, nuevo_b = xk, b_act
+            nuevo_a, nuevo_b, next_fa, next_fb = xk, b_act, fxk, fb
             decision = f"f({xk:g})·f({b_act:g}) < 0 ⇒ [{xk:g} ; {b_act:g}]"
 
         cumple = (x_ant is not None and err < tol) or abs(fxk) < 1e-14
@@ -309,6 +332,7 @@ def metodo_biseccion(
             return {
                 "raiz": xk,
                 "iteraciones": k,
+                "evals_f": evals_f,
                 "error_final": err if err is not None else 0.0,
                 "f_raiz": fxk,
                 "convergente": True,
@@ -317,12 +341,13 @@ def metodo_biseccion(
                 "duracion": time.perf_counter() - t_ini,
                 "historial": historial,
             }
-        a_act, b_act, x_ant = nuevo_a, nuevo_b, xk
+        a_act, b_act, fa, fb, x_ant = nuevo_a, nuevo_b, next_fa, next_fb, xk
 
     xk_fin = x_ant if x_ant is not None else a_act
     return {
         "raiz": xk_fin,
-        "iteraciones": max_iter,
+        "iteraciones": int(max_iter),
+        "evals_f": evals_f,
         "error_final": err if err is not None else amplitud,
         "f_raiz": float(fn(xk_fin)),
         "convergente": False,
@@ -342,31 +367,26 @@ def metodo_interpolacion_lineal_catedra(
 ) -> dict[str, Any]:
     """Interpolación Lineal (Regula Falsi) con Extremo Fijo x0 (Cátedra UNNE)."""
     t_ini = time.perf_counter()
-    fx0 = float(fn(x0_fijo))
+    fx0, fxi = _validar_parametros_intervalo(fn, x0_fijo, x1_ini, tol, max_iter)
     xi = float(x1_ini)
-    fxi = float(fn(xi))
-
-    if fx0 * fxi >= 0:
-        raise ValueError(
-            f"f(x0) y f(x1) deben tener signos opuestos por Bolzano: f({x0_fijo:g})={fx0:g}, f({x1_ini:g})={fxi:g}."
-        )
+    evals_f = 2
 
     historial: list[dict[str, Any]] = []
     err = abs(xi - x0_fijo)
 
-    for k in range(1, max_iter + 1):
-        fxi = float(fn(xi))
+    for k in range(1, int(max_iter) + 1):
         denom = fxi - fx0
         if abs(denom) < 1e-15:
             return {
-                "raiz": xi, "iteraciones": k - 1, "error_final": err, "f_raiz": fxi,
+                "raiz": xi, "iteraciones": k - 1, "evals_f": evals_f, "error_final": err, "f_raiz": fxi,
                 "convergente": False, "mensaje": "División por cero: f(x_i) - f(x_0) = 0",
                 "duracion": time.perf_counter() - t_ini, "historial": historial,
             }
 
-        num = x0_fijo * fxi - xi * fx0
+        num = float(x0_fijo) * fxi - xi * fx0
         x_sig = num / denom
         fx_sig = float(fn(x_sig))
+        evals_f += 1
         err = abs(x_sig - xi)
         cumple = (k > 1 and err < tol) or abs(fx_sig) < 1e-14
 
@@ -385,14 +405,14 @@ def metodo_interpolacion_lineal_catedra(
 
         if cumple:
             return {
-                "raiz": x_sig, "iteraciones": k, "error_final": err, "f_raiz": fx_sig,
+                "raiz": x_sig, "iteraciones": k, "evals_f": evals_f, "error_final": err, "f_raiz": fx_sig,
                 "convergente": True, "mensaje": "Convergencia exitosa alcanzada.",
                 "duracion": time.perf_counter() - t_ini, "historial": historial,
             }
-        xi = x_sig
+        xi, fxi = x_sig, fx_sig
 
     return {
-        "raiz": xi, "iteraciones": max_iter, "error_final": err, "f_raiz": float(fn(xi)),
+        "raiz": xi, "iteraciones": int(max_iter), "evals_f": evals_f, "error_final": err, "f_raiz": fxi,
         "convergente": False, "mensaje": "Se alcanzó el número máximo de iteraciones.",
         "duracion": time.perf_counter() - t_ini, "historial": historial,
     }
@@ -408,22 +428,20 @@ def metodo_interpolacion_lineal_bolzano(
     """Regula Falsi Clásica actualizando ambos extremos del intervalo según el signo."""
     t_ini = time.perf_counter()
     a_act, b_act = float(min(a, b)), float(max(a, b))
-    fa, fb = float(fn(a_act)), float(fn(b_act))
-
-    if fa * fb >= 0:
-        raise ValueError(f"No se cumple Bolzano en [{a_act:g}, {b_act:g}].")
+    fa, fb = _validar_parametros_intervalo(fn, a_act, b_act, tol, max_iter)
+    evals_f = 2
 
     historial: list[dict[str, Any]] = []
     x_ant: float | None = None
     err = abs(b_act - a_act)
 
-    for k in range(1, max_iter + 1):
-        fa, fb = float(fn(a_act)), float(fn(b_act))
+    for k in range(1, int(max_iter) + 1):
         denom = fb - fa
         if abs(denom) < 1e-15:
             break
         x_sig = (a_act * fb - b_act * fa) / denom
         fx_sig = float(fn(x_sig))
+        evals_f += 1
         err = abs(x_sig - x_ant) if x_ant is not None else abs(b_act - a_act)
         cumple = (x_ant is not None and err < tol) or abs(fx_sig) < 1e-14
 
@@ -441,19 +459,19 @@ def metodo_interpolacion_lineal_bolzano(
 
         if cumple:
             return {
-                "raiz": x_sig, "iteraciones": k, "error_final": err, "f_raiz": fx_sig,
+                "raiz": x_sig, "iteraciones": k, "evals_f": evals_f, "error_final": err, "f_raiz": fx_sig,
                 "convergente": True, "duracion": time.perf_counter() - t_ini, "historial": historial,
             }
 
         if fa * fx_sig < 0:
-            b_act = x_sig
+            b_act, fb = x_sig, fx_sig
         else:
-            a_act = x_sig
+            a_act, fa = x_sig, fx_sig
         x_ant = x_sig
 
     xk_fin = x_ant if x_ant is not None else a_act
     return {
-        "raiz": xk_fin, "iteraciones": max_iter, "error_final": err,
+        "raiz": xk_fin, "iteraciones": int(max_iter), "evals_f": evals_f, "error_final": err,
         "f_raiz": float(fn(xk_fin)), "convergente": False,
         "duracion": time.perf_counter() - t_ini, "historial": historial,
     }
@@ -467,9 +485,17 @@ def verificar_condiciones_fourier(
     b: float,
 ) -> dict[str, Any]:
     """Verifica Bolzano, monotonía y Condición de Fourier f(x0)·f''(x0) > 0."""
-    fa, fb = float(fn(a)), float(fn(b))
-    d1a, d1b = float(d1(a)), float(d1(b))
-    d2a, d2b = float(d2(a)), float(d2(b))
+    a_f, b_f = float(a), float(b)
+    if not (math.isfinite(a_f) and math.isfinite(b_f)):
+        raise ValueError("Los extremos a y b para verificar Fourier deben ser finitos.")
+    if abs(b_f - a_f) <= 1e-15:
+        raise ValueError("Los extremos a y b deben ser distintos para verificar el intervalo.")
+
+    fa, fb = float(fn(a_f)), float(fn(b_f))
+    d1a, d1b = float(d1(a_f)), float(d1(b_f))
+    d2a, d2b = float(d2(a_f)), float(d2(b_f))
+    if not all(math.isfinite(v) for v in (fa, fb, d1a, d1b, d2a, d2b)):
+        raise ValueError("f, f' o f'' produjo un valor no finito en los extremos del intervalo.")
 
     cumple_bolzano = fa * fb < 0
     monotona_bordes = (d1a * d1b > 0) and abs(d1a) > 1e-12 and abs(d1b) > 1e-12
@@ -477,15 +503,15 @@ def verificar_condiciones_fourier(
     fourier_b = fb * d2b
 
     if fourier_a > 0:
-        x0_sugerido = float(a)
+        x0_sugerido = a_f
         fourier_cumple = True
-        detalle = f"f({a:g})·f''({a:g}) = {fourier_a:+.3e} > 0 ⇒ Punto de arranque seguro x₀ = {a:g}"
+        detalle = f"f({a_f:g})·f''({a_f:g}) = {fourier_a:+.3e} > 0 ⇒ Punto de arranque seguro x₀ = {a_f:g}"
     elif fourier_b > 0:
-        x0_sugerido = float(b)
+        x0_sugerido = b_f
         fourier_cumple = True
-        detalle = f"f({b:g})·f''({b:g}) = {fourier_b:+.3e} > 0 ⇒ Punto de arranque seguro x₀ = {b:g}"
+        detalle = f"f({b_f:g})·f''({b_f:g}) = {fourier_b:+.3e} > 0 ⇒ Punto de arranque seguro x₀ = {b_f:g}"
     else:
-        x0_sugerido = float(a if abs(fa) < abs(fb) else b)
+        x0_sugerido = a_f if abs(fa) < abs(fb) else b_f
         fourier_cumple = False
         detalle = f"Ningún borde cumple estrictamente f·f'' > 0. Se sugiere el más cercano al eje: x₀ = {x0_sugerido:g}"
 
@@ -510,12 +536,39 @@ def metodo_newton_raphson(
     """Newton-Raphson con registro completo de tangentes paso a paso."""
     t_ini = time.perf_counter()
     x_val = float(x0)
+    tol_f = float(tol)
+    max_it = int(max_iter)
+    if not math.isfinite(x_val):
+        raise ValueError("La semilla inicial x₀ debe ser un número real finito.")
+    if tol_f <= 0:
+        raise ValueError("La tolerancia E debe ser estrictamente positiva.")
+    if max_it < 1:
+        raise ValueError("La cantidad máxima de iteraciones debe ser al menos 1.")
+
     historial: list[dict[str, Any]] = []
     err = float("inf")
+    evals_f = 0
 
-    for k in range(1, max_iter + 1):
-        fx = float(fn(x_val))
-        dfx = float(d1(x_val))
+    for k in range(1, max_it + 1):
+        try:
+            fx = float(fn(x_val))
+            dfx = float(d1(x_val))
+            evals_f += 1
+        except Exception:
+            fx, dfx = float("nan"), float("nan")
+
+        if not (math.isfinite(fx) and math.isfinite(dfx)):
+            return {
+                "raiz": x_val,
+                "iteraciones": len(historial),
+                "evals_f": evals_f,
+                "error_final": err if math.isfinite(err) else 0.0,
+                "f_raiz": 0.0 if not math.isfinite(fx) else fx,
+                "convergente": False,
+                "mensaje": f"Evaluación no finita o fuera de dominio en iteración {k} (x = {x_val:g}).",
+                "duracion": time.perf_counter() - t_ini,
+                "historial": historial,
+            }
 
         if abs(dfx) < 1e-14:
             historial.append({
@@ -523,15 +576,22 @@ def metodo_newton_raphson(
                 "x_sig": None, "error": None, "cumple_tol": False,
             })
             return {
-                "raiz": x_val, "iteraciones": k, "error_final": abs(fx), "f_raiz": fx,
+                "raiz": x_val, "iteraciones": k, "evals_f": evals_f, "error_final": abs(fx), "f_raiz": fx,
                 "convergente": False,
                 "mensaje": f"Derivada casi nula en iteración {k} (|f'(x)| < 1e-14): tangente horizontal.",
                 "duracion": time.perf_counter() - t_ini, "historial": historial,
             }
 
         x_sig = x_val - (fx / dfx)
+        if not math.isfinite(x_sig):
+            return {
+                "raiz": x_val, "iteraciones": k - 1, "evals_f": evals_f, "error_final": err, "f_raiz": fx,
+                "convergente": False, "mensaje": "El salto secante/tangente produjo un valor no finito.",
+                "duracion": time.perf_counter() - t_ini, "historial": historial,
+            }
+
         err = abs(x_sig - x_val)
-        cumple = err < tol or abs(fx) < 1e-14
+        cumple = err < tol_f or abs(fx) < 1e-14
 
         historial.append({
             "iteracion": k,
@@ -544,25 +604,49 @@ def metodo_newton_raphson(
         })
 
         if cumple:
+            try:
+                f_fin = float(fn(x_sig))
+                evals_f += 1
+            except Exception:
+                f_fin = fx
             return {
-                "raiz": x_sig, "iteraciones": k, "error_final": err, "f_raiz": float(fn(x_sig)),
+                "raiz": x_sig, "iteraciones": k, "evals_f": evals_f, "error_final": err,
+                "f_raiz": f_fin if math.isfinite(f_fin) else fx,
                 "convergente": True, "mensaje": "Convergencia cuadrática exitosa.",
                 "duracion": time.perf_counter() - t_ini, "historial": historial,
             }
 
-        if abs(x_sig) > 1e10 or math.isnan(x_sig):
+        if abs(x_sig) > 1e10:
             return {
-                "raiz": x_val, "iteraciones": k, "error_final": err, "f_raiz": fx,
+                "raiz": x_val, "iteraciones": k, "evals_f": evals_f, "error_final": err, "f_raiz": fx,
                 "convergente": False, "mensaje": "El método divergió fuera de rango numérico.",
                 "duracion": time.perf_counter() - t_ini, "historial": historial,
             }
         x_val = x_sig
 
+    try:
+        f_fin = float(fn(x_val))
+        evals_f += 1
+    except Exception:
+        f_fin = float("nan")
     return {
-        "raiz": x_val, "iteraciones": max_iter, "error_final": err, "f_raiz": float(fn(x_val)),
-        "convergente": False, "mensaje": "Se alcanzó el máximo de iteraciones sin converger.",
+        "raiz": x_val, "iteraciones": max_it, "evals_f": evals_f, "error_final": err,
+        "f_raiz": f_fin, "convergente": False, "mensaje": "Se alcanzó el máximo de iteraciones sin converger.",
         "duracion": time.perf_counter() - t_ini, "historial": historial,
     }
+
+
+def _eval_phi_seguro(phi_fn: Callable[[float], float], val: float) -> float | None:
+    """Evalúa phi_fn(val) garantizando finitud y cota numérica."""
+    if not math.isfinite(val):
+        return None
+    try:
+        res = float(phi_fn(val))
+    except Exception:
+        return None
+    if not math.isfinite(res) or abs(res) > 1e8:
+        return None
+    return res
 
 
 def metodo_punto_fijo_aitken(
@@ -572,20 +656,27 @@ def metodo_punto_fijo_aitken(
     max_iter: int = 50,
 ) -> dict[str, Any]:
     """Ejecuta Punto Fijo simple y Aceleración Δ² de Aitken con protección ante divergencia."""
+    x0_f = float(x0)
+    tol_f = float(tol)
+    max_it = int(max_iter)
+    if not math.isfinite(x0_f):
+        raise ValueError("La semilla inicial x₀ debe ser un número real finito.")
+    if tol_f <= 0:
+        raise ValueError("La tolerancia E debe ser estrictamente positiva.")
+    if max_it < 1:
+        raise ValueError("La cantidad máxima de iteraciones debe ser al menos 1.")
+
     t0 = time.perf_counter()
-    x_act = float(x0)
+    x_act = x0_f
     hist_pf: list[dict[str, Any]] = []
     convergente_pf = False
 
-    for k in range(1, max_iter + 1):
-        try:
-            x_sig = float(phi_fn(x_act))
-        except Exception:
-            break
-        if math.isnan(x_sig) or math.isinf(x_sig) or abs(x_sig) > 1e8:
+    for k in range(1, max_it + 1):
+        x_sig = _eval_phi_seguro(phi_fn, x_act)
+        if x_sig is None:
             break
         err = abs(x_sig - x_act)
-        cumple = err < tol
+        cumple = err < tol_f
         hist_pf.append({
             "iteracion": k, "x_ant": x_act, "x_sig": x_sig, "error": err, "cumple_tol": cumple,
         })
@@ -596,26 +687,26 @@ def metodo_punto_fijo_aitken(
     t_pf = time.perf_counter() - t0
 
     t1 = time.perf_counter()
-    x_base = float(x0)
+    x_base = x0_f
     hist_aitken: list[dict[str, Any]] = []
     convergente_aitken = False
 
-    for ciclo in range(1, max_iter + 1):
-        try:
-            x1 = float(phi_fn(x_base))
-            x2 = float(phi_fn(x1))
-        except Exception:
+    for ciclo in range(1, max_it + 1):
+        x1 = _eval_phi_seguro(phi_fn, x_base)
+        if x1 is None:
             break
-        if any(math.isnan(v) or math.isinf(v) or abs(v) > 1e8 for v in (x1, x2)):
+        x2 = _eval_phi_seguro(phi_fn, x1)
+        if x2 is None:
             break
         denom = x2 - 2.0 * x1 + x_base
         s_aitken = x2 if abs(denom) < 1e-15 else x2 - ((x2 - x1) ** 2) / denom
-        try:
-            x_post = float(phi_fn(s_aitken))
-        except Exception:
+        if not math.isfinite(s_aitken) or abs(s_aitken) > 1e8:
+            break
+        x_post = _eval_phi_seguro(phi_fn, s_aitken)
+        if x_post is None:
             break
         err_aitken = abs(x_post - s_aitken)
-        cumple_a = err_aitken < tol
+        cumple_a = err_aitken < tol_f
 
         hist_aitken.append({
             "ciclo": ciclo, "x0": x_base, "x1": x1, "x2": x2,
@@ -639,7 +730,7 @@ def metodo_punto_fijo_aitken(
             "historial": hist_pf,
         },
         "aitken": {
-            "raiz": hist_aitken[-1]["s_acelerado"] if hist_aitken else x0,
+            "raiz": hist_aitken[-1]["s_acelerado"] if hist_aitken else x0_f,
             "ciclos": len(hist_aitken),
             "error_final": hist_aitken[-1]["error"] if hist_aitken else float("inf"),
             "convergente": convergente_aitken,

@@ -23,6 +23,42 @@ import numpy as np
 # ==============================================================================
 
 EXPRESIONES_PRECOMPUTADAS_RAICES: dict[str, dict[str, Any]] = {
+    "-100 + 35/(1+x) + 45/(1+x)**2 + 50/(1+x)**3": {
+        "f_latex": r"-100 + \frac{35}{1+x} + \frac{45}{(1+x)^2} + \frac{50}{(1+x)^3}",
+        "d1_latex": r"-\frac{35}{(1+x)^2} - \frac{90}{(1+x)^3} - \frac{150}{(1+x)^4}",
+        "d2_latex": r"\frac{70}{(1+x)^3} + \frac{270}{(1+x)^4} + \frac{600}{(1+x)^5}",
+        "fn_np": lambda x: -100.0 + 35.0 / (1.0 + x) + 45.0 / ((1.0 + x) ** 2) + 50.0 / ((1.0 + x) ** 3),
+        "d1_np": lambda x: -35.0 / ((1.0 + x) ** 2) - 90.0 / ((1.0 + x) ** 3) - 150.0 / ((1.0 + x) ** 4),
+        "d2_np": lambda x: 70.0 / ((1.0 + x) ** 3) + 270.0 / ((1.0 + x) ** 4) + 600.0 / ((1.0 + x) ** 5),
+        "descartes": {
+            "es_polinomio": False,
+            "mensaje": "La función racional del VAN no es polinómica: la Regla de Descartes aplica únicamente a polinomios.",
+        },
+    },
+    "x**3 - 9*x**2 + 30": {
+        "f_latex": r"x^{3} - 9 x^{2} + 30",
+        "d1_latex": r"3 x^{2} - 18 x",
+        "d2_latex": r"6 x - 18",
+        "fn_np": lambda x: (x**3) - 9.0 * (x**2) + 30.0,
+        "d1_np": lambda x: 3.0 * (x**2) - 18.0 * x,
+        "d2_np": lambda x: 6.0 * x - 18.0,
+        "descartes": {
+            "es_polinomio": True,
+            "grado": 3,
+            "f_pos_latex": r"x^{3} - 9 x^{2} + 30",
+            "f_neg_latex": r"- x^{3} - 9 x^{2} + 30",
+            "coefs_pos": [1.0, -9.0, 30.0],
+            "signos_pos": ["+", "-", "+"],
+            "variaciones_pos": 2,
+            "posibles_raices_pos": [2, 0],
+            "coefs_neg": [-1.0, -9.0, 30.0],
+            "signos_neg": ["-", "-", "+"],
+            "variaciones_neg": 1,
+            "posibles_raices_neg": [1],
+            "max_raices_positivas": 2,
+            "max_raices_negativas": 1,
+        },
+    },
     "-2.75*x**3 + 18*x**2 - 21*x - 12": {
         "f_latex": r"- 2.75 x^{3} + 18 x^{2} - 21 x - 12",
         "d1_latex": r"- 8.25 x^{2} + 36 x - 21",
@@ -95,6 +131,42 @@ EXPRESIONES_PRECOMPUTADAS_RAICES: dict[str, dict[str, Any]] = {
             "max_raices_negativas": 2,
         },
     },
+    "0.1*(exp(2*x) - 1) + x - 5": {
+        "f_latex": r"0.1\left(e^{2x} - 1\right) + x - 5",
+        "d1_latex": r"0.2 e^{2x} + 1",
+        "d2_latex": r"0.4 e^{2x}",
+        "fn_np": lambda x: 0.1 * (np.exp(2.0 * x) - 1.0) + x - 5.0,
+        "d1_np": lambda x: 0.2 * np.exp(2.0 * x) + 1.0,
+        "d2_np": lambda x: 0.4 * np.exp(2.0 * x),
+        "descartes": {
+            "es_polinomio": False,
+            "mensaje": "La ecuación de Shockley/Kirchhoff incluye término exponencial: la Regla de Descartes aplica solo a polinomios.",
+        },
+    },
+    "x**3 - 2*x + 2": {
+        "f_latex": r"x^{3} - 2 x + 2",
+        "d1_latex": r"3 x^{2} - 2",
+        "d2_latex": r"6 x",
+        "fn_np": lambda x: (x**3) - 2.0 * x + 2.0,
+        "d1_np": lambda x: 3.0 * (x**2) - 2.0,
+        "d2_np": lambda x: 6.0 * x,
+        "descartes": {
+            "es_polinomio": True,
+            "grado": 3,
+            "f_pos_latex": r"x^{3} - 2 x + 2",
+            "f_neg_latex": r"- x^{3} + 2 x + 2",
+            "coefs_pos": [1.0, -2.0, 2.0],
+            "signos_pos": ["+", "-", "+"],
+            "variaciones_pos": 2,
+            "posibles_raices_pos": [2, 0],
+            "coefs_neg": [-1.0, 2.0, 2.0],
+            "signos_neg": ["-", "+", "+"],
+            "variaciones_neg": 1,
+            "posibles_raices_neg": [1],
+            "max_raices_positivas": 2,
+            "max_raices_negativas": 1,
+        },
+    },
     "exp(x) - x**2 - 5": {
         "f_latex": r"- x^{2} + e^{x} - 5",
         "d1_latex": r"- 2 x + e^{x}",
@@ -110,6 +182,24 @@ EXPRESIONES_PRECOMPUTADAS_RAICES: dict[str, dict[str, Any]] = {
 }
 
 EXPRESIONES_PRECOMPUTADAS_PUNTO_FIJO: dict[str, dict[str, Any]] = {
+    "exp(-0.85*x)": {
+        "g_latex": r"e^{-0.85 x}",
+        "dg_latex": r"-0.85 e^{-0.85 x}",
+        "gn_np": lambda x: np.exp(-0.85 * x),
+        "dgn_np": lambda x: -0.85 * np.exp(-0.85 * x),
+    },
+    "-log(x)/0.85": {
+        "g_latex": r"-\frac{\ln(x)}{0.85}",
+        "dg_latex": r"-\frac{1}{0.85 x}",
+        "gn_np": lambda x: -np.log(x) / 0.85,
+        "dgn_np": lambda x: -1.0 / (0.85 * x),
+    },
+    "2 / (1 + 0.7*x**2)": {
+        "g_latex": r"\frac{2}{1 + 0.7 x^{2}}",
+        "dg_latex": r"-\frac{2.8 x}{\left(1 + 0.7 x^{2}\right)^{2}}",
+        "gn_np": lambda x: 2.0 / (1.0 + 0.7 * (x**2)),
+        "dgn_np": lambda x: (-2.8 * x) / ((1.0 + 0.7 * (x**2)) ** 2),
+    },
     "log(x**2 + 5)": {
         "g_latex": r"\log{\left(x^{2} + 5 \right)}",
         "dg_latex": r"\frac{2 x}{x^{2} + 5}",
@@ -212,6 +302,24 @@ INTEGRALES_PRECOMPUTADAS: dict[str, dict[str, Any]] = {
             lambda t: 3.0 * np.exp(-(np.asarray(t, dtype=float) ** 2)), a, b
         ),
     },
+    "2.5 + 1.5*sin(x) + 0.15*x**2": {
+        "f_latex": r"2.5 + 1.5\sin(t) + 0.15t^{2}",
+        "fn_np": lambda x: 2.5 + 1.5 * np.sin(np.asarray(x, dtype=float)) + 0.15 * (np.asarray(x, dtype=float) ** 2),
+        "exact_eval": lambda a, b: (2.5 * float(b) - 1.5 * math.cos(float(b)) + 0.05 * (float(b) ** 3))
+        - (2.5 * float(a) - 1.5 * math.cos(float(a)) + 0.05 * (float(a) ** 3)),
+    },
+    "0.1*x**3 - 0.6*x**2 + 1.5*x + 4.0": {
+        "f_latex": r"0.1 t^{3} - 0.6 t^{2} + 1.5 t + 4.0",
+        "fn_np": lambda x: 0.1 * (np.asarray(x, dtype=float) ** 3) - 0.6 * (np.asarray(x, dtype=float) ** 2) + 1.5 * np.asarray(x, dtype=float) + 4.0,
+        "exact_eval": lambda a, b: (0.025 * (float(b) ** 4) - 0.2 * (float(b) ** 3) + 0.75 * (float(b) ** 2) + 4.0 * float(b))
+        - (0.025 * (float(a) ** 4) - 0.2 * (float(a) ** 3) + 0.75 * (float(a) ** 2) + 4.0 * float(a)),
+    },
+    "sin(x) + 0.5*x + 1.5": {
+        "f_latex": r"\sin(x) + 0.5x + 1.5",
+        "fn_np": lambda x: np.sin(np.asarray(x, dtype=float)) + 0.5 * np.asarray(x, dtype=float) + 1.5,
+        "exact_eval": lambda a, b: (-math.cos(float(b)) + 0.25 * (float(b) ** 2) + 1.5 * float(b))
+        - (-math.cos(float(a)) + 0.25 * (float(a) ** 2) + 1.5 * float(a)),
+    },
 }
 
 EDO_PRECOMPUTADAS: dict[str, dict[str, Any]] = {
@@ -220,11 +328,35 @@ EDO_PRECOMPUTADAS: dict[str, dict[str, Any]] = {
             "f_latex": r"\frac{6 x^{2}}{y}",
             "fn_np": lambda x, y: (6.0 * (x**2)) / y,
         },
+        "-0.5*(y - 25)": {
+            "f_latex": r"-0.5\,(T - 25)",
+            "fn_np": lambda x, y: -0.5 * (y - 25.0),
+        },
+        "1.2*y*(1 - y/100)": {
+            "f_latex": r"1.2\,U\!\left(1 - \frac{U}{100}\right)",
+            "fn_np": lambda x, y: 1.2 * y * (1.0 - (y / 100.0)),
+        },
+        "-0.8*(y - 1)": {
+            "f_latex": r"-0.8\,(V - 1)",
+            "fn_np": lambda x, y: -0.8 * (y - 1.0),
+        },
     },
     "exacta": {
         "2*x*sqrt(x)": {
             "y_latex": r"2 x^{\frac{3}{2}}",
             "fn_np": lambda x: 2.0 * x * np.sqrt(x),
+        },
+        "25 + 60*exp(-0.5*x)": {
+            "y_latex": r"25 + 60\,e^{-0.5 t}",
+            "fn_np": lambda x: 25.0 + 60.0 * np.exp(-0.5 * np.asarray(x, dtype=float)),
+        },
+        "100 / (1 + 19*exp(-1.2*x))": {
+            "y_latex": r"\frac{100}{1 + 19\,e^{-1.2 t}}",
+            "fn_np": lambda x: 100.0 / (1.0 + 19.0 * np.exp(-1.2 * np.asarray(x, dtype=float))),
+        },
+        "1 + 9*exp(-0.8*x)": {
+            "y_latex": r"1 + 9\,e^{-0.8 t}",
+            "fn_np": lambda x: 1.0 + 9.0 * np.exp(-0.8 * np.asarray(x, dtype=float)),
         },
     },
 }
@@ -265,208 +397,240 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
     # 1. FUNDAMENTOS Y ERRORES
     # ==========================================================================
     "series_taylor": {
-        "nombre": "Series de Potencias y Corte por Tolerancia",
+        "nombre": "Series de Potencias (Taylor / Maclaurin) y Corte por Tolerancia",
         "familia": "fundamentos",
         "icono": "🧮",
+        "problema_real": {
+            "titulo": r"Kernel Matemático en Firmware sin FPU: calcular $e^x$ y $\pi$ con suma y producto",
+            "descripcion": (
+                r"Un microcontrolador embebido que calcula atenuación de señal ($e^{-x}$) o crecimiento exponencial ($e^x$) sin coprocesador matemático "
+                r"traduce funciones trascendentes a polinomios de **Taylor/Maclaurin** ($\sum x^k/k!$) dentro de un bucle `for`, "
+                r"deteniéndose cuando la corrección relativa cumple el **Criterio de Scarborough** ($E_{rp} < 0.5 \times 10^{2-n}\%$)."
+            ),
+        },
         "resumen_corto": (
-            "Una CPU solo sabe sumar, restar, multiplicar y dividir. Las **Series de Taylor y Maclaurin** "
-            "traducen funciones como $e^x$, $\\ln(1+x)$ o $\\pi$ a un bucle `for` que acumula potencias "
-            "y factoriales hasta alcanzar la precisión deseada."
+            "Las CPUs básicas solo ejecutan `+`, `-`, `*`, `/`. Las **Series de Taylor y Maclaurin** "
+            "aproximan $e^x$, $\\ln(1+x)$ y $\\pi$ acumulando polinomios sucesivos hasta asegurar $n$ cifras significativas."
         ),
         "guru": {
             "que_resuelve": (
-                "Calcula funciones matemáticas complejas usando únicamente las cuatro operaciones aritméticas básicas de la ALU."
+                "Calcula funciones trascendentes (eˣ, ln(1+x), sen(x), π) usando solo aritmética elemental hasta cumplir una tolerancia prefijada."
             ),
             "intuicion_geometrica": (
-                "Cada iteración del bucle suma un polinomio de mayor grado que pega mejor la aproximación a la curva real alrededor de un punto."
+                "Cada término añadido suma una corrección polinómica de mayor grado que pega mejor la curva aproximada a la función real alrededor de un punto x₀."
             ),
             "algoritmo_pasos": [
-                "Se parte del término base ($k = 0$) y un acumulador `suma`.",
-                "En cada paso del `for`, se calcula el nuevo término usando potencias y factoriales y se actualiza `suma`.",
-                "**Criterio de parada para asegurar $n$ cifras decimales exactas (Criterio de Scarborough):** detenemos el ciclo cuando el cambio relativo $|E_{rp}|$ cae por debajo de $E_s = 0.5 \\times 10^{2-n}\\%$.",
+                r"Iniciás el acumulador en $k=0$ ($S_0 = T_0$) y calculás cada término recurrentemente con $T_k = T_{k-1}\cdot \frac{x}{k}$ (sin recalcular potencias ni factoriales).",
+                r"En cada paso actualizás $S_k = S_{k-1} + T_k$ y medís la variación relativa $E_{rp} = \left|\frac{S_k - S_{k-1}}{S_k}\right|\times 100\%$.",
+                r"**Parada de Scarborough:** detenés el bucle cuando $E_{rp} < E_s = 0.5 \times 10^{2-n}\%$ para garantizar al menos $n$ cifras significativas.",
             ],
             "profundizacion": [
-                r"El error relativo porcentual aproximado entre iteraciones consecutivas se calcula como $E_{rp} = \left|\frac{S_k - S_{k-1}}{S_k}\right| \times 100\%$.",
-                r"La serie de Maclaurin para $\ln(1+x) = \sum_{k=1}^{\infty} (-1)^{k-1}\frac{x^k}{k}$ converge solo para $x \in (-1, 1]$, mientras que $e^x = \sum_{k=0}^{\infty} \frac{x^k}{k!}$ converge para todo $x \in \mathbb{R}$.",
-                r"La serie alternante de Gregory-Leibniz $\pi = 4\sum_{k=0}^{\infty} \frac{(-1)^k}{2k+1}$ acota su error por el primer término omitido $\frac{4}{2n+1}$, por lo que su costo es $\mathcal{O}(1/\varepsilon)$ iteraciones.",
+                r"**Resto de Lagrange:** Truncar en grado $N$ produce un error analítico $R_N(x) = \frac{f^{(N+1)}(\xi)}{(N+1)!}(x - x_0)^{N+1}$; para $e^x$ converge en todo $\mathbb{R}$, mientras que $\ln(1+x)$ converge solo para $x \in (-1, 1]$.",
+                r"**Velocidad exponencial vs $\mathcal{O}(1/N)$:** $e^x$ converge ultrarrápido por el factorial $k!$ en el denominador; en cambio $\pi = 4\sum \frac{(-1)^k}{2k+1}$ (Gregory-Leibniz) acota su error por $\frac{4}{2N+1}$ y exige $N \ge 2000$ términos para lograr $E_a < 10^{-3}$.",
             ],
             "cuando_usar": [
-                "Cuando necesitás implementar funciones elementales sin librerías externas o controlar dinámicamente cuántas cifras exactas querés calcular.",
-                "Para acotar el error de corte al truncar un bucle infinito a un número finito de pasos.",
+                "Al implementar librerías matemáticas en microcontroladores, shaders o firmware sin instrucciones trascendentes en hardware.",
+                "Para acotar el error de truncamiento al convertir una serie infinita en un bucle finito con garantía de n cifras.",
             ],
             "cuando_falla": [
-                "Si evaluás fuera de su dominio válido (por ejemplo $\\ln(1+x)$ para $|x| > 1$), la suma explota en lugar de converger.",
-                "En series muy lentas como $\\pi$ por Gregory-Leibniz: conseguir $5$ decimales exactos requiere cerca de $200\\,000$ iteraciones.",
+                r"Fuera del radio de convergencia (como $\ln(1+x)$ con $|x| > 1$) la serie diverge en lugar de acercarse.",
+                r"Con $x < 0$ grande en $e^x$ (ej. $e^{-10}$), los primeros términos alternados son gigantes y sufren cancelación catastrófica antes de converger.",
             ],
         },
         "formulas_latex": [
-            r"e^x = \sum_{k=0}^{n-1} \frac{x^k}{k!}, \qquad \ln(1+x) = \sum_{k=1}^{n} (-1)^{k-1}\frac{x^k}{k}, \qquad \pi = 4\sum_{k=0}^{\infty} \frac{(-1)^k}{2k+1}",
-            r"E_{rp} = \left|\frac{S_{\text{actual}} - S_{\text{anterior}}}{S_{\text{actual}}}\right| \times 100 < E_s = 0.5 \times 10^{2-n}\%",
+            r"e^x = \sum_{k=0}^{N} \frac{x^k}{k!}, \qquad \ln(1+x) = \sum_{k=1}^{N} (-1)^{k-1}\frac{x^k}{k}, \qquad \pi = 4\sum_{k=0}^{N-1} \frac{(-1)^k}{2k+1}",
+            r"E_{rp} = \left|\frac{S_k - S_{k-1}}{S_k}\right| \times 100\% < E_s = 0.5 \times 10^{2-n}\%",
         ],
         "ejemplo_teorico": {
             "titulo": "Aproximación de $e^{0.5}$ asegurando $3$ cifras significativas",
             "enunciado": "Estimar $e^{0.5}$ con un bucle acumulador garantizando al menos $n = 3$ cifras significativas exactas.",
             "pasos": [
-                "Cota para $n = 3$ cifras (Criterio de Scarborough): $E_s = 0.5 \\times 10^{2-3}\\% = 0.05\\%$.",
-                "Iteración 1: $T_1 = 1$",
-                "Iteración 2: $T_2 = 1 + 0.5 = 1.5$ ($E_{rp} = 33.33\\%$)",
-                "Iteración 3: $T_3 = 1.5 + \\frac{0.5^2}{2!} = 1.625$ ($E_{rp} = 7.69\\%$)",
-                "Iteración 4: $T_4 = 1.625 + \\frac{0.5^3}{3!} = 1.645833\\dots$ ($E_{rp} = 1.26\\%$)",
-                "Iteración 6: $T_6 \\approx 1.6486979$ cumple $|E_{rp}| < 0.05\\%$ y detiene el ciclo.",
+                r"Cota para $n = 3$ cifras (Scarborough): $E_s = 0.5 \times 10^{2-3}\% = 0.05\%$.",
+                r"$k=0$: $S_0 = 1$; $\quad k=1$: $S_1 = 1.5$ ($E_{rp} = 33.33\%$)",
+                r"$k=2$: $S_2 = 1.5 + \frac{0.5^2}{2!} = 1.625$ ($E_{rp} = 7.69\%$)",
+                r"$k=3$: $S_3 = 1.645833\dots$ ($E_{rp} = 1.27\%$); $\quad k=4$: $S_4 = 1.6484375$ ($E_{rp} = 0.158\%$)",
+                r"$k=5$: $S_5 \approx 1.6486979$ alcanza $E_{rp} = 0.0158\% < 0.05\%$ y detiene el ciclo.",
             ],
-            "resultado_final": "$e^{0.5} \\approx 1.6487$ con $3$ cifras significativas garantizadas.",
+            "resultado_final": r"$e^{0.5} \approx 1.6487$ con $3$ cifras significativas garantizadas.",
         },
         "practica_profesora": {
-            "titulo": "Lab 1 (Ej. 5 y 6): Cálculo de $e^x$ y $\\pi$ con criterio de corte",
-            "enunciado": "Simular el bucle de la serie para $e^x$ (por defecto $x = 1$, $N = 8$ términos) y la serie alternante de $\\pi$ con tolerancia $E_a < 0.5 \\times 10^{-n}$.",
+            "titulo": r"Lab 1 (Ej. 5 y 6): Cálculo de $e^x$ y $\pi$ con criterio de corte",
+            "enunciado": r"Simular el bucle de la serie para $e^x$ (por defecto $x = 1$, hasta $k = 8$) y la serie alternante de $\pi$ acotando $E_a < 0.0005$ ($N \ge 2000$).",
             "datos_iniciales": {
                 "x_euler": 1.0,
                 "n_terminos_euler": 8,
                 "cifras_scarborough": 3,
                 "cifras_leibniz": 3,
             },
-            "solucion_referencia": "Para $N = 8$ en $x = 1$: $e \\approx 2.71827877$ ($E_a = 3.0586 \\times 10^{-6}$). Para $\\pi$ con $n = 3$ ($E_a < 0.0005$): $2000$ términos, $\\pi \\approx 3.1410927$.",
+            "solucion_referencia": r"Para $N = 8$ ($k=0\dots 8$) en $x = 1$: $e \approx 2.71827877$ ($E_a = 3.0586 \times 10^{-6}$, Scarborough corta en $k=7$). Para $\pi$ con $N = 2000$: $\pi \approx 3.1410927$.",
         },
     },
     "aritmetica_maquina": {
         "nombre": "Aritmética de Punto Flotante ($k$ dígitos) y Asociatividad",
         "familia": "fundamentos",
         "icono": "💾",
+        "problema_real": {
+            "titulo": r"Conciliación Contable y Telemetría en Memoria Finita: por qué `(u - v) - w != (u - w) - v`",
+            "descripcion": (
+                r"En sistemas financieros o acumulados de sensores con precisión finita ($k$ dígitos significativos o `float32`), "
+                r"restar primero un microajuste pequeño ($w = 0.45$) a un saldo acumulado grande ($u = 10\\,000$) hace que la mantisa "
+                r"**absorba por completo a $w$**, disparando errores del `29%–40%`. Operar primero los montos cercanos $(u - v)$ libera dígitos útiles."
+            ),
+        },
         "resumen_corto": (
-            "La memoria RAM tiene bits finitos y no puede guardar infinitos decimales. "
-            "Modelar números con mantisa de $k$ dígitos explica por qué el **orden de tus sumas y restas** "
-            "cambia el resultado final dentro de un programa."
+            "La memoria finita normaliza cada resultado intermedio a $k$ dígitos. Por eso las sumas y restas "
+            "**no son asociativas** en una computadora: el orden de evaluación define si los términos chicos sobreviven o se absorben."
         ),
         "guru": {
             "que_resuelve": (
-                "Mide cuánto error se acumula al redondear o truncar cada operación intermedia en una computadora."
+                "Cuantifica el error de redondeo o truncamiento en registros finitos de k dígitos y explica la absorción numérica."
             ),
             "intuicion_geometrica": (
-                "En lugar de una recta continua, la CPU trabaja sobre una regla con marcas fijas: cualquier número entre dos marcas se corta (truncamiento) o se mueve a la marca más cercana (redondeo)."
+                "La CPU trabaja sobre una regla con marcas espaciadas: todo resultado intermedio fuera de las marcas se corta (truncamiento) o salta a la más cercana (redondeo)."
             ),
             "algoritmo_pasos": [
-                "Todo número no nulo se normaliza en notación científica $\\pm 0.d_1 d_2 \\dots d_k \\times 10^n$.",
-                "Al ejecutar cada `+`, `-`, `*` o `/`, el resultado vuelve a recortarse a exactamente $k$ dígitos de mantisa.",
-                "Si sumás un número muy chico a uno gigante, los dígitos del chico caen fuera de los $k$ dígitos y desaparecen."
+                r"Normalizá cada operando en notación científica $\pm 0.d_1 d_2 \dots d_k \times 10^n$ con $1 \le d_1 \le 9$.",
+                r"Al ejecutar cada operación binaria (`+`, `-`, `*`, `/`), alineá exponentes y recortá inmediatamente a $k$ dígitos.",
+                "Agrupá primero operandos de magnitud similar para evitar que los bits del término pequeño caigan fuera de la mantisa.",
             ],
             "profundizacion": [
-                r"La cota del error relativo de representación es $10^{-k+1}$ bajo truncamiento y $0.5 \times 10^{-k+1}$ bajo redondeo simétrico.",
-                r"La propiedad asociativa $(A - B) - C = (A - C) - B$ deja de cumplirse cuando los resultados intermedios sufren ajustes distintos a $k$ dígitos.",
+                r"**Cota del error de representación:** El error relativo por operación cumple $\left|\frac{y - fl(y)}{y}\right| \le 10^{1-k}$ en truncamiento y $\le 0.5 \times 10^{1-k}$ en redondeo simétrico.",
+                r"**Épsilon de máquina ($\varepsilon_M$):** Es el menor positivo con $fl(1 + \varepsilon_M) > 1$ (`~1.19e-7` en `float32`, `~2.22e-16` en `float64`); todo incremento menor queda absorbido en $1 + \varepsilon$.",
             ],
             "cuando_usar": [
-                "Para diagnosticar diferencias de precisión al acumular miles de datos (regla práctica: acumulá primero los valores pequeños).",
+                "Al acumular millones de registros o conciliar saldos con escalas dispares (sumar primero los valores pequeños o usar suma de Kahan).",
+                "Para estimar la pérdida máxima de cifras significativas al operar con float16/float32.",
             ],
             "cuando_falla": [
-                "Al mezclar magnitudes muy dispares ($10^{12} + 10^{-5}$): el término pequeño es absorbido por completo y no modifica la variable acumulada.",
+                r"Al combinar magnitudes extremas ($10^{12} + 10^{-5}$): el término pequeño desaparece sin alterar el acumulador.",
+                "Al ejecutar millones de acumulaciones secuenciales sin compensación de error.",
             ],
         },
         "formulas_latex": [
-            r"fl(y) = \pm 0.d_1 d_2 \dots d_k \times 10^n, \qquad \left|\frac{y - fl(y)}{y}\right| \le \begin{cases} 10^{-k+1} & \text{(truncamiento)} \\ 0.5 \times 10^{-k+1} & \text{(redondeo)} \end{cases}",
-            r"(A \ominus B) \ominus C \neq (A \ominus C) \ominus B \quad \text{en aritmética finita}",
+            r"fl(y) = \pm 0.d_1 d_2 \dots d_k \times 10^n, \qquad \left|\frac{y - fl(y)}{y}\right| \le \begin{cases} 10^{1-k} & \text{(truncamiento)} \\ 0.5 \times 10^{1-k} & \text{(redondeo)} \end{cases}",
+            r"(u \ominus v) \ominus w \neq (u \ominus w) \ominus v \quad \text{en aritmética finita de } k \text{ dígitos}",
         ],
         "ejemplo_teorico": {
             "titulo": "Operaciones con $x = 1/3$ e $y = 5/7$ usando $k = 5$ dígitos (Truncamiento)",
             "enunciado": "Representar $fl(x) = 0.33333 \\times 10^0$ y $fl(y) = 0.71428 \\times 10^0$ y evaluar $x + y$ e $y - x$.",
             "pasos": [
-                "$x + y = fl(0.33333 + 0.71428) = fl(1.04761) = 0.10476 \\times 10^1$ ($E_r = 1.82 \\times 10^{-5}$).",
-                "$y - x = fl(0.71428 - 0.33333) = fl(0.38095) = 0.38095 \\times 10^0$ ($E_r = 6.25 \\times 10^{-6}$).",
+                r"$x + y = fl(0.33333 + 0.71428) = fl(1.04761) = 0.10476 \times 10^1$ ($E_r = 1.82 \times 10^{-5}$).",
+                r"$y - x = fl(0.71428 - 0.33333) = fl(0.38095) = 0.38095 \times 10^0$ ($E_r = 6.25 \times 10^{-6}$).",
             ],
-            "resultado_final": "El truncamiento mantiene el error relativo por debajo de $10^{-4}$, excepto si se restan términos casi idénticos.",
+            "resultado_final": r"El truncamiento mantiene el error relativo por debajo de $10^{-4}$, salvo al absorber términos dispares.",
         },
         "practica_profesora": {
-            "titulo": "TP2 Ej. 2 y 3: Pérdida de asociatividad con $k = 3$ dígitos",
-            "enunciado": "Comparar $(121 - 119) - 0.327$ frente a $(121 - 0.327) - 119$ simulando registros de $k = 3$ dígitos.",
+            "titulo": r"TP2 Ej. 2 y 3: Pérdida de asociatividad con $k = 3$ dígitos",
+            "enunciado": r"Comparar $(121 - 119) - 0.327$ frente a $(121 - 0.327) - 119$ simulando registros de $k = 3$ dígitos.",
             "datos_iniciales": {
                 "k_digitos": 3,
                 "u_val": 121.0,
                 "v_val": 119.0,
                 "w_val": 0.327,
             },
-            "solucion_referencia": "Exacto: $1.673$. Redondeo ($k = 3$): $(121 - 119) - 0.327 = 0.167 \\times 10^1$ ($E_r = 0.18\\%$); $(121 - 0.327) - 119 = 0.200 \\times 10^1$ ($E_r = 19.55\\%$). Truncamiento: $(121 - 0.327) - 119 = 0.100 \\times 10^1$ ($E_r = 40.23\\%$).",
+            "solucion_referencia": r"Exacto: $1.673$. Redondeo ($k = 3$): $(121 - 119) - 0.327 = 0.167 \times 10^1$ ($E_r = 0.18\%$); $(121 - 0.327) - 119 = 0.200 \times 10^1$ ($E_r = 19.55\%$). Truncamiento: $(121 - 0.327) - 119 = 0.100 \times 10^1$ ($E_r = 40.23\%$).",
         },
     },
     "cancelacion_cuadratica": {
         "nombre": "Estabilidad en Ecuaciones Cuadráticas (Evitar Restas Riesgosas)",
         "familia": "fundamentos",
         "icono": "💥",
+        "problema_real": {
+            "titulo": r"Intersección Rayo-Esfera 3D y Polos en Circuitos RLC: $a t^2 + b t + c = 0$ con $b^2 \gg 4ac$",
+            "descripcion": (
+                r"En gráficos 3D (colisión rayo-esfera a gran distancia) o en circuitos RLC sobreamortiguados, $|b|$ domina ampliamente sobre $\sqrt{4ac}$. "
+                r"La resolvente tradicional $-b + \sqrt{b^2 - 4ac}$ resta dos números casi idénticos, **borrando cifras significativas** (`24%`–`100%` de error en la raíz chica). "
+                r"**Racionalizar por el conjugado** transforma esa resta en suma y preserva toda la precisión."
+            ),
+        },
         "resumen_corto": (
-            "Al aplicar la resolvente clásica en una PC cuando $b^2 \\gg 4ac$, restar dos números casi idénticos "
-            "borra los dígitos útiles. **Racionalizar el numerador** convierte la resta peligrosa en una suma segura."
+            "Al aplicar la resolvente clásica cuando $b^2 \\gg 4ac$, restar dos flotantes casi idénticos "
+            "anula dígitos útiles (**cancelación catastrófica**). **Racionalizar el numerador** convierte la resta riesgosa en suma segura."
         ),
         "guru": {
             "que_resuelve": (
-                "Evita errores gigantes en la raíz pequeña de $ax^2 + bx + c = 0$ sin aumentar la precisión de los floats."
+                "Calcula con máxima precisión la raíz pequeña de ax² + bx + c = 0 sin aumentar la precisión en hardware."
             ),
             "intuicion_geometrica": (
-                "**Error de resta entre números casi iguales (Cancelación catastrófica):** al restar $-b + \\sqrt{b^2 - 4ac}$ en punto flotante, los dígitos iniciales idénticos se anulan entre sí y el resultado queda lleno de ruido de redondeo."
+                "Restar dos cantidades casi iguales (-b + √Δ cuando b > 0) cancela sus dígitos principales idénticos y deja solo ruido de redondeo."
             ),
             "algoritmo_pasos": [
-                "Calculamos $\\Delta = \\sqrt{b^2 - 4ac}$.",
-                "Para la raíz donde el signo de $-b$ y $\\pm\\Delta$ tienen **igual signo**, sumamos directo con la fórmula clásica.",
-                "Para la raíz donde se **restarían**, multiplicamos arriba y abajo por el conjugado para transformar la resta del numerador en suma en el denominador.",
+                r"Calculá $\Delta = b^2 - 4ac$ y $\sqrt{\Delta}$.",
+                r"Para la raíz donde $-b$ y $\pm\sqrt{\Delta}$ tienen **igual signo**, evaluá con la fórmula tradicional (suma segura).",
+                r"Para la raíz opuesta donde se **restarían**, racionalizá multiplicando por el conjugado: $x_1 = \frac{-2c}{b + \sqrt{\Delta}}$ si $b > 0$ (o $x_2 = \frac{-2c}{b - \sqrt{\Delta}}$ si $b < 0$).",
             ],
             "profundizacion": [
-                r"Multiplicando por $\frac{-b - \sqrt{b^2 - 4ac}}{-b - \sqrt{b^2 - 4ac}}$ cuando $b > 0$, obtenemos $x_1 = \frac{-2c}{b + \sqrt{b^2 - 4ac}}$, donde todos los términos del denominador tienen el mismo signo y no hay pérdida de dígitos.",
+                r"**Identidad de Vieta / Racionalización:** Cuando $b > 0$, $\frac{-b + \sqrt{b^2 - 4ac}}{2a} \cdot \frac{b + \sqrt{b^2 - 4ac}}{b + \sqrt{b^2 - 4ac}} = \frac{-2c}{b + \sqrt{b^2 - 4ac}}$; ambos sumandos del denominador son positivos y eliminan la cancelación.",
             ],
             "cuando_usar": [
-                "En cualquier cálculo de raíces cuadráticas en producción cuando $b^2$ domina ampliamente a $|4ac|$.",
+                "Siempre que b² domine a |4ac| en motores físicos, gráficos 3D, autovalores 2×2 o circuitos sobreamortiguados.",
+                "Como patrón híbrido seguro en bibliotecas numéricas para resolver ecuaciones cuadráticas.",
             ],
             "cuando_falla": [
-                "No uses la versión racionalizada para la raíz que ya sumaba sus signos originalmente, porque volverías a introducir una resta en el denominador.",
+                "No apliques la fórmula racionalizada sobre la raíz que ya sumaba originalmente, porque trasladarías la resta catastrófica al denominador (incluso provocando división por cero).",
             ],
         },
         "formulas_latex": [
-            r"x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a} \quad \xrightarrow{\text{Racionalización}} \quad x_1 = \frac{-2c}{b + \sqrt{b^2 - 4ac}} \;\; (b > 0)",
+            r"x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a} \quad \xrightarrow{\text{Racionalización}} \quad x_{\text{riesgosa}} = \begin{cases} \dfrac{-2c}{b + \sqrt{\Delta}} & (b > 0) \\[6pt] \dfrac{-2c}{b - \sqrt{\Delta}} & (b < 0) \end{cases}",
         ],
         "ejemplo_teorico": {
             "titulo": "Caso clásico de inestabilidad numérica ($x^2 + 3000.001x + 3 = 0$)",
             "enunciado": "Calcular ambas raíces con aritmética finita para $x^2 + 3000.001x + 3 = 0$.",
             "pasos": [
-                "Raíces exactas: $x_1 = -0.001$ y $x_2 = -3000$.",
-                "Con pocos dígitos en la fórmula tradicional, $-b + \\sqrt{b^2 - 4ac}$ cancela casi todos los dígitos líderes y distorsiona $x_1$.",
+                r"Raíces exactas: $x_1 = -0.001$ y $x_2 = -3000$.",
+                r"Con $k=6$ dígitos en la fórmula tradicional, $-b + \sqrt{b^2 - 4ac}$ da $-3000.00 + 3000.00 = 0$ ($100\%$ de error en $x_1$).",
             ],
-            "resultado_final": "Usar la fórmula racionalizada para $x_1$ y la tradicional (que suma dos negativos) para $x_2$.",
+            "resultado_final": r"Usar la fórmula racionalizada para $x_1 = -0.001$ exacto y la tradicional para $x_2 = -3000$.",
         },
         "practica_profesora": {
-            "titulo": "TP2 Ej. 4: $x^2 + 62.10x + 1 = 0$ con redondeo a $k = 4$ dígitos",
-            "enunciado": "Comparar la resolvente estándar frente a la racionalizada en $x^2 + 62.10x + 1 = 0$ simulando floats decimales de $k = 4$ dígitos.",
+            "titulo": r"TP2 Ej. 4: $x^2 + 62.10x + 1 = 0$ con redondeo a $k = 4$ dígitos",
+            "enunciado": r"Comparar la resolvente estándar frente a la racionalizada en $x^2 + 62.10x + 1 = 0$ simulando floats decimales de $k = 4$ dígitos.",
             "datos_iniciales": {
                 "a": 1.0,
                 "b": 62.10,
                 "c": 1.0,
                 "k_digitos": 4,
             },
-            "solucion_referencia": "Exactas: $x_1 = -0.01610723$, $x_2 = -62.08390$. Estándar ($k=4$) da $x_1 = -0.02000$ ($E_r = 24.17\\%$); Racionalizada logra $x_1 = -0.01610$ ($E_r = 0.045\\%$).",
+            "solucion_referencia": r"Exactas: $x_1 = -0.01610723$, $x_2 = -62.08390$. Estándar ($k=4$) da $x_1 = -0.02000$ ($E_r = 24.17\%$); Racionalizada logra $x_1 = -0.01610$ ($E_r = 0.045\%$).",
         },
     },
     "horner": {
         "nombre": "Esquema Anidado de Horner",
         "familia": "fundamentos",
         "icono": "🪆",
+        "problema_real": {
+            "titulo": r"Calibración de Sensores y Shaders en Tiempo Real: evaluar $P_n(x)$ millones de veces por segundo",
+            "descripcion": (
+                r"Un microcontrolador de termopar o un shader 3D evalúa curvas polinómicas $P_n(x)$ continuamente en precisión finita. "
+                r"Calcular cada potencia $x^2, \dots, x^n$ por separado consume $\frac{n(n+1)}{2}$ productos ($\mathcal{O}(n^2)$) y multiplica los redondeos. "
+                r"**Horner** reescribe el polinomio de forma anidada bajando a solo $n$ multiplicaciones ($\mathcal{O}(n)$) y reduciendo el error."
+            ),
+        },
         "resumen_corto": (
-            "Refactoriza un polinomio factorizando $x$ de forma anidada para evaluarlo en tiempo lineal $\\mathcal{O}(n)$. "
-            "Reduce a la mitad las operaciones y minimiza la propagación de error de redondeo."
+            "Factoriza $x$ de forma anidada para evaluar cualquier polinomio de grado $n$ en tiempo lineal $\\mathcal{O}(n)$. "
+            "Evita calcular potencias $x^k$ repetidas y reduce la propagación de redondeos."
         ),
         "guru": {
             "que_resuelve": (
-                "Evalúa polinomios en código sin calcular potencias caras ni acumular errores en cada exponente $x^k$."
+                "Evalúa polinomios y sus derivadas en código en tiempo O(n) con mínima acumulación de errores de punto flotante."
             ),
             "intuicion_geometrica": (
-                "En lugar de computar $x^2, x^3, \\dots, x^n$ por separado, va acumulando el resultado multiplicando por $x$ y sumando el siguiente coeficiente dentro de un único bucle lineal."
+                "En lugar de sumar potencias grandes xᵏ por separado, acumula desde el coeficiente líder multiplicando por x y sumando el siguiente coeficiente en un solo bucle."
             ),
             "algoritmo_pasos": [
-                "Inicializás una variable `res = a_n` (el coeficiente del término de mayor grado).",
-                "Recorrés el resto de los coeficientes de mayor a menor en un `for`: `res = res * x + a_i`.",
-                "Con apenas $n$ multiplicaciones y $n$ sumas obtenés el valor exacto del polinomio.",
+                "Inicializás una variable `b = a_n` con el coeficiente líder.",
+                "Recorrés el resto de coeficientes de mayor a menor en un único `for`: `b = b * x + a_k`.",
+                r"Al finalizar tras $n$ multiplicaciones y $n$ sumas, obtenés $b = P(x)$.",
             ],
             "profundizacion": [
-                r"Evaluar un polinomio de grado $n$ de forma ingenua calculando potencias desde cero cuesta $\frac{n(n+1)}{2}$ multiplicaciones ($\mathcal{O}(n^2)$), mientras que Horner solo usa $n$ multiplicaciones y $n$ sumas ($\mathcal{O}(n)$).",
+                r"**Complejidad y error:** Evaluar potencias de forma ingenua exige $\frac{n(n+1)}{2}$ multiplicaciones ($\mathcal{O}(n^2)$), frente a $n$ multiplicaciones y $n$ sumas ($\mathcal{O}(n)$) en Horner, con intermedios mejor escalados.",
             ],
             "cuando_usar": [
-                "Siempre que programes la evaluación de cualquier polinomio de grado $\\ge 2$.",
+                "Siempre que evalúes polinomios de grado >= 2 en firmware, simuladores, gráficos o búsqueda de raíces (Newton/Müller).",
+                "Como algoritmo base por defecto en motores de interpolación y splines.",
             ],
             "cuando_falla": [
-                "No elimina la inestabilidad intrínseca de polinomios mal condicionados donde un cambio infinitesimal en los coeficientes mueve muchísimo las raíces (Polinomio de Wilkinson).",
+                "No corrige el mal condicionamiento intrínseco de polinomios con raíces múltiples cercanas o tipo Wilkinson, donde la expansión en potencias ya destruye sensibilidad.",
             ],
         },
         "formulas_latex": [
@@ -476,20 +640,20 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
             "titulo": "Conteo de instrucciones en grado $3$",
             "enunciado": "Comparar el costo en CPU entre evaluación directa y esquema anidado para un polinomio cúbico.",
             "pasos": [
-                "Forma directa: calcula $x^2$, $x^3$ y multiplica cada término ($5$ multiplicaciones + $3$ sumas).",
+                "Forma directa: calcula $x^2$, $x^3$ y multiplica cada término ($6$ multiplicaciones ingenuas + $3$ sumas).",
                 "Esquema de Horner: $((a_3 x + a_2)x + a_1)x + a_0$ ($3$ multiplicaciones, y solo $2$ si $a_3 = 1$).",
             ],
-            "resultado_final": "Menos operaciones en punto flotante significan menos código, mayor velocidad y menor error acumulado.",
+            "resultado_final": "Menos operaciones en punto flotante implican menor latencia y menor error acumulado.",
         },
         "practica_profesora": {
-            "titulo": "TP2 Ej. 5/6: $f(x) = x^3 - 6x^2 + 3x - 0.149$ en $x = 4.71$ ($k = 3$ dígitos)",
-            "enunciado": "Evaluar $f(4.71)$ con registros de $3$ dígitos (truncamiento y redondeo) en forma directa vs. forma anidada de Horner.",
+            "titulo": r"TP2 Ej. 5/6: $f(x) = x^3 - 6x^2 + 3x - 0.149$ en $x = 4.71$ ($k = 3$ dígitos)",
+            "enunciado": r"Evaluar $f(4.71)$ con registros de $3$ dígitos (truncamiento y redondeo) en forma directa vs. forma anidada de Horner.",
             "datos_iniciales": {
                 "coefs_str": "1, -6, 3, -0.149",
                 "x_eval": 4.71,
                 "k_digitos": 3,
             },
-            "solucion_referencia": "Exacto: $-14.636489$. Estándar ($k=3$): $-14.0$ ($E_r = 4.35\\%$). Horner Redondeo ($k=3$): $-14.6$ ($E_r = 0.25\\%$). Horner Truncamiento: $-14.5$ ($E_r = 0.93\\%$).",
+            "solucion_referencia": r"Exacto: $-14.636489$. Estándar ($k=3$): $-14.0$ ($E_r = 4.35\%$). Horner Redondeo ($k=3$): $-14.6$ ($E_r = 0.25\%$). Horner Truncamiento: $-14.5$ ($E_r = 0.93\%$).",
         },
     },
 
@@ -500,52 +664,60 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Descartes, Tanteos y Bisección (Intervalo Medio)",
         "familia": "raices",
         "icono": "⚖️",
+        "problema_real": {
+            "titulo": r"Calibración de Nivel en Tanque Esférico IoT: $h^3 - 9h^2 + 30 = 0\;[R = 3\;\text{m}]$",
+            "descripcion": (
+                r"Para disparar una alarma cuando un depósito esférico ($R = 3\;\text{m}$) alcanza volumen $V = 10\pi\;\text{m}^3$, el sensor debe despejar "
+                r"la altura física $h \in [0, 6]\;\text{m}$ de $h^3 - 9h^2 + 30 = 0$. **Descartes** acota cuántas raíces reales existen, el **tanteo** "
+                r"encierra el cambio de signo en $[2.0, 2.5]\;\text{m}$ y **Bisección** garantiza converger sin necesitar derivadas."
+            ),
+        },
         "resumen_corto": (
-            "Es el equivalente numérico de la **búsqueda binaria** sobre una función continua. "
-            "Si los signos en $[a, b]$ son opuestos, divide el intervalo a la mitad en cada paso hasta encerrar la raíz."
+            "Equivalente numérico de la **búsqueda binaria**: si $f(a)$ y $f(b)$ tienen signos opuestos (Bolzano), "
+            "divide el intervalo a la mitad en cada paso hasta encerrar la raíz con precisión asegurada."
         ),
         "guru": {
             "que_resuelve": (
-                "Encuentra ceros de funciones reales $f(x) = 0$ garantizando que el algoritmo nunca diverja si arranca bien."
+                "Encuentra ceros reales f(x) = 0 con garantía absoluta de convergencia cuando existe cambio de signo inicial."
             ),
             "intuicion_geometrica": (
-                "**Chequeo de arranque seguro (Teorema de Bolzano):** si $f(a)$ y $f(b)$ tienen signos opuestos ($f(a)\\cdot f(b) < 0$), la curva continua obligatoriamente cruza el eje $X$. Partimos al medio y descartamos la mitad que no tiene cruce."
+                "Si f(a)·f(b) < 0 y la función es continua, la curva cruza el eje X. Evaluamos en el punto medio y descartamos siempre la mitad donde no hay cruce."
             ),
             "algoritmo_pasos": [
-                "Calculás el punto medio $x_r = \\frac{a + b}{2}$ y evaluás $f(x_r)$.",
-                "Si $f(a) \\cdot f(x_r) < 0$, la raíz está en la mitad izquierda (`b = x_r`); caso contrario, en la derecha (`a = x_r`).",
-                "Repite hasta que el ancho del intervalo o el error $|x_r - x_{\\text{ant}}|$ sea menor que la tolerancia $E$.",
+                r"Calculás el punto medio $x_k = \frac{a + b}{2}$ y evaluás $f(x_k)$.",
+                r"Si $f(a) \cdot f(x_k) < 0$, la raíz queda en $[a, x_k]$ (`b = x_k`); si no, en $[x_k, b]$ (`a = x_k`).",
+                r"Repite hasta cumplir $|\Delta x| < E$ o $|f(x_k)| < 10^{-14}$.",
             ],
             "profundizacion": [
-                r"Opcionalmente, en polinomios podés contar los cambios de signo de $f(x)$ y $f(-x)$ para estimar cuántas raíces positivas y negativas existen antes de buscar (**Regla de los Signos de Descartes**).",
-                r"Como el ancho $\frac{b-a}{2^n}$ se reduce exactamente a la mitad en cada ciclo, podés calcular de antemano cuántas iteraciones exactas requiere el `for`: $n \ge \frac{\ln(b-a) - \ln E}{\ln 2}$.",
+                r"**Descartes y Tanteos previos:** En polinomios, contar cambios de signo de $f(x)$ y $f(-x)$ acota posibles raíces positivas/negativas; un barrido uniforme $\Delta x$ detecta intervalos de arranque $[a, b]$.",
+                r"**Cota exacta a priori:** Como la amplitud se reduce a la mitad en cada paso ($\frac{b - a}{2^n} \le E$), sabemos de antemano que bastan $n \ge \frac{\ln(b-a) - \ln E}{\ln 2}$ iteraciones.",
             ],
             "cuando_usar": [
-                "Cuando necesitás convergencia 100% garantizada sin calcular derivadas ni riesgos de explosión numérica.",
-                "Como fase previa de acercamiento antes de lanzar un método veloz como Newton-Raphson.",
+                "Cuando exigís convergencia 100% garantizada sin derivadas analíticas ni saltos divergentes.",
+                "Para acotar inicialmente un intervalo antes de lanzar un método veloz como Newton-Raphson.",
             ],
             "cuando_falla": [
-                "Si la curva apenas toca el eje $X$ y rebota sin cruzar de signo (raíces múltiples de orden par como $x^2 = 0$).",
-                "Convergencia lenta (lineal): solo gana un bit de precisión por cada evaluación.",
+                "Si la curva toca el eje X sin cambiar de signo (raíces múltiples pares como x² = 0), Bolzano no detecta cruce.",
+                "Convergencia lenta de orden lineal: gana aproximadamente 1 bit (0.3 dígitos) de precisión por evaluación.",
             ],
         },
         "formulas_latex": [
-            r"x_r = \frac{a + b}{2}, \qquad |b_n - a_n| = \frac{b - a}{2^n} \le E \implies n \ge \frac{\ln(b - a) - \ln E}{\ln 2}",
+            r"x_k = \frac{a + b}{2}, \qquad |b_n - a_n| = \frac{b - a}{2^n} \le E \implies n \ge \frac{\ln(b - a) - \ln E}{\ln 2}",
         ],
         "ejemplo_teorico": {
-            "titulo": "Aproximación de $\\sqrt{2}$ mediante $f(x) = x^2 - 2$ en $[1, 3]$",
+            "titulo": r"Aproximación de $\sqrt{2}$ mediante $f(x) = x^2 - 2$ en $[1, 3]$",
             "enunciado": "Acorralar la raíz positiva de $f(x) = x^2 - 2$ en el intervalo $[1, 3]$.",
             "pasos": [
-                "$f(1) = -1 < 0$ y $f(3) = 7 > 0 \\implies$ existe raíz en $[1, 3]$.",
-                "Paso 1: $x_1 = \\frac{1+3}{2} = 2$, $f(2) = 2 > 0 \\implies$ nuevo intervalo $[1, 2]$.",
-                "Paso 2: $x_2 = 1.5$, $f(1.5) = 0.25 > 0 \\implies [1, 1.5]$.",
-                "Paso 3: $x_3 = 1.25 \\implies [1.25, 1.5] \\dots$ Paso 8: $x_8 = 1.4140625$.",
+                r"$f(1) = -1 < 0$ y $f(3) = 7 > 0 \implies$ existe raíz en $[1, 3]$.",
+                r"Paso 1: $x_1 = \frac{1+3}{2} = 2$, $f(2) = 2 > 0 \implies$ nuevo intervalo $[1, 2]$.",
+                r"Paso 2: $x_2 = 1.5$, $f(1.5) = 0.25 > 0 \implies [1, 1.5]$.",
+                r"Paso 3: $x_3 = 1.25 \implies [1.25, 1.5] \dots$ Paso 8: $x_8 = 1.4140625$.",
             ],
-            "resultado_final": "$4$ cifras exactas de $\\sqrt{2}$ alcanzadas en $8$ divisiones binarias.",
+            "resultado_final": r"$4$ cifras exactas de $\sqrt{2}$ alcanzadas en $8$ divisiones binarias.",
         },
         "practica_profesora": {
-            "titulo": "TP3 Ej. 1: $-2.75x^3 + 18x^2 - 21x - 12 = 0$ con $E < 0.01$",
-            "enunciado": "Contar cambios de signo (Descartes), barrer intervalos con $\\Delta x = 0.5$ y aproximar la raíz en $(2, 2.5)$ por Intervalo Medio con $E < 0.01$.",
+            "titulo": r"TP3 Ej. 1: $-2.75x^3 + 18x^2 - 21x - 12 = 0$ con $E < 0.01$",
+            "enunciado": r"Contar cambios de signo (Descartes), barrer intervalos con $\Delta x = 0.5$ y aproximar la raíz en $(2, 2.5)$ por Intervalo Medio con $E < 0.01$.",
             "datos_iniciales": {
                 "f_str": "-2.75*x**3 + 18*x**2 - 21*x - 12",
                 "a": 2.0,
@@ -556,54 +728,64 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "x_max_tanteo": 5.0,
                 "max_iter": 50,
             },
-            "solucion_referencia": "Descartes: $2$ o $0$ raíces positivas y $1$ negativa. Cota teórica: $n \\ge 5.64 \\implies 6$ iteraciones. Raíz: $x_6 = 2.2265625$ (error $0.0078125 < 0.01$).",
+            "solucion_referencia": r"Descartes: $2$ o $0$ raíces positivas y $1$ negativa. Cota teórica: $n \ge 5.64 \implies 6$ iteraciones. Raíz: $x_6 = 2.2265625$ (error $0.0078125 < 0.01$).",
         },
     },
     "interpolacion_lineal_raices": {
         "nombre": "Interpolación Lineal (Regula Falsi / Secante Acotada)",
         "familia": "raices",
         "icono": "📏",
+        "problema_real": {
+            "titulo": r"Tasa Interna de Retorno (TIR) en Proyectos Cloud/Ingeniería: $\text{VAN}(r) = 0$",
+            "descripcion": (
+                r"Un proyecto tecnológico exige CapEx $-100$ y genera flujos $[35, 45, 50]$. Para hallar la tasa de rentabilidad "
+                r"($\text{VAN}(r) = 0$) entre $r = 5\%$ y $r = 30\%$, **Regula Falsi** traza una cuerda usando los valores del VAN en ambos extremos, "
+                r"convergiendo a la TIR (`13.48%`) en apenas **$5$ iteraciones** (frente a **$12$** de Bisección)."
+            ),
+        },
         "resumen_corto": (
-            "En vez de cortar ciegamente a la mitad, une los extremos del intervalo con una línea recta "
-            "y usa el punto donde corta al eje $X$ para acercarse más rápido cuando un lado está mucho más cerca de cero."
+            "En lugar de partir el intervalo a ciegas por la mitad, une $(a, f(a))$ y $(b, f(b))$ con una cuerda recta "
+            "y toma su intersección con el eje $X$ para acercarse mucho más rápido a la raíz cuando un extremo está cerca de cero."
         ),
         "guru": {
             "que_resuelve": (
-                "Acelera la búsqueda en un intervalo cerrado aprovechando las alturas $f(a)$ y $f(b)$ y no solo sus signos."
+                "Acelera el encierro de raíces aprovechando las magnitudes f(a) y f(b), no solo sus signos."
             ),
             "intuicion_geometrica": (
-                "Trazamos una cuerda recta entre $(a, f(a))$ y $(b, f(b))$. Donde esa cuerda corta al eje $X$ suele caer mucho más cerca de la raíz que el centro geométrico."
+                "Una cuerda secante entre (a, f(a)) y (b, f(b)) corta al eje horizontal mucho más cerca de la raíz real que el punto medio geométrico."
             ),
             "algoritmo_pasos": [
-                "Se calcula la intersección de la recta secante con el eje horizontal mediante semejanza de triángulos.",
-                "En la variante estándar de cátedra con curvatura fija, un extremo permanece fijo como pivote mientras el otro avanza hacia la raíz.",
-                "En la variante acotada moderna, se reemplaza el extremo del mismo signo que $f(x_{\\text{nuevo}})$ manteniendo la raíz atrapada.",
+                r"Trazás la secante entre los extremos y calculás su corte $x_{\text{nuevo}} = \frac{a f(b) - b f(a)}{f(b) - f(a)}$.",
+                "En la variante de cátedra con concavidad fija, dejás anclado como pivote $x_0$ al extremo con $f(x_0)\\cdot f''(x_0) > 0$.",
+                r"En Regula Falsi clásica (Bolzano), reemplazás el extremo que comparte signo con $f(x_{\text{nuevo}})$ hasta cumplir $|\Delta x| < E$.",
             ],
             "profundizacion": [
-                r"Por semejanza de triángulos rectángulos, $x_{n+1} = x_n - f(x_n)\frac{x_n - x_{n-1}}{f(x_n) - f(x_{n-1})}$, que puede escribirse de forma equivalente como $\frac{x_{n-1} f(x_n) - x_n f(x_{n-1})}{f(x_n) - f(x_{n-1})}$.",
+                r"**Equivalencia secante:** Por semejanza de triángulos rectángulos, $x_{n+1} = x_n - f(x_n)\frac{x_n - x_{n-1}}{f(x_n) - f(x_{n-1})} = \frac{x_{n-1} f(x_n) - x_n f(x_{n-1})}{f(x_n) - f(x_{n-1})}$.",
+                r"**Convergencia unilateral:** Si $f''$ no cambia de signo, el pivote que comparte signo con $f''$ permanece fijo y la sucesión se acerca monótonamente desde el lado opuesto (orden lineal mejorado sobre curvas suaves).",
             ],
             "cuando_usar": [
-                "Cuando la función varía suavemente casi como una recta dentro de $[a, b]$.",
+                "Cuando f(x) varía de forma suave o casi lineal en [a, b] y no disponés de derivadas analíticas.",
+                "Para resolver ecuaciones implícitas financieras (TIR) o físicas reduciendo evaluaciones respecto a Bisección.",
             ],
             "cuando_falla": [
-                "Si la curva es muy pronunciada (exponenciales o potencias altas), uno de los extremos queda clavado sin moverse (pivote anclado) y el algoritmo se vuelve más lento que Bisección.",
+                "Si la curva tiene curvatura extrema (ej. x⁸ - 0.05 o exponenciales abruptas), un extremo queda atascado y Regula Falsi puede tardar más iteraciones que Bisección.",
             ],
         },
         "formulas_latex": [
             r"x_{n+1} = \frac{x_{n-1} f(x_n) - x_n f(x_{n-1})}{f(x_n) - f(x_{n-1})} = x_n - f(x_n)\frac{x_n - x_{n-1}}{f(x_n) - f(x_{n-1})}",
         ],
         "ejemplo_teorico": {
-            "titulo": "Esquema con extremo pivote $P_1(x_1, y_1)$",
-            "enunciado": "Aproximar la raíz de una función monótona en $[x_1, x_2]$ con $f(x_1)\\cdot f(x_2) < 0$ y curvatura constante.",
+            "titulo": r"Esquema con extremo pivote $P_1(x_1, y_1)$",
+            "enunciado": r"Aproximar la raíz de una función monótona en $[x_1, x_2]$ con $f(x_1)\cdot f(x_2) < 0$ y curvatura constante.",
             "pasos": [
-                "Se traza la secante entre $(x_1, y_1)$ y $(x_2, y_2)$, hallando su corte $x_3$ con el eje $X$.",
-                "Mientras la concavidad mantenga el signo, $x_1$ queda como ancla fija y cada nueva cuerda conecta $(x_1, y_1)$ con $(x_k, y_k)$.",
+                r"Se traza la secante entre $(x_1, y_1)$ y $(x_2, y_2)$, hallando su corte $x_3$ con el eje $X$.",
+                r"Mientras la concavidad mantenga el signo, $x_1$ queda como ancla fija y cada nueva cuerda conecta $(x_1, y_1)$ con $(x_k, y_k)$.",
             ],
             "resultado_final": "Aproximación monótona unilateral hacia la raíz.",
         },
         "practica_profesora": {
-            "titulo": "TP3 Ej. 2: $2x^4 - 6x^2 + 7x - 2 = 0$ (raíz menor) con $E < 0.001$",
-            "enunciado": "Hallar la raíz negativa de $f(x) = 2x^4 - 6x^2 + 7x - 2$ en $[-2.5, -2.0]$ usando Interpolación Lineal con tolerancia $E < 0.001$.",
+            "titulo": r"TP3 Ej. 2: $2x^4 - 6x^2 + 7x - 2 = 0$ (raíz menor) con $E < 0.001$",
+            "enunciado": r"Hallar la raíz negativa de $f(x) = 2x^4 - 6x^2 + 7x - 2$ en $[-2.5, -2.0]$ usando Interpolación Lineal con tolerancia $E < 0.001$.",
             "datos_iniciales": {
                 "f_str": "2*x**4 - 6*x**2 + 7*x - 2",
                 "a": -2.5,
@@ -611,39 +793,49 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "tol": 0.001,
                 "max_iter": 50,
             },
-            "solucion_referencia": "Pivote fijo $x_0 = -2.5$ ($f = 21.125$). En $6$ iteraciones ($x_2 = -2.137339 \\dots x_6 = -2.191747$) logra $|x_6 - x_5| = 0.0007 < 0.001$.",
+            "solucion_referencia": r"Pivote fijo $x_0 = -2.5$ ($f = 21.125$). En $5$ pasos ($x_2 = -2.137339 \dots x_6 = -2.191747$) logra $|x_6 - x_5| = 7.17 \times 10^{-4} < 0.001$.",
         },
     },
     "newton_raphson": {
         "nombre": "Método de Newton-Raphson (Rectas Tangentes)",
         "familia": "raices",
         "icono": "📐",
+        "problema_real": {
+            "titulo": r"Punto de Operación de Circuito Diodo LED / IoT: $0.1(e^{2V_D} - 1) + V_D - 5 = 0$",
+            "descripcion": (
+                r"En un nodo IoT alimentado a $5\;\text{V}$, la tensión de conducción del diodo $V_D$ cumple una ecuación "
+                r"no lineal exponencial (Shockley + Kirchhoff). Arrancando desde el extremo seguro por Fourier ($x_0 = 2.5\;\text{V}$, "
+                r"$f\cdot f'' > 0$), **Newton-Raphson** desliza tangentes y alcanza $V_D \approx 1.755023\;\text{V}$ en apenas **$6$ pasos** ($E = 10^{-5}$), "
+                r"mientras una semilla sin garantía ($x_0 = 0\;\text{V}$) dispara la tangente hasta $4.17\;\text{V}$."
+            ),
+        },
         "resumen_corto": (
             "El método más veloz cuando conocés la derivada: reemplaza la curva por su recta tangente "
-            "y salta hacia donde toca el eje $X$, duplicando las cifras decimales exactas en cada paso."
+            "y salta hacia donde corta el eje $X$, duplicando cifras decimales exactas en cada iteración."
         ),
         "guru": {
             "que_resuelve": (
-                "Encuentra raíces de ecuaciones suaves en muy pocas iteraciones usando una aproximación lineal local."
+                "Encuentra raíces de ecuaciones derivables en muy pocas iteraciones mediante aproximación lineal local."
             ),
             "intuicion_geometrica": (
-                "Nos paramos en el punto $(x_n, f(x_n))$, nos deslizamos por la pendiente tangente $f'(x_n)$ hasta cruzar el eje $X$ y repetimos desde ese nuevo punto."
+                "Desde (xₙ, f(xₙ)) bajás o subís por la recta tangente de pendiente f'(xₙ) hasta cortar el eje horizontal y repetís desde ahí."
             ),
             "algoritmo_pasos": [
-                "**Chequeo de arranque seguro (Teoremas de Bolzano y Fourier):** verificamos que la curva cruce el eje $X$ en el intervalo y que en $x_0$ se cumpla $f(x_0)\\cdot f''(x_0) > 0$ para que la pendiente inicial nos apunte hacia adentro del intervalo y no nos dispare lejos.",
-                "En cada paso actualizamos `x = x - f(x) / df(x)`.",
-                "Detenemos el bucle cuando $|x_{n+1} - x_n| < E$.",
+                "**Chequeo de Fourier:** verificá Bolzano en [a, b] y arrancá desde el extremo x₀ con f(x₀)·f''(x₀) > 0 para apuntar hacia la raíz.",
+                "Actualizá iterativamente `x_sig = x - f(x) / f'(x)` mientras `|f'(x)|` no sea casi nula.",
+                "Detené el bucle cuando `|x_sig - x| < E` (convergencia cuadrática cerca de raíces simples).",
             ],
             "profundizacion": [
-                r"Proviene de truncar la serie de Taylor en grado $1$: $f(x_{n+1}) \approx f(x_n) + f'(x_n)(x_{n+1} - x_n) = 0$.",
-                r"Su error verifica $\varepsilon_{n+1} \approx \left|\frac{f''(r)}{2f'(r)}\right|\varepsilon_n^2$ (**convergencia cuadrática**): si en un paso tenés $2$ decimales exactos, en el siguiente pasás a $4$, luego a $8$, y así sucesivamente.",
+                r"Proviene de truncar Taylor en primer grado: $f(x_{n+1}) \approx f(x_n) + f'(x_n)(x_{n+1} - x_n) = 0$.",
+                r"Su error satisface $\varepsilon_{n+1} \approx \left|\frac{f''(r)}{2f'(r)}\right|\varepsilon_n^2$ (**orden cuadrático**): duplica decimales exactos por paso.",
             ],
             "cuando_usar": [
-                "Cuando necesitás alta precisión en mínimas iteraciones y podés calcular fácilmente $f'(x)$.",
+                "Cuando disponés de f'(x) analítica y necesitás alta precisión en poquísimas evaluaciones.",
+                "En calibración en tiempo real de circuitos no lineales, latencias exponenciales o cinemática inversa.",
             ],
             "cuando_falla": [
-                "Si la curva se aplana ($f'(x_n) \\approx 0$), dividís por casi cero y la tangente casi horizontal dispara el punto muy lejos.",
-                "Si arrancás desde un $x_0$ mal elegido (violando Fourier), el algoritmo puede entrar en ciclos infinitos o escapar del intervalo.",
+                "Si f'(xₙ) ≈ 0 (tangente horizontal), el salto `f/f'` explota y dispara xₙ₊₁ muy lejos del dominio.",
+                "Sin el chequeo de Fourier (ej. x³ − 2x + 2 desde x₀ = 0), la iteración puede quedar atrapada en un ciclo infinito.",
             ],
         },
         "formulas_latex": [
@@ -654,9 +846,8 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
             "enunciado": "Aproximar $\\sqrt{2}$ aplicando $x_{n+1} = x_n - \\frac{x_n^2 - 2}{2x_n}$ partiendo desde $x_0 = 3$.",
             "pasos": [
                 "$x_1 = 3 - \\frac{7}{6} = 1.833333\\dots$",
-                "$x_2 = 1.462121\\dots$",
-                "$x_3 = 1.414998\\dots$",
-                "$x_4 = 1.41421378\\dots \\to x_5 = 1.414213562$ (más de $10$ cifras exactas en apenas $5$ pasos).",
+                "$x_2 = 1.462121\\dots \\to x_3 = 1.414998\\dots$",
+                "$x_4 = 1.41421378\\dots \\to x_5 = 1.414213562$ (más de $10$ cifras exactas).",
             ],
             "resultado_final": "Convergencia cuadrática alcanzada en $5$ iteraciones.",
         },
@@ -671,37 +862,47 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "tol": 0.0001,
                 "max_iter": 50,
             },
-            "solucion_referencia": "En $x = 2$ falla el chequeo de arranque: $(-1)(12) < 0$. En $x = 2.5$ sí cumple: $(5.625)(15) > 0 \\implies x_0 = 2.5$. Converge en $5$ pasos a $x_5 = 2.094551$.",
+            "solucion_referencia": r"En $x = 2$ falla Fourier: $(-1)(12) < 0$. En $x = 2.5$ sí cumple: $(5.625)(15) = +84.375 > 0 \implies x_0 = 2.5$. Converge en $4$ pasos a $x_4 = 2.094551$ ($|\Delta x| = 3.75 \times 10^{-6} < 0.0001$).",
         },
     },
     "punto_fijo_aitken": {
         "nombre": "Iteración de Punto Fijo y Aceleración $\\Delta^2$ de Aitken",
         "familia": "raices",
         "icono": "🌀",
+        "problema_real": {
+            "titulo": r"Equilibrio de Contención en Red / Canal Aloha: $p = e^{-0.85\,p}$",
+            "descripcion": (
+                r"En un enlace compartido con tráfico de colisión $\alpha = 0.85$, la probabilidad estable de transmisión exitosa $p \in (0, 1)$ "
+                r"satisface la ecuación fija $p = g(p) = e^{-0.85\,p}$. Como $|g'(p^*)| \approx 0.51 < 1$, **Punto Fijo simple** describe una "
+                r"telaraña en espiral durante **$15$ pasos**, mientras **Aitken $\Delta^2$** salta al equilibrio $p \approx 0.600332$ en apenas **$2$ ciclos**; "
+                r"por el contrario, el despeje inverso $-\frac{\ln(p)}{0.85}$ tiene $|g'| > 1$ y hace divergir la iteración simple."
+            ),
+        },
         "resumen_corto": (
-            "Reescribe la ecuación $f(x)=0$ como una asignación iterativa `x = g(x)` y usa la aceleración de "
-            "Aitken para dar grandes saltos geométricos cuando la iteración normal avanza lento."
+            "Reescribe $f(x)=0$ como una asignación iterativa `x = g(x)` y usa la aceleración $\\Delta^2$ de Aitken "
+            "para extrapolar directo al equilibrio cuando el rebote simple avanza lento."
         ),
         "guru": {
             "que_resuelve": (
-                "Halla la raíz buscando el valor donde la curva $y = g(x)$ corta a la recta diagonal $y = x$, sin necesidad de derivar durante el bucle principal."
+                "Halla donde $y = g(x)$ corta a $y = x$ iterando evaluaciones directas, sin calcular derivadas dentro del bucle."
             ),
             "intuicion_geometrica": (
-                "Al ejecutar `x = g(x)` en un `while`, el algoritmo rebota como una escalera o telaraña entre $y = g(x)$ y la diagonal $y = x$. Aitken observa $3$ puntos consecutivos de esa secuencia y extrapola directo hacia el cruce."
+                "Cada paso `x = g(x)` rebota entre $y = g(x)$ y la diagonal $y = x$ como escalera o telaraña; Aitken toma $3$ puntos y proyecta la intersección."
             ),
             "algoritmo_pasos": [
-                "Despejás $x$ algebraicamente como $x = g(x)$ verificando que la pendiente alrededor de la raíz achique las distancias (**condición contractiva:** $|g'(x)| < 1$).",
-                "Con un bucle simple se evalúan $x_1 = g(x_0)$ y $x_2 = g(x_1)$.",
-                "Cada $2$ pasos simples, Aitken calcula una predicción acelerada $S$ usando las diferencias de segundo orden para reiniciar mucho más cerca de la solución.",
+                "Despejá $x = g(x)$ verificando la condición contractiva $|g'(x)| < 1$ alrededor de la solución.",
+                "Iterá $x_1 = g(x_0)$ y $x_2 = g(x_1)$ para observar dos saltos consecutivos.",
+                "Aplicá Aitken $S = x_2 - \\frac{(x_2 - x_1)^2}{x_2 - 2x_1 + x_0}$ para reiniciar mucho más cerca del punto fijo.",
             ],
             "profundizacion": [
-                r"Si el error disminuye a razón constante $e_{n+1} \approx K e_n$ con $K = g'(r)$, tres valores consecutivos forman una progresión geométrica cuyo límite estimado es $S = x_{n+1} - \frac{(x_{n+1} - x_n)^2}{x_{n+1} - 2x_n + x_{n-1}}$.",
+                r"Con razón geométrica de error $e_{n+1} \approx g'(r)\,e_n$, tres iteraciones permiten eliminar el término dominante mediante diferencias de segundo orden ($\Delta^2$).",
             ],
             "cuando_usar": [
-                "Cuando podés despejar una fórmula estable $x = g(x)$ cuya pendiente cumpla $|g'(x)| < 1$ en la zona de búsqueda.",
+                "Cuando una ecuación ya tiene forma natural $x = g(x)$ con pendiente contractiva $|g'(x)| < 1$ en la zona de búsqueda.",
+                "Cuando querés acelerar una convergencia lineal lenta sin calcular derivadas en cada iteración.",
             ],
             "cuando_falla": [
-                "Si la pendiente $|g'(x)| \\ge 1$, cada rebote se aleja más de la solución y la secuencia explota hacia el infinito.",
+                "Si elegís un despeje con $|g'(x)| \\ge 1$ (como $-\\ln(x)/0.85$), cada rebote amplifica el error y la iteración simple diverge.",
             ],
         },
         "formulas_latex": [
@@ -712,14 +913,14 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
             "enunciado": "Iterar $x_{n+1} = \\ln(x_n^2 + 3)$ partiendo desde $x_0 = 1$ aplicando saltos acelerados de Aitken.",
             "pasos": [
                 "$x_0 = 1 \\to x_1 = 1.38629 \\to x_2 = 1.59367$.",
-                "Salto extrapolado de Aitken: $x_3 = 1.83405$.",
-                "Nuevo ciclo simple: $x_4 = 1.85062$, $x_5 = 1.86016 \\to$ Aitken: $x_6 = 1.87311$.",
+                "Salto extrapolado de Aitken: $S_1 = 1.83405$.",
+                "Nuevo ciclo simple ($1.85062, 1.86016$) $\\to$ Aitken: $S_2 = 1.87311$.",
             ],
             "resultado_final": "$r \\approx 1.87311$ alcanzado en solo $2$ ciclos de aceleración.",
         },
         "practica_profesora": {
             "titulo": "TP3 Ej. 4: $e^x - x^2 - 5 = 0$ con $x_0 = 2.5$ y $E < 0.0001$",
-            "enunciado": "Usar el despeje $g(x) = \\ln(x^2 + 5)$ y comparar la Iteración Simple ($10$ pasos) frente a la Aceleración $\\Delta^2$ de Aitken ($4$ pasos).",
+            "enunciado": "Usar el despeje $g(x) = \\ln(x^2 + 5)$ y comparar la Iteración Simple ($10$ pasos) frente a la Aceleración $\\Delta^2$ de Aitken ($1$ ciclo = $4$ evaluaciones).",
             "datos_iniciales": {
                 "f_str": "exp(x) - x**2 - 5",
                 "g_str": "log(x**2 + 5)",
@@ -727,7 +928,7 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "tol": 0.0001,
                 "max_iter": 50,
             },
-            "solucion_referencia": "La iteración simple demanda $10$ pasos ($2.3563986$). Aitken salta de $x_0=2.5, x_1=2.420368, x_2=2.3849189$ a $x_3=2.356476$ y converge en $x_4=2.356408$.",
+            "solucion_referencia": r"Punto Fijo simple demanda $10$ pasos ($2.356399$, $|\Delta x| = 5.60 \times 10^{-5}$). Aitken salta de $(2.5, 2.420368, 2.384919)$ a $S_1 = 2.356477$ y verifica $g(S_1) = 2.356409$ en apenas $1$ ciclo ($|\Delta| = 6.82 \times 10^{-5} < 0.0001$).",
         },
     },
 
@@ -738,31 +939,40 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Eliminación Gaussiana (con Pivoteo Parcial)",
         "familia": "sistemas",
         "icono": "📐",
+        "problema_real": {
+            "titulo": r"Balanceo de Tráfico en Clúster de 3 Microservicios: $A\,\vec{x} = \vec{d}$",
+            "descripcion": (
+                r"En una malla de microservicios (*Gateway*, *Auth* y *Billing/DB*), cada nodo atiende pedidos externos $d_i$ (req/s) más llamadas "
+                r"internas reenviadas desde los demás servicios. Plantear la conservación de flujo genera un sistema lineal acoplado $Ax = d$, "
+                r"que **Eliminación Gaussiana con Pivoteo Parcial** resuelve de forma exacta en tiempo $O(n^3)$ dimensionando la capacidad de cada nodo."
+            ),
+        },
         "resumen_corto": (
-            "El método clásico para resolver sistemas lineales $A x = b$: convierte la matriz en un triángulo superior "
-            "con dos bucles anidados y luego despeja las incógnitas de abajo hacia arriba."
+            "Método directo por excelencia para $A x = b$: escalona la matriz a forma triangular superior "
+            "protegiendo la estabilidad con pivoteo parcial y despeja de abajo hacia arriba."
         ),
         "guru": {
             "que_resuelve": (
-                "Resuelve sistemas de $n$ ecuaciones lineales con $n$ incógnitas de tamaño pequeño o mediano en una cantidad fija de pasos."
+                "Resuelve sistemas lineales cuadrados $Ax = b$ densos en una cantidad finita de operaciones $O(n^3)$."
             ),
             "intuicion_geometrica": (
-                "Elimina una variable por columna combinando filas hasta dejar la última ecuación con una sola incógnita, y desde ahí resuelve en cascada inversa."
+                "Combina filas para dejar una sola variable en la última ecuación y resuelve en cascada hacia atrás."
             ),
             "algoritmo_pasos": [
-                "**Intercambio preventivo de filas (Pivoteo parcial):** antes de dividir por un elemento diagonal, sube la fila con el mayor valor absoluto en esa columna para evitar divisiones por cero y reducir error de redondeo.",
-                "Elimina los elementos debajo de la diagonal mediante multiplicadores $m_{ik} = \\frac{a_{ik}}{a_{kk}}$.",
-                "Ejecuta un bucle hacia atrás (sustitución regresiva) desde $x_n$ hasta $x_1$.",
+                "**Pivoteo parcial:** en la columna $k$, subí la fila con mayor $|a_{ik}|$ para evitar dividir por cero o por pivotes diminutos.",
+                "**Escalonamiento:** anulá debajo del pivote restando $m_{ik} F_k$ con $m_{ik} = a_{ik}/a_{kk}$.",
+                "**Sustitución regresiva:** despejá $x_n$ en la última fila y subí calculando $x_{n-1}, \\dots, x_1$.",
             ],
             "profundizacion": [
-                r"El costo total de operaciones aritméticas escala en orden cúbico: $\approx \frac{2}{3}n^3$ operaciones en la fase de eliminación más $n^2$ en la sustitución regresiva.",
+                r"El costo exacto es $\frac{2}{3}n^3 + \mathcal{O}(n^2)$ operaciones en eliminación y solo $n^2$ en sustitución hacia atrás.",
             ],
             "cuando_usar": [
-                "Para resolver sistemas densos de tamaño moderado cuando te interesa una solución directa para un único vector $b$.",
+                "Para sistemas densos de tamaño chico o mediano cuando resolvés $Ax = b$ con un único vector $b$.",
+                "Siempre que necesités solución exacta con pivoteo frente a ecuaciones mal escaladas.",
             ],
             "cuando_falla": [
-                "Si la matriz tiene determinante nulo (ecuaciones repetidas o dependientes) no existe solución única.",
-                "En matrices enormes con miles de ceros ($n > 1000$), rellena la memoria inutilizando el almacenamiento disperso.",
+                "Si la matriz es singular ($\\det(A) = 0$) aparece un pivote nulo insalvable y no hay solución única.",
+                "Sin pivoteo parcial, pivotes diminutos ($\\sim 10^{-13}$) amplifican errores de redondeo en varios órdenes de magnitud.",
             ],
         },
         "formulas_latex": [
@@ -784,7 +994,7 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "A": [[18.72, 8.2, 8.76], [6.4, 15.9, 7.18], [5.22, 6.4, 14.31]],
                 "b": [121.280, 126.321, 118.522],
             },
-            "solucion_referencia": "Última ecuación reducida: $10.553z = 58.055 \\implies x = 1.836,\\; y = 4.721,\\; z = 5.501$.",
+            "solucion_referencia": "Última ecuación reducida: $10.5528 z = 58.0508 \\implies x = 1.83628,\\; y = 4.72149,\\; z = 5.50098$.",
         },
     },
     "gauss_jordan": {
@@ -1390,16 +1600,25 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Diferenciación Numérica (Polinomios de Gregory)",
         "familia": "integracion",
         "icono": "📐",
+        "problema_real": {
+            "titulo": r"Telemetría Radar y Robótica — Velocidad $v(t)=s'(t)$ y Aceleración $a(t)=s''(t)$ desde Posición Discreta",
+            "descripcion": (
+                r"Un sensor radar o encoder muestrea la posición $s(t)$ de un móvil cada $\Delta t = h$ segundos sin conocer la ecuación "
+                r"del movimiento. Para estimar la **velocidad instantánea $s'(t^*)$** o la **aceleración $s''(t^*)$** en un nodo o en un instante "
+                r"intermedio $t^*$ ($u = \frac{t^* - t_0}{h}$), derivamos el polinomio interpolador de **Newton-Gregory Ascendente** (al inicio del registro) "
+                r"o **Descendente** (en las lecturas más recientes al final de la tabla)."
+            ),
+        },
         "resumen_corto": (
-            "Calcula derivadas primera y segunda $f'(x)$ y $f''(x)$ cuando no conocés la fórmula analítica "
-            "sino solo una tabla de datos, derivando directamente el polinomio de Newton-Gregory."
+            r"Calcula derivadas primera y segunda $f'(x)$ y $f''(x)$ desde tablas equidistantes derivando el polinomio interpolador "
+            r"de Newton-Gregory (progresivo al inicio, regresivo al final)."
         ),
         "guru": {
             "que_resuelve": (
-                "Estima tasas de cambio (velocidad) y concavidad (aceleración) sobre registros discretos medidos."
+                r"Estima tasas de cambio (velocidad $s'(t)$) y curvatura/concavidad (aceleración $s''(t)$) a partir de muestras discretas."
             ),
             "intuicion_geometrica": (
-                "Pasa una curva suave polinómica por los datos vecinos y calcula analíticamente la inclinación de su recta tangente en cualquier punto."
+                r"Ajusta una curva polinómica suave por los datos medidos y evalúa analíticamente la pendiente de su recta tangente (y su curvatura) en el instante $x^*$."
             ),
             "algoritmo_pasos": [
                 "Se construye la matriz de diferencias progresivas ($\\Delta^k$) o retrógradas ($\\nabla^k$).",
@@ -1407,19 +1626,21 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "Se divide por $h$ para primera derivada y por $h^2$ para segunda derivada.",
             ],
             "profundizacion": [
-                r"Existe un compromiso clásico entre error de truncamiento y error de máquina: si $h$ baja demasiado (por debajo de $10^{-8}$), la resta $\frac{f(x+h) - f(x)}{h}$ sufre **error de resta entre números casi iguales (cancelación catastrófica)** y el ruido de punto flotante amplifica el error al dividir por un $h$ minúsculo.",
+                r"**Deducción por regla de la cadena:** Al parametrizar $u = \frac{x - x_0}{h}$ se cumple $\frac{du}{dx} = \frac{1}{h}$, por lo que $f'(x) \approx \frac{1}{h}\frac{dP_n}{du}$ y $f''(x) \approx \frac{1}{h^2}\frac{d^2 P_n}{du^2}$. En el caso descendente ($v = \frac{x - x_n}{h}$), se reemplazan $\Delta^k y_0$ por $\nabla^k y_n$ y los signos de la tabla escalonada pasan a ser positivos.",
+                r"**Compromiso Truncamiento vs. Cancelación Catastrófica:** Achicar $h$ reduce el error matemático de truncamiento ($\mathcal{O}(h^k)$), pero si $h$ cae por debajo de $\sim 10^{-8}$ en `float64`, la resta $f(x+h)-f(x)$ pierde dígitos significativos y dividir por $h$ (o $h^2$) amplifica el error de redondeo como $\mathcal{O}(\varepsilon_{\text{máq}}/h)$.",
             ],
             "cuando_usar": [
-                "Versión ascendente al principio de una tabla; versión descendente cerca del final de la tabla.",
+                r"Usá **Gregory Ascendente ($\Delta$)** en la primera mitad de la tabla y **Gregory Descendente ($\nabla$)** en la mitad final (tiempo real).",
+                r"Ideal para estimar $f'(x^*)$ y $f''(x^*)$ incluso en puntos libres no tabulados ($u \ne 0$, $v \ne 0$).",
             ],
             "cuando_falla": [
-                "Si el paso $h$ es excesivamente chico ($h < 10^{-8}$), la división amplifica la pérdida de cifras significativas.",
-                "Si las mediciones tienen ruido aleatorio (sensores), derivar amplifica ese ruido drásticamente.",
+                r"Si los sensores tienen ruido aleatorio de medición, las diferencias finitas sucesivas ($\Delta^2, \Delta^3$) amplifican el ruido al dividir por $h$ y $h^2$.",
+                r"Si elegís un paso $h$ demasiado diminuto ($h < 10^{-8}$), la resta de valores casi iguales dispara errores de cancelación numérica.",
             ],
         },
         "formulas_latex": [
-            r"f'(x_0) \approx \frac{1}{h}\left[\Delta y_0 - \frac{1}{2}\Delta^2 y_0 + \frac{1}{3}\Delta^3 y_0 - \frac{1}{4}\Delta^4 y_0\right], \qquad f''(x_0) \approx \frac{1}{h^2}\left[\Delta^2 y_0 - \Delta^3 y_0 + \frac{11}{12}\Delta^4 y_0\right]",
-            r"f'(x_n) \approx \frac{1}{h}\left[\nabla y_n + \frac{1}{2}\nabla^2 y_n + \frac{1}{3}\nabla^3 y_n + \frac{1}{4}\nabla^4 y_n\right], \qquad f''(x_n) \approx \frac{1}{h^2}\left[\nabla^2 y_n + \nabla^3 y_n + \frac{11}{12}\nabla^4 y_n\right]",
+            r"f'(x) \approx \frac{1}{h}\left[\Delta y_0 + \frac{2u-1}{2}\Delta^2 y_0 + \frac{3u^2-6u+2}{6}\Delta^3 y_0 + \frac{4u^3-18u^2+22u-6}{24}\Delta^4 y_0\right], \qquad u = \frac{x - x_0}{h}",
+            r"f''(x) \approx \frac{1}{h^2}\left[\Delta^2 y_0 + (u - 1)\Delta^3 y_0 + \frac{6u^2 - 18u + 11}{12}\Delta^4 y_0\right]",
         ],
         "ejemplo_teorico": {
             "titulo": "Por qué no conviene hacer $h \\to 0$ indefinidamente en una PC",
@@ -1441,38 +1662,49 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         },
     },
     "trapecio": {
-        "nombre": "Regla de los Trapecios Compuesta",
+        "nombre": "Regla de los Trapecios (Compuesta y Paso Variable Δh)",
         "familia": "integracion",
         "icono": "🪜",
+        "problema_real": {
+            "titulo": r"Agrimensura y GIS — Superficie de Lote Ribereño: $A = \int y(x)\,dx\;\text{[m}^2\text{]}$",
+            "descripcion": (
+                r"En un relevamiento topográfico o catastral GIS se mide el ancho $y(x)$ desde una línea base hasta la ribera "
+                r"en estacas sucesivas separadas por $\Delta x = h$. La **Regla del Trapecio** une cada par de mediciones con un "
+                r"segmento recto: funciona para cualquier número $n$ de tramos (par o impar) y, si un obstáculo del terreno "
+                r"obliga a cambiar el paso $h_k$ entre estacas, integra cada trapecio $\frac{h_k}{2}(y_k + y_{k+1})$ sin restricciones de equidistancia."
+            ),
+        },
         "resumen_corto": (
-            "Calcula áreas e integrales definidas sumando franjas verticales rematadas en línea recta (trapecios). "
-            "Su gran ventaja práctica es que funciona para **cualquier cantidad de intervalos** $n$, par o impar."
+            r"Calcula áreas sumando trapecios consecutivos entre pares de puntos $(x_i, y_i)$ y $(x_{i+1}, y_{i+1})$. "
+            r"Funciona para cualquier cantidad de tramos $n$ (par o impar) y admite paso variable $h_k$ de forma nativa."
         ),
         "guru": {
             "que_resuelve": (
-                "Aproxima $\\int_a^b f(x)\\,dx$ sobre funciones o tablas discretas sin imponer restricciones de paridad ni divisibilidad."
+                r"Aproxima $\int_a^b f(x)\,dx$ sobre funciones o tablas discretas sin imponer restricciones de paridad ni equidistancia."
             ),
             "intuicion_geometrica": (
-                "Conecta cada par de nodos consecutivos $(x_i, y_i)$ y $(x_{i+1}, y_{i+1})$ con una línea recta recta y suma el área de cada trapecio resultante."
+                r"Conecta cada par de nodos consecutivos $(x_i, y_i)$ y $(x_{i+1}, y_{i+1})$ con una línea recta formando franjas trapezoidales."
             ),
             "algoritmo_pasos": [
                 "Sumás los dos valores extremos ($E = y_0 + y_n$).",
                 "Sumás todos los puntos intermedios multiplicados por $2$ ($2P + 2I$).",
-                "Multiplicás el total por $\\frac{h}{2}$.",
+                "Multiplicás el total por $\\frac{h}{2}$ (o sumás $\\frac{h_i}{2}(y_i+y_{i+1})$ si el paso $h_i$ varía).",
             ],
             "profundizacion": [
-                r"Al aproximar con segmentos lineales, su error decrece en orden cuadrático $\mathcal{O}(h^2)$: al duplicar la cantidad de subintervalos $n$, el error se reduce aproximadamente $4$ veces.",
+                r"**Error analítico de truncamiento:** Cada trapecio elemental de ancho $h$ introduce un error local $-\frac{h^3}{12}f''(\xi_i)$, dando error global $E_t = -\frac{(b-a)h^2}{12} f''(\xi) = -\frac{(b-a)^3}{12\,n^2} f''(\xi)$ (**orden $\mathcal{O}(h^2)$**, exacto para rectas de grado $\le 1$).",
+                r"**Comparación frente a Simpson 1/3 y Simpson 3/8:** Al duplicar $n$ (dividir $h$ por $2$), Trapecio reduce su error $4\times$ ($\mathcal{O}(h^2)$), mientras Simpson 1/3 y 3/8 reducen su error $16\times$ ($\mathcal{O}(h^4)$). A cambio, Trapecio nunca falla por paridad ni por cambio de paso $h_k$.",
             ],
             "cuando_usar": [
-                "Cuando la tabla tiene una cantidad impar o suelta de intervalos o datos con paso $h$ irregular.",
-                "Como tramo de cierre residual en algoritmos combinados.",
+                r"Cuando la tabla tiene paso $h_k$ irregular o cantidad arbitraria de subintervalos $n$ (par o impar).",
+                r"Como método universal y seguro de respaldo cuando no hay ternas o cuartetas equidistantes para Simpson.",
             ],
             "cuando_falla": [
-                "En curvas suaves requiere muchísimos más subintervalos que las reglas de Simpson para alcanzar la misma precisión.",
+                r"En curvas muy pronunciadas ($f''(x)$ grande) subestima crestas y sobreestima valles, requiriendo pasos mucho más chicos que Simpson.",
+                r"Para igual malla equidistante de $n$ par, su precisión $\mathcal{O}(h^2)$ es claramente inferior al orden $\mathcal{O}(h^4)$ de Simpson 1/3.",
             ],
         },
         "formulas_latex": [
-            r"A = \frac{h}{2}\left[E + 2P + 2I\right], \qquad E_a \le \frac{(b - a)^3}{12\,n^2}\max|f''(x)|",
+            r"I_{\text{unif}} \approx \frac{h}{2}\left(y_0 + 2\sum_{i=1}^{n-1} y_i + y_n\right) = \frac{h}{2}\left[E + 2P + 2I\right], \qquad I_{\text{var}} \approx \sum_{i=0}^{n-1} \frac{h_i}{2}(y_i + y_{i+1})",
         ],
         "ejemplo_teorico": {
             "titulo": "Polinomio en $[0, 0.8]$ con $n = 2$ ($h = 0.4$)",
@@ -1495,45 +1727,60 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         },
     },
     "simpson_1_3": {
-        "nombre": "Regla de Simpson 1/3 Compuesta (y Motor Adaptativo)",
+        "nombre": "Regla de Simpson 1/3 (Compuesta e Híbrida con Respaldo Trapezoidal)",
         "familia": "integracion",
         "icono": "🥣",
+        "problema_real": {
+            "titulo": r"Auditoría de Energía Eléctrica desde Telemetría IoT: $E = \int P(t)\,dt\;\text{[kWh]}$",
+            "descripcion": (
+                r"Un medidor inteligente (Smart Meter) muestrea la potencia activa $P(t)$ en kilowatts (kW) cada $\Delta t = h$ horas. "
+                r"Para calcular la energía consumida $E$ (en kWh) sin conocer una fórmula analítica del consumo, "
+                r"el sistema ajusta arcos de parábola cada $3$ lecturas equidistantes (**Simpson 1/3**). Si por ahorro de batería o jitter de red "
+                r"cambia el intervalo $\Delta t$ en un tramo, se rompe la equidistancia de $3$ puntos y el algoritmo cae automáticamente a **Regla del Trapecio**."
+            ),
+        },
         "resumen_corto": (
-            "En vez de techos planos, toma grupos de $3$ puntos consecutivos y los une con **parábolas**. "
-            "Logra precisión de cuarto orden $\\mathcal{O}(h^4)$ con la misma cantidad de datos que Trapecio."
+            r"Toma grupos de $3$ puntos equidistantes (dos subintervalos de igual paso $h$) y los une con **arcos parabólicos**, "
+            r"logrando precisión $\mathcal{O}(h^4)$. Si el paso $h$ cambia en un tramo o queda un subintervalo impar, cae automáticamente a Trapecio."
         ),
         "guru": {
             "que_resuelve": (
-                "Calcula integrales de alta exactitud usando pesos alternados $(1, 4, 2, 4, \\dots, 1)$ sobre tramos pares."
+                r"Estima integrales definidas $I = \int_a^b f(x)\,dx$ (como energía acumulada o trabajo físico) a partir de muestras discretas con precisión $\mathcal{O}(h^4)$."
             ),
             "intuicion_geometrica": (
-                "Reemplaza cada pareja de subintervalos consecutivos por el área exacta debajo de un arco parabólico que atraviesa esos tres puntos."
+                r"En lugar de unir dos nodos con una recta plana (Trapecio), toma **3 nodos equidistantes** ($2$ subintervalos de ancho $h$) y traza una **parábola única** que copia la curvatura real de los datos."
             ),
             "algoritmo_pasos": [
-                "Se comprueba que el paso $h$ sea uniforme y que el número de intervalos $n$ sea **PAR**.",
-                "Se suman extremos ($E$), posiciones impares multiplicadas por $4$ ($4I$) y posiciones pares interiores por $2$ ($2P$).",
-                "Si modificás $\\Delta h$ dejando un tramo final residual o un $n$ impar, nuestro motor adaptativo empalma automáticamente con Simpson 3/8 o Trapecio sin fallar.",
+                r"Verifica de izquierda a derecha que existan $3$ puntos equidistantes ($x_{i+1}-x_i = x_{i+2}-x_{i+1} = h$).",
+                r"Aplica la fórmula parabólica $\frac{h}{3}(y_i + 4y_{i+1} + y_{i+2})$ en cada pareja uniforme ($I \approx \frac{h}{3}[E + 4I + 2P]$).",
+                r"Si detecta un cambio de paso $h$ o un subintervalo impar sin pareja, resuelve ese tramo automáticamente con Trapecio $\frac{h_i}{2}(y_i + y_{i+1})$.",
             ],
             "profundizacion": [
-                r"Por simetría de los pesos sobre $[-h, h]$, los términos de error de tercer grado se cancelan entre sí: aunque usa parábolas de grado $2$, integra **sin ningún error** cualquier polinomio cúbico y tiene error $\mathcal{O}(h^4)$.",
+                r"**Error de truncamiento analítico:** En un bloque elemental de ancho $2h$, el error local es $-\frac{h^5}{90}f^{(4)}(\xi)$. Sumando sobre $n/2$ parejas con $h = \frac{b-a}{n}$ resulta el error global $E_t = -\frac{(b-a)h^4}{180} f^{(4)}(\xi) = -\frac{(b-a)^5}{180\,n^4} f^{(4)}(\xi)$ (**orden $\mathcal{O}(h^4)$**).",
+                r"**Exactitud hasta grado 3:** Aunque interpola con una parábola (grado $2$), la simetría de los pesos sobre $[-h, 0, h]$ anula el término cúbico; como $f^{(4)}(x) \equiv 0$ para todo polinomio cúbico, Simpson $1/3$ integra sin error polinomios de hasta **grado $3$**.",
+                r"**Comparación frente a Trapecio y Simpson 3/8:** Trapecio tiene error $E_t = -\frac{(b-a)h^2}{12} f''(\xi)$ ($\mathcal{O}(h^2)$, dos órdenes menos preciso); Simpson $3/8$ comparte orden $\mathcal{O}(h^4)$ con $E_t = -\frac{(b-a)h^4}{80} f^{(4)}(\xi)$ ($\frac{9}{4}$ veces la constante de error de $1/3$ sobre el mismo $h$, útil para bloques de $3$ subintervalos).",
             ],
             "cuando_usar": [
-                "Como primera opción cuando el número de intervalos $n$ es par y los nodos están a paso constante.",
+                r"Cuando tenés una serie de lecturas con paso $h$ constante y cantidad par de subintervalos (máxima precisión $\mathcal{O}(h^4)$ con los mismos datos).",
+                r"En telemetría real donde la mayoría del muestreo es uniforme y solo algunos tramos puntuales sufren jitter o cambio de $\Delta t$ (modo híbrido).",
             ],
             "cuando_falla": [
-                "No se puede aplicar puro sobre $n$ impar ni sobre mallas con $h$ cambiante sin combinar bloques.",
+                r"Pierde el orden $\mathcal{O}(h^4)$ si el paso $h$ cambia bruscamente en todos los tramos (no hay parejas equidistantes y cae a Trapecio $\mathcal{O}(h^2)$).",
+                r"Si la señal tiene saltos bruscos, picos o discontinuidades entre nodos, una parábola puede sobreoscilar y degradar la estimación.",
             ],
         },
         "formulas_latex": [
-            r"A = \frac{h}{3}\left[E + 4I + 2P\right], \qquad E_a \le \frac{(b - a)^5}{180\,n^4}\max|f^{(4)}(x)|",
+            r"I \approx \frac{h}{3}\left(y_0 + 4\sum_{i\text{ impar}} y_i + 2\sum_{i\text{ par}} y_i + y_n\right) = \frac{h}{3}\left[E + 4I + 2P\right]",
         ],
         "ejemplo_teorico": {
-            "titulo": "Exactitud sobre polinomios hasta grado $3$",
-            "enunciado": "Integrar un polinomio interpolante cuadrático sobre $3$ puntos equidistantes produce los pesos $\\frac{h}{3}(1,\\, 4,\\, 1)$.",
+            "titulo": "Ejemplo paso a paso: exactitud sobre cúbicas y escalado $\\mathcal{O}(h^4)$",
+            "enunciado": r"Calcular $\int_0^2 x^3\,dx$ con $n = 2$ subintervalos ($h = 1$, nodos $x = [0, 1, 2]$, $y = [0, 1, 8]$) y verificar el término de error $E_t$.",
             "pasos": [
-                "Como la cota de error depende de la cuarta derivada $f^{(4)}(x)$, cualquier polinomio cúbico ($f^{(4)} = 0$) se integra de manera **exacta**.",
+                r"Verificamos que hay $3$ puntos equidistantes con $h = 1$ constante ($n = 2$ es par).",
+                r"Aplicamos la fórmula elemental: $I = \frac{1}{3}(y_0 + 4y_1 + y_2) = \frac{1}{3}(0 + 4(1) + 8) = \frac{12}{3} = 4$.",
+                r"Comparamos con la integral analítica $\int_0^2 x^3\,dx = \left[\frac{x^4}{4}\right]_0^2 = 4$: el error es $0$ porque $f^{(4)}(x) \equiv 0 \implies E_t = -\frac{2\cdot 1^4}{180}(0) = 0$.",
             ],
-            "resultado_final": "Orden $\\mathcal{O}(h^4)$: reducir $\\Delta h$ a la mitad multiplica la precisión por $16$.",
+            "resultado_final": r"Simpson 1/3 integra exactamente polinomios de hasta grado $3$ y reduce su error por $16$ al dividir $h$ a la mitad ($\mathcal{O}(h^4)$).",
         },
         "practica_profesora": {
             "titulo": "TP6 Ej. 2: Simpson 1/3 en $[0.5, 20.5]$ ($n = 4$, $h = 5$)",
@@ -1547,36 +1794,49 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         },
     },
     "simpson_3_8_combinado": {
-        "nombre": "Simpson 3/8 y Esquema Combinado ($3/8 + 1/3$)",
+        "nombre": "Simpson 3/8 y Esquema Combinado (3/8 + 1/3 + Respaldo Trapecio)",
         "familia": "integracion",
         "icono": "🧩",
+        "problema_real": {
+            "titulo": r"Aforo de Volumen Hidrométrico desde Caudalímetro: $V = \int Q(t)\,dt\;\text{[m}^3\text{]}$",
+            "descripcion": (
+                r"Un caudalímetro registra $6$ mediciones horarias ($n = 5$ subintervalos de $\Delta t = h$). "
+                r"Como $n = 5$ es impar, Simpson $1/3$ puro dejaría un tramo suelto en Trapecio ($\mathcal{O}(h^2)$). "
+                r"El **esquema combinado** ajusta una **cúbica de Simpson 3/8** en los primeros $3$ intervalos y una **parábola de Simpson 1/3** "
+                r"en los últimos $2$, conservando orden $\mathcal{O}(h^4)$ en todo el turno; y si cambia $\Delta t$ en un tramo, cae a **Trapecio** en ese subintervalo."
+            ),
+        },
         "resumen_corto": (
-            "Ajusta **polinomios cúbicos** sobre bloques de $3$ subintervalos ($4$ puntos). Combinado con Simpson 1/3 "
-            "resuelve tablas con cantidad impar de subintervalos sin bajar de orden $\\mathcal{O}(h^4)$."
+            r"Ajusta **polinomios cúbicos** sobre bloques de $3$ subintervalos ($4$ puntos equidistantes). Combinado con Simpson 1/3 "
+            r"resuelve mallas impares ($n \ge 5$) sin bajar de orden $\mathcal{O}(h^4)$, cayendo a Trapecio solo si cambia el paso $h$."
         ),
         "guru": {
             "que_resuelve": (
-                "Mantiene precisión de cuarto orden en mallas con $n$ múltiplo de $3$ o $n$ impar ($n \\ge 5$)."
+                r"Mantiene precisión de cuarto orden $\mathcal{O}(h^4)$ en mallas con $n$ múltiplo de $3$ o $n$ impar ($n \ge 5$)."
             ),
             "intuicion_geometrica": (
-                "Cuando $n$ es impar, toma un primer bloque de $3$ subintervalos con una cúbica ($3/8$) dejando atrás un resto de intervalos **par** para completarlo con parábolas ($1/3$)."
+                r"Toma bloques de **4 puntos equidistantes** ($3$ subintervalos) con una **curva cúbica** ($3/8$); si queda un resto de $2$ o $4$ intervalos equidistantes lo empalma con parábolas ($1/3$), y ante cambio de $h$ respalda con Trapecio."
             ),
             "algoritmo_pasos": [
-                "Si $n$ es múltiplo de $3$, aplica módulos sucesivos con coeficientes $(1, 3, 3, 1)\\frac{3h}{8}$.",
-                "Si $n \\ge 5$ es impar no múltiplo de $3$, procesa los primeros $3$ intervalos con Simpson 3/8 y pasa el resto par a Simpson 1/3.",
+                r"Si $m$ subintervalos equidistantes son múltiplo de $3$, aplica bloques cúbicos $\frac{3h}{8}(y_0 + 3y_1 + 3y_2 + y_3)$.",
+                r"Si $m \ge 5$ es impar no múltiplo de $3$ (ej. $m = 5$), resuelve $m-2$ intervalos con Simpson 3/8 y los últimos $2$ con Simpson 1/3.",
+                r"Si un subintervalo cambia de paso $h$ respecto a sus vecinos, se resuelve automáticamente con Trapecio.",
             ],
             "profundizacion": [
-                r"Cada bloque cúbico de Simpson 3/8 posee error local $-\frac{3h^5}{80} f^{(4)}(\xi)$, manteniendo exactamente el mismo orden global $\mathcal{O}(h^4)$ que Simpson 1/3.",
+                r"**Error analítico de truncamiento:** Cada bloque elemental cúbico de Simpson 3/8 tiene error local $-\frac{3h^5}{80}f^{(4)}(\xi)$ y la regla compuesta sobre $[a, b]$ cumple $E_t = -\frac{(b-a)h^4}{80}f^{(4)}(\xi)$ (**orden $\mathcal{O}(h^4)$, exacto para polinomios hasta grado 3**).",
+                r"**Comparación frente a Simpson 1/3 y Trapecio:** Simpson 1/3 posee $E_t = -\frac{(b-a)h^4}{180}f^{(4)}(\xi)$ ($2.25\times$ menor constante de error a igual $h$), mientras Trapecio tiene $E_t = -\frac{(b-a)h^2}{12}f''(\xi)$ ($\mathcal{O}(h^2)$). Combinar $3/8 + 1/3$ en $n$ impar evita caer al orden $\mathcal{O}(h^2)$ de Trapecio.",
             ],
             "cuando_usar": [
-                "Para cualquier partición uniforme de $n$ impar con al menos $5$ subintervalos o cuando $n$ es múltiplo de $3$.",
+                r"Cuando tenés $n$ múltiplo de $3$ o una cantidad **impar** de subintervalos equidistantes ($n = 5, 7, 11\dots$) y querés preservar orden $\mathcal{O}(h^4)$.",
+                r"En registros discretos con $4$ lecturas uniformes o empalmes $3/8 + 1/3$ sin degradar el tramo impar final.",
             ],
             "cuando_falla": [
-                "Exige espaciamiento $h$ uniforme dentro de cada bloque donde se aplica.",
+                r"Pierde la ventaja $\mathcal{O}(h^4)$ si el paso $h$ cambia frecuentemente entre lecturas consecutivas (obliga a caer a Trapecio $\mathcal{O}(h^2)$).",
+                r"Sobre mallas pares estándar (sin necesidad de bloques de 3), Simpson 1/3 puro tiene constante de error menor ($1/180$ frente a $1/80$).",
             ],
         },
         "formulas_latex": [
-            r"A_{3/8} = \frac{3h}{8}\left[y_0 + 3y_1 + 3y_2 + y_3\right], \qquad A_{\text{comb}} = A_{3/8}(\text{primeros }3) + A_{1/3}(\text{restantes})",
+            r"I_{3/8} = \frac{3h}{8}\left(y_0 + 3y_1 + 3y_2 + y_3\right), \qquad I_{\text{comb }(n=5)} = \frac{3h}{8}(y_0 + 3y_1 + 3y_2 + y_3) + \frac{h}{3}(y_3 + 4y_4 + y_5)",
         ],
         "ejemplo_teorico": {
             "titulo": "Estrategia híbrida cuando $n = 5$",
@@ -1605,35 +1865,46 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Euler Clásico y Euler Modificado (Heun)",
         "familia": "edo",
         "icono": "🧭",
+        "problema_real": {
+            "titulo": r"Gestión Térmica de CPU y Transformadores: $\frac{dT}{dt} = -k(T - T_{\text{amb}})\;[{}^\circ\text{C}]$",
+            "descripcion": (
+                r"Un procesador a $T(0) = 85^\circ\text{C}$ se enfría hacia $T_{\text{amb}} = 25^\circ\text{C}$ según $\frac{dT}{dt} = -0.5(T - 25)$. "
+                r"**Euler** asume que la velocidad inicial de enfriamiento se mantiene constante durante todo el paso $\Delta t = h$, subestimando "
+                r"sistemáticamente la temperatura real. **Heun (Euler Modificado)** predice con Euler, mide la pendiente en el destino y promedia "
+                r"ambas pendientes ($\frac{k_1 + k_2}{2}$), reduciendo drásticamente la deriva con orden $\mathcal{O}(h^2)$."
+            ),
+        },
         "resumen_corto": (
             "Simulan paso a paso la evolución de un sistema $y' = f(x, y)$ desde un estado inicial $(x_0, y_0)$. "
             "**Euler** avanza siguiendo solo la pendiente inicial; **Heun** predice, mide en el destino y promedia."
         ),
         "guru": {
             "que_resuelve": (
-                "Aproxima la trayectoria de una ecuación diferencial ordinaria con valor inicial en física, biología o simulaciones temporales."
+                "Aproxima la trayectoria de una ecuación diferencial ordinaria con valor inicial en física, electrónica o simulaciones temporales."
             ),
             "intuicion_geometrica": (
-                "Euler camina en línea recta durante todo un paso $\\Delta h$ usando la pendiente inicial (como avanzar en un juego por ticks sin mirar si la curva dobló). Heun hace un paso de prueba, mira la pendiente en el destino, promedia ambas y corrige."
+                "Euler avanza en línea recta durante todo el paso $h$ usando solo la pendiente de salida; Heun explora la pendiente en el punto predicho y promedia entrada y salida para acompañar la curvatura."
             ),
             "algoritmo_pasos": [
-                "**Euler:** $y_{i+1} = y_i + \\Delta h \\cdot f(x_i, y_i)$.",
-                "**Predictor de Heun:** estima un valor tentativo $P(y_{i+1})$ usando Euler.",
-                "**Corrector iterado de Heun:** promedia la pendiente inicial y la del punto predicho repetidamente hasta que el cambio sea menor que $E$.",
+                "**Euler:** $y_{k+1} = y_k + h \\cdot f(x_k, y_k)$.",
+                "**Predictor de Heun:** estima un valor tentativo $P_{k+1} = y_k + h\\,f(x_k, y_k)$.",
+                "**Corrector iterado de Heun:** promedia las pendientes inicial y predicha repetidamente hasta que $|C^{(m)} - C^{(m-1)}| < E$.",
             ],
             "profundizacion": [
-                r"Euler equivale a truncar Taylor en primer grado y acumula un error global $\mathcal{O}(h)$. Heun corresponde al método predictor-corrector trapezoidal de segundo orden $\mathcal{O}(h^2)$.",
+                r"**Error local y global:** Euler trunca Taylor en grado $1$ ($\mathcal{O}(h^2)$ local, **$\mathcal{O}(h)$ global**, equivalente a integrar por regla del rectángulo). Heun promedia pendientes como la regla del trapecio, alcanzando **$\mathcal{O}(h^3)$ local y $\mathcal{O}(h^2)$ global**.",
+                r"**Equivalencia integral:** Integrando $y' = f(x, y)$ en $[x_k, x_{k+1}]$ da $y_{k+1} - y_k = \int_{x_k}^{x_{k+1}} f(x, y)\,dx$; Euler aproxima el área con el rectángulo izquierdo y Heun con el trapecio.",
             ],
             "cuando_usar": [
-                "Euler para entender la discretización básica o con pasos $\\Delta h$ diminutos; Heun cuando necesitás orden $\\mathcal{O}(h^2)$ con poco código.",
+                "Euler como línea base didáctica o con pasos $h$ muy pequeños; Heun cuando buscás orden $\\mathcal{O}(h^2)$ con implementación compacta.",
+                "Simulaciones térmicas, descarga RC y sistemas dinámicos no rígidos con pasos $\\Delta t$ moderados.",
             ],
             "cuando_falla": [
-                "Con pasos $\\Delta h$ grandes, Euler se desvía rápidamente de la curva real.",
-                "**Inestabilidad en dinámicas con escalas muy rápidas (Ecuaciones rígidas):** si una componente decae muy rápido frente al paso $\\Delta h$, los métodos explícitos oscilan y explotan.",
+                r"Con pasos $h$ grandes, Euler acumula deriva sistemática ($\mathcal{O}(h)$) y se despega rápidamente de la curva real.",
+                r"En dinámicas rígidas (constantes de tiempo muy rápidas respecto a $h$), ambos métodos explícitos pueden oscilar o volverse inestables si $h$ supera el límite de estabilidad.",
             ],
         },
         "formulas_latex": [
-            r"y_{i+1} = y_i + h\,f(x_i, y_i) \;\; (\text{Euler}), \qquad C^{(m)}(y_{i+1}) = y_i + \frac{h}{2}\left[f(x_i,y_i) + f\!\left(x_{i+1}, C^{(m-1)}\right)\right] \;\; (\text{Heun})",
+            r"y_{k+1}^{\text{Euler}} = y_k + h\,f(x_k, y_k), \qquad P_{k+1} = y_k + h\,f(x_k, y_k), \qquad C_{k+1}^{(m)} = y_k + \frac{h}{2}\left[f(x_k, y_k) + f\!\left(x_{k+1}, C_{k+1}^{(m-1)}\right)\right]",
         ],
         "ejemplo_teorico": {
             "titulo": "Simulación discreta por ticks (Caída con fricción)",
@@ -1663,49 +1934,59 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Métodos de Runge-Kutta ($RK2$ y $RK4$ Clásico)",
         "familia": "edo",
         "icono": "🚀",
+        "problema_real": {
+            "titulo": r"Escalado Logístico de Tráfico en Servidor Cloud: $\frac{dU}{dt} = 1.2\,U\!\left(1 - \frac{U}{100}\right)\;[\text{miles de usuarios}]$",
+            "descripcion": (
+                r"Un clúster web arranca con $U(0) = 5$ mil usuarios concurrentes y escala hacia una capacidad máxima $K = 100$ mil según "
+                r"$\frac{dU}{dt} = 1.2\,U(1 - U/100)$. Al atravesar la zona de máxima aceleración ($U = 50$), pasos amplios como $\Delta t = 1\;\text{h}$ "
+                r"desvían a **RK2** ($\mathcal{O}(h^2)$); **RK4 Clásico** sondea cuatro pendientes dentro de cada intervalo y sigue la curva logística con orden $\mathcal{O}(h^4)$."
+            ),
+        },
         "resumen_corto": (
-            "El estándar industrial para simular sistemas dinámicos: sondea **cuatro pendientes exploratorias** "
-            "dentro de cada paso $\\Delta h$ y calcula un promedio ponderado con precisión de cuarto orden $\\mathcal{O}(h^4)$."
+            "El estándar industrial para simular sistemas dinámicos $y' = f(x, y)$ sin calcular derivadas analíticas. "
+            "**RK4** sondea cuatro pendientes en cada paso $h$ y las promedia con precisión $\\mathcal{O}(h^4)$."
         ),
         "guru": {
             "que_resuelve": (
-                "Resuelve EDOs no rígidas con altísima precisión desde el primer paso sin requerir derivadas analíticas extra."
+                "Resuelve EDOs de primer orden con altísima precisión desde el primer paso sin requerir derivadas superiores de f(x, y)."
             ),
             "intuicion_geometrica": (
-                "En lugar de mirar solo el inicio del intervalo, $RK4$ evalúa una pendiente en el arranque ($k_1$), dos en la mitad del tramo ($k_2, k_3$) y una al final ($k_4$), dándole peso doble a las pendientes centrales."
+                "En lugar de mirar solo inicio y fin como RK2 (orden 2), RK4 mide la pendiente al comienzo (k₁), dos veces en el punto medio (k₂, k₃) y una vez al final (k₄), dando doble peso a las sondas centrales."
             ),
             "algoritmo_pasos": [
-                "Calculás $k_1$ al comienzo, $k_2$ en $x_i + h/2$ usando $k_1$, $k_3$ en el punto medio usando $k_2$ y $k_4$ en $x_i + h$ usando $k_3$.",
-                "Combinás las cuatro sondas con pesos $(1 + 2 + 2 + 1)/6$, equivalente directo a Simpson 1/3.",
-                "No depende de pasos anteriores: arranca desde $i = 0$ en un solo bucle `for`.",
+                "Calculás $k_1$ en $(x_i, y_i)$ y dos sondas centrales $k_2, k_3$ en $x_i + h/2$ usando la pendiente anterior para corregir el punto medio.",
+                "Evaluás $k_4$ al final del intervalo en $x_i + h$ proyectando con $k_3$.",
+                "Promediás con pesos $(1 + 2 + 2 + 1)/6$ (idénticos a Simpson 1/3) para avanzar a $y_{i+1}$.",
             ],
             "profundizacion": [
-                r"Cuando $f(x, y)$ depende únicamente de $x$, $k_2 = k_3 = h f(x_i + h/2)$ y la fórmula de $RK4$ se colapsa algebraicamente en la Regla de Simpson 1/3. Su error local por paso es $\mathcal{O}(h^5)$ y el acumulado global $\mathcal{O}(h^4)$.",
+                r"**Orden de error y equivalencia integral:** $RK2$ alcanza error local $\mathcal{O}(h^3)$ y global $\mathcal{O}(h^2)$; $RK4$ logra **$\mathcal{O}(h^5)$ local y $\mathcal{O}(h^4)$ global**. Si $f(x, y)$ depende solo de $x$, $k_2 = k_3$ y $RK4$ se reduce exactamente a la Regla de Simpson 1/3.",
+                r"**Costo vs precisión:** $RK4$ requiere $4$ evaluaciones de $f(x, y)$ por paso (frente a $2$ en $RK2$), compensado con creces al permitir pasos $\Delta h$ mucho mayores sin perder exactitud.",
             ],
             "cuando_usar": [
-                "Como algoritmo principal por defecto para casi cualquier ecuación diferencial.",
-                "Para generar los primeros $4$ puntos de arranque exigidos por métodos multipaso como Milne.",
+                "Como algoritmo estándar por defecto en simulación física, electrónica y tráfico dinámico.",
+                "Para generar los primeros 4 puntos de arranque requeridos por métodos multipaso como Milne.",
             ],
             "cuando_falla": [
-                "Ejecuta $4$ llamadas a la función `f(x, y)` por cada paso, siendo más costoso por iteración que un método multipaso si `f` es muy pesada.",
+                "En ecuaciones rígidas (constantes de tiempo muy dispares) o pasos h excesivos, el método explícito pierde estabilidad.",
+                "Si evaluar f(x, y) es muy costoso computacionalmente en mallas muy largas, 4 llamadas por paso pesan más que un predictor-corrector.",
             ],
         },
         "formulas_latex": [
-            r"k_1 = h f(x_i, y_i), \;\; k_2 = h f\!\left(x_i+\frac{h}{2}, y_i+\frac{k_1}{2}\right), \;\; k_3 = h f\!\left(x_i+\frac{h}{2}, y_i+\frac{k_2}{2}\right), \;\; k_4 = h f(x_i+h, y_i+k_3)",
-            r"y_{i+1} = y_i + \frac{1}{6}(k_1 + 2k_2 + 2k_3 + k_4)",
+            r"\text{RK2:}\;\; k_1 = h f(x_i, y_i),\quad k_2 = h f(x_i + h,\, y_i + k_1),\quad y_{i+1} = y_i + \frac{1}{2}(k_1 + k_2)",
+            r"\text{RK4:}\;\; k_1 = h f(x_i, y_i),\;\; k_2 = h f\!\left(x_i+\frac{h}{2}, y_i+\frac{k_1}{2}\right),\;\; k_3 = h f\!\left(x_i+\frac{h}{2}, y_i+\frac{k_2}{2}\right),\;\; k_4 = h f(x_i+h, y_i+k_3),\;\; y_{i+1} = y_i + \frac{1}{6}(k_1 + 2k_2 + 2k_3 + k_4)",
         ],
         "ejemplo_teorico": {
             "titulo": "Equivalencia entre $RK4$ y Simpson 1/3",
             "enunciado": "Cuando $f(x, y)$ no depende de $y$, la suma ponderada $(1, 2, 2, 1)/6$ reproduce exactamente la integración parabólica de Simpson.",
             "pasos": [
-                "$k_2$ y $k_3$ muestrean el punto medio $x_i + \\frac{h}{2}$ sumando peso central $4/6$.",
+                r"$k_2$ y $k_3$ muestrean el punto medio $x_i + \frac{h}{2}$ sumando peso central $4/6$.",
                 "Los extremos reciben $1/6$ cada uno.",
             ],
-            "resultado_final": "Error local $\\mathcal{O}(h^5)$ y error acumulado global $\\mathcal{O}(h^4)$.",
+            "resultado_final": r"Error local $\mathcal{O}(h^5)$ y error acumulado global $\mathcal{O}(h^4)$.",
         },
         "practica_profesora": {
-            "titulo": "TP7 Ej. 2: $RK2$ y $RK4$ en $y' = \\frac{6x^2}{y}$, $y(4) = 16$ en $[4.0, 4.3]$ ($\\Delta h = 0.1$)",
-            "enunciado": "Calcular $y(4.1)$, $y(4.2)$ e $y(4.3)$ usando $RK2$ y $RK4$ para el problema $y' = \\frac{6x^2}{y}$, $y(4) = 16$.",
+            "titulo": r"TP7 Ej. 2: $RK2$ y $RK4$ en $y' = \frac{6x^2}{y}$, $y(4) = 16$ en $[4.0, 4.3]$ ($\Delta h = 0.1$)",
+            "enunciado": r"Calcular $y(4.1)$, $y(4.2)$ e $y(4.3)$ usando $RK2$ y $RK4$ para el problema $y' = \frac{6x^2}{y}$, $y(4) = 16$ (exacta $y(x) = 2x\sqrt{x}$).",
             "datos_iniciales": {
                 "f_str": "6*x**2 / y",
                 "x0": 4.0,
@@ -1714,38 +1995,48 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "h": 0.1,
                 "y_exacta_str": "2*x*sqrt(x)",
             },
-            "solucion_referencia": "Exacta $y(4.3) = 17.83333956$. $RK2$: $17.83352$. $RK4$: $17.83333$ (coincide a $5$ decimales).",
+            "solucion_referencia": r"Exacta $y(4.3) = 17.83333956$. $RK2$: $17.833509$ (err $1.69 \times 10^{-4}$). $RK4$: $17.83333957$ (err $\approx 10^{-8}$).",
         },
     },
     "milne": {
         "nombre": "Método Multipaso Predictor-Corrector de Milne",
         "familia": "edo",
         "icono": "🔮",
+        "problema_real": {
+            "titulo": r"Simulación Larga de Descarga en Filtro RC: $\frac{dV}{dt} = -0.8\,(V - 1)\;[\text{V}]$",
+            "descripcion": (
+                r"Un capacitor con tensión inicial $V(0) = 10\;\text{V}$ se descarga hacia $1\;\text{V}$ durante $10\;\text{s}$ en $40$ pasos ($\Delta t = 0.25\;\text{s}$). "
+                r"En simulaciones largas donde evaluar `f(t, V)` resulta costoso, **Milne** aprovecha la historia de los últimos $4$ nodos ($k = 0 \dots 3$ "
+                r"arrancados con $RK4$) para mantener orden $\mathcal{O}(h^4)$ haciendo menos evaluaciones de $f$ que $RK4$ y estimando el error en vivo con $|C - P|/29$."
+            ),
+        },
         "resumen_corto": (
-            "En vez de evaluar $4$ veces la función por paso como $RK4$, reutiliza el historial guardado en caché "
-            "de los $4$ puntos anteriores para proyectar el siguiente valor y corregirlo en $2$ evaluaciones."
+            "Reutiliza el historial de los últimos $4$ pasos para avanzar con precisión $\\mathcal{O}(h^4)$ haciendo menos llamadas "
+            "a $f(x, y)$ que $RK4$, combinando una proyección abierta ($P$) con un corrector cerrado ($C$) tipo Simpson."
         ),
         "guru": {
             "que_resuelve": (
-                "Acelera simulaciones largas con precisión $\\mathcal{O}(h^4)$ cuando evaluar `f(x, y)` resulta costoso."
+                "Acelera simulaciones extensas (n ≥ 4) manteniendo orden O(h⁴) y brindando un estimador del error local en cada paso."
             ),
             "intuicion_geometrica": (
-                "Usa una ventana deslizante con los últimos $4$ pasos para extrapolar un valor futuro (Predictor) y luego lo refina integrando sobre los últimos $3$ puntos con Simpson (Corrector)."
+                "Usa una ventana deslizante de 4 puntos históricos para extrapolar el siguiente valor (Predictor P) y luego lo refina integrando sobre los últimos 3 nodos con Simpson 1/3 (Corrector C)."
             ),
             "algoritmo_pasos": [
                 "Fase de arranque: calcula los primeros $4$ nodos ($y_0, y_1, y_2, y_3$) mediante $RK4$.",
-                "Fase Predictor: proyecta $P(y_{i+1})$ usando las pendientes pasadas $y'_{i-2}, y'_{i-1}, y'_i$.",
-                "Fase Corrector: evalúa la pendiente predicha y corrige $C(y_{i+1})$ dos veces según esquema de cátedra.",
+                "Fase Predictor: proyecta $P(y_{i+1})$ usando las pendientes guardadas $y'_{i-2}, y'_{i-1}, y'_i$.",
+                "Fase Corrector: evalúa $f(x_{i+1}, P)$ y corrige con Simpson ($1$ pasada P-C = $2$ evals/paso, o $2$ pasadas $C, C^1$ = $3$ evals/paso).",
             ],
             "profundizacion": [
-                r"Además de ahorrar evaluaciones de $f$ frente a $RK4$, comparar la diferencia $|P(y_{i+1}) - C(y_{i+1})|$ provee una estimación gratuita del error local en tiempo real para ajustar el paso $\Delta h$.",
+                r"**Error local y estimación gratuita $|C - P|/29$:** El Predictor abierto tiene error principal $+\frac{14}{45}h^5 y^{(5)}$ y el Corrector simpsoniano $-\frac{1}{90}h^5 y^{(5)}$, por lo que ambos son $\mathcal{O}(h^4)$ global y su diferencia entrega $|y_{\text{exacto}} - C| \approx \frac{1}{29}|C - P|$.",
+                r"**Economía frente a $RK4$ y estabilidad débil:** Frente a las $4$ llamadas de $RK4$ por paso, Milne usa $2$ (con $1$ corrección) o $3$ (con doble corrección $C^1$). Sin embargo, en decaimiento exponencial $y' = -\lambda y$, su raíz parásita puede crecer si $h\lambda$ es grande.",
             ],
             "cuando_usar": [
-                "En simulaciones largas donde tenés al menos $4$ subintervalos ($n \\ge 4$) y evaluar `f(x, y)` consume mucho CPU.",
+                "En mallas largas (n ≥ 4) donde evaluar f(x, y) es costoso y el paso h es moderado/pequeño.",
+                "Cuando necesitás monitorear en vivo el error de truncamiento local mediante |C - P|/29.",
             ],
             "cuando_falla": [
-                "**No puede arrancar solo:** si el paso $\\Delta h$ es muy grande y produce menos de $4$ intervalos en el rango, el método falla antes de empezar.",
-                "En ecuaciones con decaimiento exponencial fuerte ($y' = -\\lambda y$) puede desarrollar oscilaciones parásitas crecientes si $\\Delta h$ no es lo bastante chico.",
+                "No es autoiniciable: requiere obligatoriamente al menos 4 subintervalos (n ≥ 4) en [x₀, xf].",
+                "En ecuaciones con decaimiento exponencial fuerte (y' = -λy), pasos h grandes disparan oscilaciones parásitas crecientes.",
             ],
         },
         "formulas_latex": [
@@ -1754,16 +2045,16 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         ],
         "ejemplo_teorico": {
             "titulo": "Esquema de Doble Corrección con arranque $RK4$",
-            "enunciado": "Generar $(y_0, y_1, y_2, y_3)$ mediante $RK4$, proyectar $P(y_4)$ y ejecutar dos correcciones $C$ y $C^1$.",
+            "enunciado": "Generar $(y_0, y_1, y_2, y_3)$ mediante $RK4$, proyectar $P(y_4)$ y ejecutar las correcciones $C$ y $C^1$.",
             "pasos": [
                 "Verificar que la partición cubra al menos $4$ pasos en $[x_0, x_f]$.",
                 "Aplicar el predictor con $(2y'_i - y'_{i-1} + 2y'_{i-2})$ y refinar iterando el corrector simpsoniano.",
             ],
-            "resultado_final": "Alcanza exactitud de orden $\\mathcal{O}(h^4)$ con la mitad de llamadas a `f(x, y)` por paso.",
+            "resultado_final": r"Alcanza exactitud $\mathcal{O}(h^4)$ y estima el error local sin costo extra con $|C - P|/29$.",
         },
         "practica_profesora": {
-            "titulo": "TP7 Ej. 3: Milne en $y' = \\frac{6x^2}{y}$, $y(4) = 16$ en $[4.0, 4.4]$ ($\\Delta h = 0.1$)",
-            "enunciado": "Arrancando $y(4.0 \\dots 4.3)$ con $RK4$, calcular $y(4.4)$ por Milne con doble corrección frente al valor exacto $18.459036$.",
+            "titulo": r"TP7 Ej. 3: Milne en $y' = \frac{6x^2}{y}$, $y(4) = 16$ en $[4.0, 4.4]$ ($\Delta h = 0.1$)",
+            "enunciado": r"Arrancando $y(4.0 \dots 4.3)$ con $RK4$, calcular $y(4.4)$ por Milne con doble corrección frente al valor exacto $18.459036$.",
             "datos_iniciales": {
                 "f_str": "6*x**2 / y",
                 "x0": 4.0,
@@ -1772,7 +2063,7 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "h": 0.1,
                 "y_exacta_str": "2*x*sqrt(x)",
             },
-            "solucion_referencia": "$P(y_4) = 18.45903 \\to C(y_4) = 18.45902 \\to C^1(y_4) = 18.45902$ (exacta: $18.45903573$).",
+            "solucion_referencia": r"$P(y_4) = 18.4590358 \to C(y_4) = C^1(y_4) = 18.4590357$ (exacta: $18.45903573$).",
         },
     },
 }
@@ -2220,10 +2511,10 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
             r"**Deducción del resto y criterio de corte (Scarborough):** Por el Teorema del Resto de Lagrange, el error al truncar en $n$ términos es $R_n(x) = \frac{f^{(n+1)}(\xi)}{(n+1)!}(x-x_0)^{n+1}$. En la práctica no conocemos el valor exacto, por lo que garantizamos $m$ cifras significativas exigiendo que la corrección relativa entre pasos cumpla $E_{rp} = \left|\frac{S_k - S_{k-1}}{S_k}\right| \times 100\% < E_s = 0.5 \times 10^{2-m}\%$.",
         ],
         "practica_pasos_deduccion": [
-            r"**Definir función e hipótesis de trabajo:** En $e^x$ con $x = 1$ y $N = 8$ términos de truncamiento ($k = 0 \dots 7$), cada término vale $T_k = \frac{1^k}{k!}$ y el acumulador inicia en $S_0 = 1$.",
+            r"**Definir función e hipótesis de trabajo:** En $e^x$ con $x = 1$ hasta orden $N = 8$ ($k = 0 \dots 8$), cada término vale $T_k = \frac{1^k}{k!}$ y el acumulador inicia en $S_0 = 1$.",
             r"**Acumulación iterativa término a término:** Calculamos $T_1 = 1$, $T_2 = \frac{1}{2} = 0.5$, $T_3 = \frac{1}{6} \approx 0.166667$, $T_4 = \frac{1}{24} \approx 0.041667$, $T_5 = \frac{1}{120}$, $T_6 = \frac{1}{720}$, $T_7 = \frac{1}{5040}$ y $T_8 = \frac{1}{40320}$.",
-            r"**Verificación de parada por Scarborough ($n = 3$ cifras):** Calculamos $E_s = 0.5 \times 10^{2-3}\% = 0.05\%$. Hasta $k = 5$ ($E_{rp} \approx 0.306\%$) el bucle continúa; al incluir $k = 6$ se verifica $E_{rp} \approx 0.051\%$, y en $k = 7$ cae a $0.0073\% < 0.05\%$, asegurando ya $3$ cifras exactas.",
-            r"**Evaluación final para $e^1$ y serie alternante de $\pi$:** Con $N = 8$ términos alcanzamos $S_8 \approx 2.71827877$ ($E_a = 3.0586 \times 10^{-6}$ frente a $e = 2.71828183$). Para $\pi = 4\sum \frac{(-1)^k}{2k+1}$, acotando por el primer término omitido $\frac{4}{2N+1} < 0.0005$ se deduce $2N + 1 > 8000$, es decir $N \ge 2000$ iteraciones.",
+            r"**Verificación de parada por Scarborough ($n = 3$ cifras):** Calculamos $E_s = 0.5 \times 10^{2-3}\% = 0.05\%$. Hasta $k = 5$ ($E_{rp} \approx 0.3067\%$) y $k = 6$ ($E_{rp} \approx 0.0511\%$) el bucle continúa; en $k = 7$ cae a $0.0073\% < 0.05\%$, asegurando $3$ cifras exactas.",
+            r"**Evaluación final para $e^1$ y serie alternante de $\pi$:** En $k = 8$ alcanzamos $S_8 \approx 2.71827877$ ($E_a = 3.0586 \times 10^{-6}$ frente a $e = 2.71828183$, dentro del resto de Lagrange $7.49 \times 10^{-6}$). Para $\pi = 4\sum \frac{(-1)^k}{2k+1}$ con $N = 2000$ términos logramos $\pi_{2000} \approx 3.1410927$ ($E_a \approx 5.00 \times 10^{-4}$).",
         ],
     },
     "aritmetica_maquina": {
@@ -2315,9 +2606,9 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
         ],
         "practica_pasos_deduccion": [
             r"**Verificación inicial en $[-2.5, -2.0]$ para $f(x) = 2x^4 - 6x^2 + 7x - 2$:** Evaluamos los extremos: $f(-2.5) = 2(39.0625) - 6(6.25) - 17.5 - 2 = +21.125 > 0$ y $f(-2.0) = 32 - 24 - 14 - 2 = -8.0 < 0$ (cumple Bolzano). Además $f''(x) = 24x^2 - 12 > 0$ en todo $[-2.5, -2.0]$, por lo que el pivote fijo es $x_0 = -2.5$ ($f(x_0)f''(x_0) > 0$).",
-            r"**Primera iteración ($x_2$):** Aplicamos $x_2 = \frac{x_0 f(x_1) - x_1 f(x_0)}{f(x_1) - f(x_0)} = \frac{(-2.5)(-8.0) - (-2.0)(21.125)}{-8.0 - 21.125} = \frac{62.25}{-29.125} \approx -2.137339$, con $f(x_2) \approx -2.2389 < 0$.",
-            r"**Avance de cuerdas hacia la raíz:** Manteniendo $x_0 = -2.5$, iteración 2 da $x_3 = \frac{(-2.5)(-2.2389) - (-2.137339)(21.125)}{-2.2389 - 21.125} \approx -2.172074$, luego $x_4 \approx -2.185231$, $x_5 \approx -2.190025$.",
-            r"**Parada por tolerancia $E < 0.001$:** En el paso $6$ obtenemos $x_6 = -2.191747$ (de hecho $|x_6 - x_5| \approx 0.0017$ y al paso siguiente $|x_7 - x_6| < 0.001$, logrando convergencia a $-2.1926$). Nótese cómo el pivote fijo retrasa ligeramente el avance frente a Newton.",
+            r"**Primera iteración ($x_2$):** Aplicamos $x_2 = \frac{x_0 f(x_1) - x_1 f(x_0)}{f(x_1) - f(x_0)} = \frac{(-2.5)(-8.0) - (-2.0)(21.125)}{-8.0 - 21.125} = \frac{62.25}{-29.125} \approx -2.137339$, con $f(x_2) \approx -2.633447 < 0$.",
+            r"**Avance de cuerdas hacia la raíz:** Manteniendo $x_0 = -2.5$, la iteración $2$ da $x_3 = \frac{(-2.5)(-2.633447) - (-2.137339)(21.125)}{-2.633447 - 21.125} \approx -2.177537$ ($|\Delta x| \approx 0.0402$); luego $x_4 \approx -2.188250$ ($|\Delta x| \approx 0.0107$) y $x_5 \approx -2.191030$ ($|\Delta x| \approx 0.00278$).",
+            r"**Parada por tolerancia $E < 0.001$:** En el paso $5$ obtenemos $x_6 \approx -2.191747$, con $|x_6 - x_5| \approx 7.17 \times 10^{-4} < 0.001$ y $f(x_6) \approx -0.01264$ (la raíz exacta cercana es $-2.191997$). Nótese cómo mantener el pivote fijo genera convergencia lineal más lenta que Newton-Raphson.",
         ],
     },
     "newton_raphson": {
@@ -2330,7 +2621,7 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
         "practica_pasos_deduccion": [
             r"**Cálculo simbólico de derivadas para $f(x) = x^3 - 2x - 5$:** Derivando término a término obtenemos $f'(x) = 3x^2 - 2$ y $f''(x) = 6x$. En $[2, 2.5]$ se cumple $f(2) = -1 < 0$, $f(2.5) = 5.625 > 0$ (Bolzano), $f'(x) \ge 10 > 0$ y $f''(x) \ge 12 > 0$.",
             r"**Verificación de Fourier para elegir $x_0$:** Probamos $x = 2$: $f(2)\cdot f''(2) = (-1)(12) = -12 < 0$ (NO cumple). Probamos $x = 2.5$: $f(2.5)\cdot f''(2.5) = (5.625)(15) = +84.375 > 0$ (SÍ cumple), por lo tanto elegimos $x_0 = 2.5$.",
-            r"**Sustitución paso a paso en la fórmula de tangentes:** $x_1 = 2.5 - \frac{5.625}{3(2.5)^2 - 2} = 2.5 - \frac{5.625}{16.75} \approx 2.164179$; luego $x_2 = 2.164179 - \frac{0.807789}{12.05101} \approx 2.097135$; luego $x_3 \approx 2.094555$.",
+            r"**Sustitución paso a paso en la fórmula de tangentes:** $x_1 = 2.5 - \frac{5.625}{3(2.5)^2 - 2} = 2.5 - \frac{5.625}{16.75} \approx 2.164179$; luego $x_2 = 2.164179 - \frac{0.807945}{12.05101} \approx 2.097135$; luego $x_3 \approx 2.094555$.",
             r"**Cierre con tolerancia $E < 0.0001$:** En $k = 4$, $x_4 = 2.09455148$, con $|x_4 - x_3| \approx 3.8 \times 10^{-6} < 10^{-4}$ (y en $k=5$ alcanza precisión de máquina $2.0945514815$).",
         ],
     },
@@ -2351,7 +2642,7 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
             r"**Verificación de contractividad para $g(x) = \ln(x^2 + 5)$ en $x_0 = 2.5$:** Derivando obtenemos $g'(x) = \frac{2x}{x^2 + 5}$. Evaluado en $x_0 = 2.5$: $|g'(2.5)| = \frac{5}{6.25 + 5} = \frac{5}{11.25} \approx 0.4444 < 1$, por lo que el esquema es contractivo y convergente.",
             r"**Comparación inicial por Punto Fijo simple:** $x_1 = \ln(2.5^2 + 5) = \ln(11.25) \approx 2.420368$, $x_2 = \ln(2.420368^2 + 5) \approx 2.384919$; al avanzar a paso lineal necesita $10$ iteraciones para bajar de $E = 0.0001$ (llegando a $2.3563986$).",
             r"**Cálculo del primer salto de Aitken con $(x_0, x_1, x_2)$:** $\Delta x_0 = 2.420368 - 2.5 = -0.079632$, $\Delta x_1 = 2.384919 - 2.420368 = -0.035449$, y $\Delta^2 x_0 = x_2 - 2x_1 + x_0 = 0.044183$. Sustituyendo: $S_1 = 2.384919 - \frac{(-0.035449)^2}{0.044183} \approx 2.356476$.",
-            r"**Cierre acelerado en pocos ciclos:** Desde $2.356476$ se recalculan dos pasos simples y en el ciclo $4$ Aitken converge a $2.356408$ con error inferior a $10^{-4}$, ahorrando más de la mitad de iteraciones.",
+            r"**Cierre acelerado en 1 ciclo (4 evaluaciones):** Verificando $x_{\text{post}} = g(S_1) = \ln(2.356477^2 + 5) \approx 2.356409$, resulta $|g(S_1) - S_1| \approx 6.82 \times 10^{-5} < 10^{-4}$, cerrando en apenas $1$ ciclo de aceleración frente a $10$ iteraciones simples.",
         ],
     },
     "eliminacion_gauss": {
@@ -2370,8 +2661,8 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
         "practica_pasos_deduccion": [
             r"**Matriz aumentada inicial $[A \mid b]$:** Partimos con las ecuaciones de cátedra: Fila 1 $[18.72,\, 8.2,\, 8.76 \mid 121.280]$, Fila 2 $[6.4,\, 15.9,\, 7.18 \mid 126.321]$ y Fila 3 $[5.22,\, 6.4,\, 14.31 \mid 118.522]$. Como $|18.72|$ es el mayor de la columna 1, no hace falta permutar.",
             r"**Eliminación columna 1:** Multiplicadores $m_{21} = \frac{6.4}{18.72} \approx 0.341880$ y $m_{31} = \frac{5.22}{18.72} \approx 0.278846$. Restando a $F_2$ y $F_3$ obtenemos en $F_2'$ $[0,\, 13.09658,\, 4.18513 \mid 84.85778]$ y en $F_3'$ $[0,\, 4.11346,\, 11.86731 \mid 84.70354]$.",
-            r"**Eliminación columna 2:** El pivote es $13.09658$ y $m_{32} = \frac{4.11346}{13.09658} \approx 0.314087$. Actualizando $F_3$ resulta la ecuación escalonada final $10.55282\,z = 58.05490$.",
-            r"**Sustitución regresiva de abajo hacia arriba:** 1) $z = \frac{58.05490}{10.55282} \approx 5.50136$; 2) $y = \frac{84.85778 - 4.18513(5.50136)}{13.09658} \approx 4.72137$; 3) $x = \frac{121.280 - 8.2(4.72137) - 8.76(5.50136)}{18.72} \approx 1.83584$.",
+            r"**Eliminación columna 2:** El pivote es $13.09658$ y $m_{32} = \frac{4.11346}{13.09658} \approx 0.314087$. Actualizando $F_3$ resulta la ecuación escalonada final $10.55282\,z = 58.05079$.",
+            r"**Sustitución regresiva de abajo hacia arriba:** 1) $z = \frac{58.05079}{10.55282} \approx 5.50098$; 2) $y = \frac{84.85778 - 4.18513(5.50098)}{13.09658} \approx 4.72149$; 3) $x = \frac{121.280 - 8.2(4.72149) - 8.76(5.50098)}{18.72} \approx 1.83628$.",
         ],
     },
     "gauss_jordan": {
@@ -2610,10 +2901,10 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
     },
     "trapecio": {
         "deduccion_teorica": [
-            r"**Aproximación lineal en cada subintervalo $[x_i, x_{i+1}]$:** Reemplazando $f(x)$ por la recta secante $P_1(x) = y_i + \frac{y_{i+1}-y_i}{h}(x - x_i)$ e integrando en $[x_i, x_{i+1}]$ de longitud $h$: $\int_{x_i}^{x_{i+1}} P_1(x)\,dx = \frac{h}{2}(y_i + y_{i+1})$ (fórmula geométrica del área de un trapecio).",
-            r"**Regla compuesta sumando $n$ trapecios adyacentes:** $A \approx \sum_{i=0}^{n-1} \frac{h}{2}(y_i + y_{i+1}) = \frac{h}{2}\left[(y_0 + y_1) + (y_1 + y_2) + \dots + (y_{n-1} + y_n)\right]$.",
-            r"**Agrupación en notación de cátedra ($E, P, I$):** Cada nodo interior aparece dos veces (como techo derecho de un trapecio y techo izquierdo del siguiente), mientras los extremos aparecen una vez: $A = \frac{h}{2}[E + 2P + 2I]$, donde $E = y_0 + y_n$, $P = \sum y_{\text{pares int.}}$ e $I = \sum y_{\text{impares int.}}$.",
-            r"**Deducción de la cota del error global $\mathcal{O}(h^2)$:** Integrando el error lineal $-\frac{1}{2}f''(\xi)(x-x_i)(x_{i+1}-x)$ sobre cada subintervalo da error local $-\frac{h^3}{12}f''(\xi_i)$. Sumando $n = \frac{b-a}{h}$ tramos se obtiene $E_{\text{global}} = -\frac{(b-a)h^2}{12}f''(\bar{\xi}) \implies |E_a| \le \frac{(b-a)^3}{12n^2}\max|f''(x)|$.",
+            r"**Aproximación lineal en cada subintervalo $[x_i, x_{i+1}]$:** Reemplazando $f(x)$ por la recta secante $P_1(x) = y_i + \frac{y_{i+1}-y_i}{h_i}(x - x_i)$ e integrando en $[x_i, x_{i+1}]$ de longitud $h_i$: $\int_{x_i}^{x_{i+1}} P_1(x)\,dx = \frac{h_i}{2}(y_i + y_{i+1})$.",
+            r"**Regla general de paso variable y caso uniforme:** Sumando los $n$ tramos se obtiene $I_{\text{var}} \approx \sum_{i=0}^{n-1} \frac{h_i}{2}(y_i + y_{i+1})$. Cuando $h_i = h$ constante, cada nodo interior aparece dos veces (borde compartido entre dos trapecios) y resulta $I_{\text{unif}} = \frac{h}{2}[E + 2P + 2I]$.",
+            r"**Deducción del error analítico de truncamiento ($\mathcal{O}(h^2)$):** Integrando el resto de interpolación lineal $-\frac{1}{2}f''(\xi)(x-x_i)(x_{i+1}-x)$ sobre $[x_i, x_{i+1}]$ da error local $-\frac{h^3}{12}f''(\xi_i)$. Sumando $n = \frac{b-a}{h}$ subintervalos resulta $E_t = -\frac{(b-a)h^2}{12}f''(\xi) = -\frac{(b-a)^3}{12n^2}f''(\xi)$.",
+            r"**Contraste de convergencia frente a Simpson 1/3 y 3/8:** Mientras Trapecio es exacto solo hasta grado $1$ ($\mathcal{O}(h^2)$), Simpson 1/3 ($E_t = -\frac{(b-a)h^4}{180}f^{(4)}(\xi)$) y Simpson 3/8 ($E_t = -\frac{(b-a)h^4}{80}f^{(4)}(\xi)$) alcanzan orden $\mathcal{O}(h^4)$ sobre mallas equidistantes.",
         ],
         "ejemplo_teorico_pasos": [
             r"**Evaluación en los $n + 1 = 3$ nodos ($h = 0.4$):** $f(0) = 0.2$, $f(0.4) = 2.456$ y $f(0.8) = 0.232$.",
@@ -2630,16 +2921,16 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
     },
     "simpson_1_3": {
         "deduccion_teorica": [
-            r"**Polinomio cuadrático sobre $3$ puntos equidistantes $[-h, 0, h]$:** Tomamos $P_2(x) = y_1 + \frac{y_2 - y_0}{2h}x + \frac{y_0 - 2y_1 + y_2}{2h^2}x^2$ (trasladando el origen al nodo medio $x_1 = 0$) para aprovechar la simetría de potencias impares.",
-            r"**Integración simétrica exacta:** $\int_{-h}^{h} P_2(x)\,dx = \left[y_1 x + 0 + \frac{y_0 - 2y_1 + y_2}{6h^2}x^3\right]_{-h}^{h} = 2h y_1 + \frac{h}{3}(y_0 - 2y_1 + y_2) = \frac{h}{3}(y_0 + 4y_1 + y_2)$.",
-            r"**Extensión compuesta ($n$ par) en notación $E, I, P$:** Encadenando $n/2$ parejas parabólicas, los extremos ($y_0, y_n$) aparecen $1$ vez, los nodos centrales impares ($y_1, y_3, \dots$) tienen peso $4$, y los nodos pares compartidos ($y_2, y_4, \dots$) suman $1+1 = 2$: $A = \frac{h}{3}[E + 4I + 2P]$.",
-            r"**Por qué alcanza orden cuarto $\mathcal{O}(h^4)$:** Al integrar un término cúbico $x^3$ sobre el intervalo simétrico $[-h, h]$ su integral se anula idénticamente! Por ello el primer término de resto no nulo proviene de $f^{(4)}$, dando error local $-\frac{h^5}{90}f^{(4)}(\xi)$ y cota global $|E_a| \le \frac{(b-a)^5}{180\,n^4}\max|f^{(4)}|$ (exacta para cualquier polinomio hasta grado $3$).",
+            r"**Polinomio interpolador de grado $2$ (Lagrange en $[-h, 0, h]$):** Trasladando el origen al nodo central ($x_0=-h,\, x_1=0,\, x_2=h$), el polinomio cuadrático único es $P_2(x) = y_0 \frac{x(x-h)}{2h^2} - y_1 \frac{(x+h)(x-h)}{h^2} + y_2 \frac{x(x+h)}{2h^2} = y_1 + \frac{y_2 - y_0}{2h}x + \frac{y_0 - 2y_1 + y_2}{2h^2}x^2$.",
+            r"**Integración simétrica exacta sobre $[-h, h]$:** Como $\int_{-h}^{h} x\,dx = 0$, resulta $\int_{-h}^{h} P_2(x)\,dx = \left[y_1 x + \frac{y_0 - 2y_1 + y_2}{6h^2}x^3\right]_{-h}^{h} = 2h y_1 + \frac{h}{3}(y_0 - 2y_1 + y_2) = \frac{h}{3}(y_0 + 4y_1 + y_2)$.",
+            r"**Extensión compuesta ($n$ par) y notación unificada:** Sumando $n/2$ parejas parabólicas contiguas de igual paso $h$, los extremos ($y_0, y_n$) ponderan $1$, los impares internos ponderan $4$ y los pares compartidos ($y_2, y_4, \dots$) suman $1+1=2$: $I \approx \frac{h}{3}\left(y_0 + 4\sum_{i\text{ impar}} y_i + 2\sum_{i\text{ par}} y_i + y_n\right) = \frac{h}{3}[E + 4I + 2P]$.",
+            r"**Error analítico de truncamiento y comparación frente a Trapecio y Simpson 3/8:** Desarrollando en serie de Taylor alrededor de $x_1$ se cancelan los términos impares (incluido $x^3$), por lo que el error elemental depende de $f^{(4)}$: $e_{\text{local}} = -\frac{h^5}{90}f^{(4)}(\xi)$ y el error global compuesto es $E_t = -\frac{(b-a)h^4}{180}f^{(4)}(\xi)$ (**orden $\mathcal{O}(h^4)$, exacto para grado $\le 3$**). Frente a Trapecio ($E_t = -\frac{(b-a)h^2}{12}f''(\xi)$, $\mathcal{O}(h^2)$) gana dos órdenes de convergencia, y frente a Simpson 3/8 ($E_t = -\frac{(b-a)h^4}{80}f^{(4)}(\xi)$) tiene constante de error $2.25\times$ menor a igual paso $h$.",
         ],
         "ejemplo_teorico_pasos": [
-            r"**Evaluación sobre un par de intervalos $[0, h, 2h]$:** Centrando el eje en el nodo medio $x_1$ entre $[-h, h]$, integramos directamente una parábola por los tres puntos obteniendo los pesos $\frac{h}{3}(1, 4, 1)$.",
-            r"**Prueba de grado de exactitud con $f(x) = x^3$ en $[-h, h]$:** La integral exacta de $x^3$ en $[-h, h]$ es $0$. Evaluando la fórmula de Simpson: $\frac{h}{3}[(-h)^3 + 4(0)^3 + h^3] = 0$, coincidiendo exactamente.",
-            r"**Escalado de error ante refinamiento $\mathcal{O}(h^4)$:** Si dividimos el paso $h$ a la mitad (duplicando $n$), el denominador $n^4$ aumenta $2^4 = 16$ veces.",
-            r"**Conclusión práctica:** Con el mismo costo de nodos que Trapecio, Simpson 1/3 gana dos órdenes extra de precisión sobre funciones suaves con $n$ par.",
+            r"**Planteo del caso de prueba $\int_0^2 x^3\,dx$ con $n = 2$ ($h = 1$):** Nodos equidistantes $x = [0, 1, 2]$ y ordenadas $y = [0, 1, 8]$.",
+            r"**Aplicación de la regla elemental de 3 puntos:** $I \approx \frac{h}{3}(y_0 + 4y_1 + y_2) = \frac{1}{3}[0 + 4(1) + 8] = \frac{12}{3} = 4.0$.",
+            r"**Verificación analítica y cota $E_t$:** Como $\int_0^2 x^3\,dx = 4.0$ y $f^{(4)}(x) \equiv 0$, el error $E_t = -\frac{2\cdot 1^4}{180} f^{(4)}(\xi) = 0$: queda comprobada la exactitud hasta grado $3$.",
+            r"**Respaldo híbrido ante cambio de $h$:** Si un medidor agrega un tramo adicional de distinto paso (ej. $h_3 = 0.5$), en ese tramo se pierde la terna equidistante y se resuelve automáticamente con Trapecio $\frac{0.5}{2}(y_2 + y_3)$.",
         ],
         "practica_pasos_deduccion": [
             r"**Verificación de condiciones sobre $[0.5, 20.5]$:** Tenemos $5$ puntos ($x = [0.5, 5.5, 10.5, 15.5, 20.5]$), lo cual define $n = 4$ subintervalos (número **par**, habilita Simpson 1/3 puro) de paso constante $h = 5$.",
@@ -2650,10 +2941,10 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
     },
     "simpson_3_8_combinado": {
         "deduccion_teorica": [
-            r"**Polinomio cúbico de Lagrange/Gregory sobre $4$ nodos ($3$ subintervalos):** Tomamos $[x_0, x_1, x_2, x_3]$ con paso $h$ e integramos el polinomio de Newton-Gregory Ascendente $P_3(u) = y_0 + u\Delta y_0 + \frac{u^2-u}{2}\Delta^2 y_0 + \frac{u^3-3u^2+2u}{6}\Delta^3 y_0$ desde $u = 0$ hasta $u = 3$ (usando $dx = h\,du$).",
+            r"**Polinomio cúbico de Newton-Gregory en $[0, 3h]$:** Sobre $4$ nodos equidistantes $[x_0, x_1, x_2, x_3]$ ($dx = h\,du$), integramos el polinomio de grado $3$: $P_3(u) = y_0 + u\Delta y_0 + \frac{u^2-u}{2}\Delta^2 y_0 + \frac{u^3-3u^2+2u}{6}\Delta^3 y_0$ entre $u = 0$ y $u = 3$.",
             r"**Integración de cada término en $[0, 3]$:** $\int_0^3 du = 3$; $\int_0^3 u\,du = \frac{9}{2}$; $\int_0^3 \frac{u^2-u}{2}\,du = \frac{9}{4}$; $\int_0^3 \frac{u^3-3u^2+2u}{6}\,du = \frac{3}{8}$.",
-            r"**Expansión en términos de $y_0, y_1, y_2, y_3$:** Reemplazando $\Delta y_0 = y_1-y_0$, $\Delta^2 y_0 = y_2 - 2y_1 + y_0$ y $\Delta^3 y_0 = y_3 - 3y_2 + 3y_1 - y_0$ y simplificando coeficientes se obtiene directamente $A_{3/8} = \frac{3h}{8}(y_0 + 3y_1 + 3y_2 + y_3)$.",
-            r"**Estrategia combinada para $n$ impar manteniendo orden $\mathcal{O}(h^4)$:** Su error local es $-\frac{3h^5}{80}f^{(4)}(\xi)$ (mismo orden $\mathcal{O}(h^4)$ que Simpson 1/3!). Cuando $n \ge 5$ es impar y no múltiplo de $3$, asignar $3$ intervalos a Simpson $3/8$ deja un resto $n - 3$ **par**, que se resuelve con Simpson $1/3$ sin degradar la precisión global al $\mathcal{O}(h^2)$ de Trapecio.",
+            r"**Expansión nodal:** Reemplazando $\Delta y_0 = y_1-y_0$, $\Delta^2 y_0 = y_2 - 2y_1 + y_0$ y $\Delta^3 y_0 = y_3 - 3y_2 + 3y_1 - y_0$ resulta directamente $I_{3/8} = \frac{3h}{8}(y_0 + 3y_1 + 3y_2 + y_3)$.",
+            r"**Error de truncamiento, exactitud cúbica y esquema combinado:** Cada bloque de Simpson 3/8 tiene error local $-\frac{3h^5}{80}f^{(4)}(\xi)$ y error global $E_t = -\frac{(b-a)h^4}{80}f^{(4)}(\xi)$ (**orden $\mathcal{O}(h^4)$, exacto para grado $\le 3$**). Frente a Simpson 1/3 ($E_t = -\frac{(b-a)h^4}{180}f^{(4)}(\xi)$) tiene constante $\frac{9}{4}\times$ mayor a igual $h$, y frente a Trapecio ($-\frac{(b-a)h^2}{12}f''(\xi)$) gana dos órdenes. Por eso en $n$ impar ($\ge 5$), combinar $3/8 + 1/3$ mantiene $\mathcal{O}(h^4)$ en todo $[a, b]$ en lugar de caer a Trapecio.",
         ],
         "ejemplo_teorico_pasos": [
             r"**Diagnóstico de paridad cuando $n = 5$:** $n = 5$ no es par (falla Simpson $1/3$ puro) ni múltiplo de $3$ (falla Simpson $3/8$ puro).",
@@ -2702,10 +2993,10 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
             r"**Identidad demostrada:** La expresión resultante es idéntica a la Regla de Simpson 1/3 con paso $\tilde{h} = h/2$, heredando inmediatamente su precisión de cuarto orden global $\mathcal{O}(h^4)$.",
         ],
         "practica_pasos_deduccion": [
-            r"**Paso 1 ($x_0 = 4.0 \to x_1 = 4.1$, $h = 0.1$) para $RK2$:** $k_1 = 0.1 \cdot \frac{6(4)^2}{16} = 0.600000$; $k_2 = 0.1 \cdot \frac{6(4.1)^2}{16.6} = 0.60759036 \implies y_{\text{RK2}}(4.1) = 16 + \frac{0.6 + 0.60759036}{2} = 16.603795$.",
-            r"**Cálculo de las $4$ sondas de $RK4$ en el paso 1:** $k_1 = 0.600000$; $k_2 = 0.1 \cdot f(4.05, 16.3) = 0.1 \cdot \frac{98.415}{16.3} = 0.60377301$; $k_3 = 0.1 \cdot f(4.05, 16.3018865) = 0.60370312$; $k_4 = 0.1 \cdot f(4.1, 16.60370312) = 0.60745484$.",
-            r"**Promedio ponderado de $RK4$:** $y_{\text{RK4}}(4.1) = 16 + \frac{0.6 + 2(0.60377301) + 2(0.60370312) + 0.60745484}{6} = 16.60373452$ (error frente al exacto $16.603614$ menor a $1.3 \times 10^{-4}$ — de hecho $2(4.1)^{1.5} = 16.60373452$, error $2.4 \times 10^{-9}$!).",
-            r"**Evolución hasta $x = 4.3$ ($3$ pasos):** En $x = 4.3$ ($y_{\text{exacto}} = 17.83333956$), $RK2$ entrega $17.83352$ y $RK4$ logra $17.8333395$ con coincidencia de $6$ cifras exactas.",
+            r"**Paso 1 ($x_0 = 4.0 \to x_1 = 4.1$, $h = 0.1$) para $RK2$:** $k_1 = 0.1 \cdot \frac{6(4)^2}{16} = 0.600000$; $k_2 = 0.1 \cdot \frac{6(4.1)^2}{16.6} = 0.60759036 \implies y_{\text{RK2}}(4.1) = 16 + \frac{0.6 + 0.60759036}{2} = 16.60379518$.",
+            r"**Cálculo de las $4$ sondas de $RK4$ en el paso 1:** $k_1 = 0.600000$; $k_2 = 0.1 \cdot f(4.05, 16.3) = 0.60377301$; $k_3 = 0.1 \cdot f(4.05, 16.3018865) = 0.60370314$; $k_4 = 0.1 \cdot f(4.1, 16.60370314) = 0.60745485$.",
+            r"**Promedio ponderado de $RK4$:** $y_{\text{RK4}}(4.1) = 16 + \frac{0.6 + 2(0.60377301) + 2(0.60370314) + 0.60745485}{6} = 16.60373452$, coincidiendo a $8$ decimales con la exacta $2(4.1)^{3/2} = 16.60373452$.",
+            r"**Evolución hasta $x = 4.3$ ($3$ pasos):** Frente al exacto $y(4.3) = 17.83333956$, $RK2$ entrega $17.83350897$ (error $1.69 \times 10^{-4}$) y $RK4$ alcanza $17.83333957$ (error $\approx 10^{-8}$).",
         ],
     },
     "milne": {

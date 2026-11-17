@@ -33,8 +33,10 @@ def eliminacion_gauss(
     A = np.array(A_matriz, dtype=float)
     b = np.array(b_vector, dtype=float).flatten()
     n = len(A)
-    if A.shape != (n, n) or len(b) != n:
+    if n < 1 or A.shape != (n, n) or len(b) != n:
         raise ValueError(f"Dimensiones incompatibles: A es {A.shape} y b tiene longitud {len(b)}.")
+    if not (np.all(np.isfinite(A)) and np.all(np.isfinite(b))):
+        raise ValueError("Todos los coeficientes de A y b deben ser valores reales finitos.")
 
     M = np.hstack([A, b.reshape(-1, 1)])
     pasos: list[dict[str, Any]] = [{
@@ -43,6 +45,7 @@ def eliminacion_gauss(
         "matriz": np.round(M.copy(), decimales).tolist(),
         "operaciones": [],
     }]
+    intercambios = 0
 
     for k in range(n - 1):
         operaciones = []
@@ -50,6 +53,7 @@ def eliminacion_gauss(
             fila_max = k + int(np.argmax(np.abs(M[k:, k])))
             if fila_max != k:
                 M[[k, fila_max]] = M[[fila_max, k]]
+                intercambios += 1
                 operaciones.append(f"Intercambio de filas: F_{k+1} ↔ F_{fila_max+1}")
 
         pivote = M[k, k]
@@ -84,12 +88,15 @@ def eliminacion_gauss(
             "valor": float(x[i]),
         })
     pasos_sustitucion.reverse()
+    if not np.all(np.isfinite(x)):
+        raise ValueError("La sustitución regresiva produjo valores no finitos.")
 
     Ax = np.dot(A, x)
     residual = Ax - b
     return {
         "solucion": x.tolist(),
         "solucion_dict": {f"x_{i+1}": float(x[i]) for i in range(n)},
+        "intercambios": intercambios,
         "pasos_escalonamiento": pasos,
         "pasos_sustitucion": pasos_sustitucion,
         "residual": residual.tolist(),

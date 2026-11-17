@@ -18,9 +18,15 @@ import streamlit as st
 from core.catalogo_ejercicios import INTEGRALES_PRECOMPUTADAS
 from core.integracion import integrar_paso_variable
 from core.integracion_derivacion import (
+    calcular_derivada_gregory_completa,
     derivada_newton_gregory_ascendente,
     derivada_newton_gregory_descendente,
     integrar_adaptativo_en_vivo,
+    integrar_simpson_1_3_hibrido,
+    integrar_simpson_3_8_hibrido,
+    integrar_trapecio_hibrido,
+    recomendar_esquema_diferenciacion,
+    reconstruir_malla_por_pasos,
     remuestrear_tabla_integracion,
 )
 from views.theme import PALETA_ARANDU
@@ -40,6 +46,7 @@ from views.ui_shared import (
     render_selector_fichas_metodos,
     render_slider_paso_k,
     render_subtitulo_controles_vivo,
+    render_toggle_modo_detallado,
     rerun_fragmento_seguro,
 )
 
@@ -284,6 +291,18 @@ _ESCENARIOS_DIFERENCIACION: tuple[dict[str, Any], ...] = (
 )
 
 
+_RADAR_T_DEFAULT = [0.0, 1.0, 2.0, 3.0, 4.0]
+_RADAR_S_DEFAULT = [2.0, 5.0, 8.0, 14.0, 26.0]
+
+
+def _aplicar_preset_radar_deriv(t_eval: float, esquema: str, orden: int = 1) -> None:
+    st.session_state["int_deriv_real_t"] = float(t_eval)
+    st.session_state["int_deriv_real_esq"] = esquema
+    st.session_state["int_deriv_real_ord"] = int(orden)
+    for k_ui in ("ui_der_real_t", "ui_der_real_esq", "ui_der_real_ord"):
+        st.session_state.pop(k_ui, None)
+
+
 def _al_cambiar_preset_diferenciacion(defaults: dict) -> None:
     id_sel = st.session_state.get("ui_der_preset", "tp5_catedra")
     esc = next((e for e in _ESCENARIOS_DIFERENCIACION if e["id"] == id_sel), None)
@@ -302,146 +321,330 @@ def _al_cambiar_preset_diferenciacion(defaults: dict) -> None:
 
 
 @st.fragment
-def _frag_diferenciacion(defaults: dict) -> None:
-    modo = render_controles_edicion_practica(
-        clave_state="int_deriv",
-        defaults_dict=defaults,
-        mensaje_edicion=r"Edita la tabla $(x_i, y_i)$, alterna el sentido de diferencias o cambia $x^*$ (incluso fuera de nodos tabulados).",
+def _frag_diferenciacion(defaults: dict, modo_detallado: bool) -> None:
+    st.markdown("### 3. Simulador Protagonista")
+    contexto = st.radio(
+        "Escenario de simulación:",
+        options=["real_radar", "catedra_libre"],
+        format_func=lambda op: (
+            "Caso Real: Telemetría Radar s(t) → Velocidad v(t) y Aceleración a(t)"
+            if op == "real_radar"
+            else "Tablas de Cátedra (TP6 / 2do Parcial 2026) y Edición Manual"
+        ),
+        horizontal=True,
+        key="ui_int_deriv_contexto",
     )
-    ids_der = [e["id"] for e in _ESCENARIOS_DIFERENCIACION]
-    nom_der = {e["id"]: e["nombre"] for e in _ESCENARIOS_DIFERENCIACION}
-    if "ui_der_preset" not in st.session_state or st.session_state["ui_der_preset"] not in ids_der:
-        st.session_state["ui_der_preset"] = ids_der[0]
-    der_id = st.selectbox(
-        "Escenario de diferenciación:",
-        options=ids_der,
-        format_func=lambda k_d: nom_der[k_d],
-        key="ui_der_preset",
-        on_change=_al_cambiar_preset_diferenciacion,
-        args=(defaults,),
-    )
-    esc_der = next(e for e in _ESCENARIOS_DIFERENCIACION if e["id"] == der_id)
-    st.caption(esc_der["nota"])
-    solo_lectura = (modo == "catedra") and (der_id == ids_der[0])
+    es_caso_real = contexto == "real_radar"
 
-    df_in = pd.DataFrame({"x": st.session_state["int_deriv_x"], "y": st.session_state["int_deriv_y"]})
-    df_edit = render_data_editor_arandu(
-        df_in,
-        use_container_width=True,
-        hide_index=True,
-        num_rows="dynamic" if not solo_lectura else "fixed",
-        disabled=solo_lectura,
-        key="int_deriv__editor_df",
-    )
-    if not solo_lectura:
+    if es_caso_real:
+        st.caption(
+            r"Muestras radar de posición $s(t)$ en $t = [0, 1, 2, 3, 4]\;\text{s}$ ($s = [2, 5, 8, 14, 26]\;\text{m}$, "
+            r"trayectoria $s(t) = 0.5t^3 - 1.5t^2 + 4t + 2$). Estimá velocidad $v(t^*)$ y aceleración $a(t^*)$."
+        )
+        if "int_deriv_real_t" not in st.session_state:
+            st.session_state["int_deriv_real_t"] = 1.2
+        if "int_deriv_real_esq" not in st.session_state:
+            st.session_state["int_deriv_real_esq"] = "ascendente"
+        if "int_deriv_real_ord" not in st.session_state:
+            st.session_state["int_deriv_real_ord"] = 1
+
+        b1, b2, b3 = st.columns(3)
+        if b1.button(
+            "Inicio de maniobra (t* = 0.5 s → Gregory Ascendente desde t₀ = 0 s)",
+            key="btn_der_real_ini",
+            use_container_width=True,
+        ):
+            _aplicar_preset_radar_deriv(0.5, "ascendente", 1)
+            rerun_fragmento_seguro()
+        if b2.button(
+            "Punto no tabular intermedio (t* = 1.2 s, u = 0.2 → Velocidad y Aceleración exactas)",
+            key="btn_der_real_med",
+            use_container_width=True,
+        ):
+            _aplicar_preset_radar_deriv(1.2, "ascendente", 1)
+            rerun_fragmento_seguro()
+        if b3.button(
+            "Tiempo real al final (t* = 3.6 s → Gregory Descendente desde t₄ = 4 s)",
+            key="btn_der_real_fin",
+            use_container_width=True,
+        ):
+            _aplicar_preset_radar_deriv(3.6, "descendente", 1)
+            rerun_fragmento_seguro()
+
+        xs = list(_RADAR_T_DEFAULT)
+        ys = list(_RADAR_S_DEFAULT)
+        c1, c2, c3 = st.columns(3)
+        esquema_cod = c1.radio(
+            "Sentido de diferencias:",
+            options=["ascendente", "descendente"],
+            index=0 if st.session_state["int_deriv_real_esq"] == "ascendente" else 1,
+            format_func=lambda s: "Progresivas (Ascendente Δ)" if s == "ascendente" else "Regresivas (Descendente ∇)",
+            horizontal=True,
+            key="ui_der_real_esq",
+        )
+        orden = int(
+            c2.radio(
+                "Orden de derivada:",
+                options=[1, 2],
+                index=0 if int(st.session_state["int_deriv_real_ord"]) == 1 else 1,
+                format_func=lambda o: "1ra Derivada: Velocidad v(t)" if o == 1 else "2da Derivada: Aceleración a(t)",
+                horizontal=True,
+                key="ui_der_real_ord",
+            )
+        )
+        x_eval = float(
+            c3.number_input(
+                "Instante de evaluación t* (s):",
+                min_value=-1.0,
+                max_value=5.0,
+                value=float(st.session_state["int_deriv_real_t"]),
+                step=0.1,
+                format="%.2f",
+                key="ui_der_real_t",
+            )
+        )
+        st.session_state["int_deriv_real_esq"] = esquema_cod
+        st.session_state["int_deriv_real_ord"] = orden
+        st.session_state["int_deriv_real_t"] = x_eval
+    else:
+        if "int_deriv_x" not in st.session_state:
+            st.session_state["int_deriv_x"] = list(defaults["x"])
+            st.session_state["int_deriv_y"] = list(defaults["y"])
+            st.session_state["int_deriv_x_eval"] = float(defaults["x_eval"])
+
+        ids_der = [e["id"] for e in _ESCENARIOS_DIFERENCIACION]
+        nom_der = {e["id"]: e["nombre"] for e in _ESCENARIOS_DIFERENCIACION}
+        if "ui_der_preset" not in st.session_state or st.session_state["ui_der_preset"] not in ids_der:
+            st.session_state["ui_der_preset"] = ids_der[0]
+        der_id = st.selectbox(
+            "Escenario de diferenciación:",
+            options=ids_der,
+            format_func=lambda k_d: nom_der[k_d],
+            key="ui_der_preset",
+            on_change=_al_cambiar_preset_diferenciacion,
+            args=(defaults,),
+        )
+        esc_der = next(e for e in _ESCENARIOS_DIFERENCIACION if e["id"] == der_id)
+        st.caption(esc_der["nota"])
+
+        df_in = pd.DataFrame({"x": st.session_state["int_deriv_x"], "y": st.session_state["int_deriv_y"]})
+        df_edit = render_data_editor_arandu(
+            df_in,
+            use_container_width=True,
+            hide_index=True,
+            num_rows="dynamic",
+            column_config={
+                "x": st.column_config.NumberColumn("Abscisa xᵢ", format="%.4f"),
+                "y": st.column_config.NumberColumn("Ordenada yᵢ", format="%.5f"),
+            },
+            key="int_deriv__editor_df",
+        )
         df_c = df_edit.dropna()
         if len(df_c) >= 3:
             st.session_state["int_deriv_x"] = df_c["x"].astype(float).tolist()
             st.session_state["int_deriv_y"] = df_c["y"].astype(float).tolist()
-    xs = st.session_state["int_deriv_x"]
-    ys = st.session_state["int_deriv_y"]
+        xs = list(st.session_state["int_deriv_x"])
+        ys = list(st.session_state["int_deriv_y"])
 
-    c1, c2, c3 = st.columns(3)
-    esquema = c1.radio("Diferencias:", ["Progresivas (Ascendente)", "Regresivas (Descendente)"], horizontal=True, key="ui_der_esq")
-    orden = c2.radio("Orden:", [1, 2], format_func=lambda o: "1ra Derivada f'(x)" if o == 1 else "2da Derivada f''(x)", horizontal=True, key="ui_der_ord")
-    x_eval = c3.number_input("Punto $x^*$ a derivar (puede ser no tabular):", value=float(st.session_state["int_deriv_x_eval"]), format="%.4f", disabled=solo_lectura, key="ui_der_xe")
-    if not solo_lectura:
+        c1, c2, c3 = st.columns(3)
+        esquema_cod = c1.radio(
+            "Sentido de diferencias:",
+            options=["ascendente", "descendente"],
+            format_func=lambda s: "Progresivas (Ascendente Δ)" if s == "ascendente" else "Regresivas (Descendente ∇)",
+            horizontal=True,
+            key="ui_der_esq",
+        )
+        orden = int(
+            c2.radio(
+                "Orden de derivada:",
+                options=[1, 2],
+                format_func=lambda o: "1ra Derivada f'(x)" if o == 1 else "2da Derivada f''(x)",
+                horizontal=True,
+                key="ui_der_ord",
+            )
+        )
+        x_eval = float(
+            c3.number_input(
+                "Punto x* a derivar (puede ser no tabular):",
+                value=float(st.session_state["int_deriv_x_eval"]),
+                format="%.4f",
+                key="ui_der_xe",
+            )
+        )
         st.session_state["int_deriv_x_eval"] = x_eval
 
-    st.markdown("### Bloque 3 — Cálculo de Derivada en Vivo")
     try:
-        if esquema.startswith("Progresivas"):
-            idx_base = max(0, min(len(xs) - 2, int(np.searchsorted(xs, x_eval) - 1)))
-            res = derivada_newton_gregory_ascendente(xs, ys, idx_punto=idx_base, orden_derivada=orden, x_eval_libre=x_eval)
-            param = res["u"]
-            param_name = "u"
-        else:
-            idx_base = max(1, min(len(xs) - 1, int(np.searchsorted(xs, x_eval))))
-            res = derivada_newton_gregory_descendente(xs, ys, idx_punto=idx_base, orden_derivada=orden, x_eval_libre=x_eval)
-            param = res["v"]
-            param_name = "v"
+        rec = recomendar_esquema_diferenciacion(xs, x_eval)
+        res = calcular_derivada_gregory_completa(xs, ys, x_eval, orden_derivada=orden, esquema=esquema_cod)
     except Exception as exc:
         render_excepcion_validacion(
             exc,
             campo="Tabla de nodos o punto x* de derivación",
-            sugerencia_defecto="Ingresá nodos x crecientes equidistantes (h > 0) y un punto x* dentro o próximo a la tabla.",
-            ejemplo_defecto="x = [0.0, 0.2, 0.4, 0.6], x* = 0.2",
+            sugerencia_defecto="Ingresá nodos x crecientes equidistantes (h > 0) y elegí Ascendente al inicio o Descendente al final de la tabla.",
+            ejemplo_defecto="x = [0.0, 1.0, 2.0, 3.0, 4.0], x* = 1.2",
         )
         return
 
+    if rec["esquema"] != esquema_cod:
+        st.info(f"Sugerencia didáctica: {rec['motivo']}")
+
+    param_name = "u" if esquema_cod == "ascendente" else "v"
+    param_val = float(res["u"] if esquema_cod == "ascendente" else res["v"])
+
     m1, m2, m3 = st.columns(3)
-    m1.metric(f"f{'´' if orden == 1 else '´´'}({x_eval:g})", f"{res['derivada']:.6f}")
-    m2.metric(f"Parámetro {param_name}", f"{param:.4f}")
-    m3.metric("Paso h", f"{res['h']:.4g}")
-    registrar_contexto_ia(
-        "Derivada Numérica (Newton-Gregory)",
-        f"- **Escenario:** {esc_der['nombre']} | **Orden:** `{orden}` | **$x^*$:** `{x_eval:g}` | **{param_name}:** `{param:.4f}` | **Paso `h`:** `{res['h']:.4g}`\n"
-        f"- **Derivada estimada:** `{res['derivada']:.6f}`",
-        clave="ing_deriv_res",
-    )
-    simb_diff = r"\Delta" if esquema.startswith("Progresivas") else r"\nabla"
-    pasos_der_vivos = [
-        (
-            f"**Ancla y parámetro adimensional:** Con paso uniforme $h = {res['h']:.4g}$ e índice base "
-            f"$x_{{\\text{{base}}}} = {xs[res['indice_usado']]:g}$, calculamos "
-            f"${param_name} = \\frac{{{x_eval:g} - {xs[res['indice_usado']]:g}}}{{{res['h']:.4g}}} = {param:.6f}$."
+    if es_caso_real:
+        exacta_val = (1.5 * (x_eval**2) - 3.0 * x_eval + 4.0) if orden == 1 else (3.0 * x_eval - 3.0)
+        unidad_d = "m/s" if orden == 1 else "m/s²"
+        etq_kpi = f"Velocidad Estimada v({x_eval:g})" if orden == 1 else f"Aceleración Estimada a({x_eval:g})"
+        m1.metric(
+            etq_kpi,
+            f"{res['derivada']:.4f} {unidad_d}",
+            f"Exacta: {exacta_val:.4f} {unidad_d} · Err {abs(exacta_val - res['derivada']):.2e}",
+            delta_color="off",
         )
-    ]
-    suma_aportes = 0.0
-    for td in res["terminos_detalle"]:
-        suma_aportes += td["aporte"]
-        pasos_der_vivos.append(
-            f"**Diferencia de orden {td['orden_diff']} (${simb_diff}^{{{td['orden_diff']}}} y$):** "
-            f"Polinomio distribuido `{td['polinomio_param']}` $\\implies$ derivada en ${param_name}$ = "
-            f"`{td['derivada_param_expr']}` $= {td['coeficiente']:.6f}$ $\\times$ `{td['diferencia']:.6g}` "
-            f"$= {td['aporte']:.6f}$."
+        ancla_txt = f"Ancla t_{res['indice_usado']} = {xs[res['indice_usado']]:g} s"
+        paso_val_txt = f"h = {res['h']:g} s"
+    else:
+        etq_kpi = f"Derivada Estimada f{'´' if orden == 1 else '´´'}({x_eval:g})"
+        m1.metric(
+            etq_kpi,
+            f"{res['derivada']:.6f}",
+            f"P({x_eval:g}) = {res['y_eval']:.5f}",
+            delta_color="off",
         )
-    denom_h = f"h = {res['h']:.4g}" if orden == 1 else f"h^2 = {res['h']**2:.4g}"
-    pasos_der_vivos.append(
-        f"**División final por ${denom_h}$:** $\\frac{{{suma_aportes:.6f}}}{{{res['h'] if orden == 1 else res['h']**2:.4g}}} = {res['derivada']:.6f}$."
-    )
-    render_deduccion_paso_a_paso_viva(
-        f"Diferenciación ({esquema}, orden {orden}, x*={x_eval:g})",
-        pasos_der_vivos,
-        clave_ia="ing_deriv_viva",
+        ancla_txt = f"Ancla x_{res['indice_usado']} = {xs[res['indice_usado']]:g}"
+        paso_val_txt = f"h = {res['h']:g}"
+
+    m2.metric("Nodo Ancla y Parámetro (u / v)", f"{param_name} = {param_val:.4f}", ancla_txt, delta_color="off")
+    m3.metric(
+        "Paso Uniforme h y Orden",
+        paso_val_txt,
+        f"{len(res['terminos_detalle'])} término(s) de diferencias",
+        delta_color="off",
     )
 
-    render_dataframe_acotado(res["terminos_detalle"], max_filas=300, key_prefix="tbl_int_deriv")
-
-    st.markdown("### Bloque 4 — Pendiente Tangente en $x^*$")
-    y_en_x = float(np.interp(x_eval, xs, ys))
-    fig = crear_figura_base_plotly(f"Derivada Numérica en x* = {x_eval:g}", "x", "y")
+    y_en_x = float(res["y_eval"])
+    curva_poly = res["curva_polinomio"]
+    x_lbl = "Tiempo t (s)" if es_caso_real else "x"
+    y_lbl = "Posición s(t) [m]" if es_caso_real else "f(x)"
+    fig = crear_figura_base_plotly(
+        f"Diferenciación por Gregory ({'Ascendente Δ' if esquema_cod == 'ascendente' else 'Descendente ∇'}) en {x_eval:g}",
+        x_lbl,
+        y_lbl,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=curva_poly["x"],
+            y=limpiar_valores_plotly(curva_poly["y"], limite_abs=1e9),
+            mode="lines",
+            name="Polinomio interpolador",
+            line=dict(color=PALETA_ARANDU["salvia"], width=2.5),
+        )
+    )
     fig.add_trace(
         go.Scatter(
             x=xs,
             y=ys,
-            mode="lines+markers",
-            name="Datos f(x)",
-            line=dict(color=PALETA_ARANDU["oro"], width=2.5),
-            marker=dict(size=7, color=PALETA_ARANDU["oro"]),
+            mode="markers",
+            name="Lecturas radar" if es_caso_real else "Nodos medidos",
+            marker=dict(size=8, color=PALETA_ARANDU["oro"], line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.4)),
         )
     )
+    dx = res["h"] * 1.15
+    x_loc = np.linspace(x_eval - dx, x_eval + dx, 40)
     if orden == 1:
-        dx = res["h"] * 1.2
+        y_loc = y_en_x + res["derivada"] * (x_loc - x_eval)
         fig.add_trace(
             go.Scatter(
-                x=[x_eval - dx, x_eval + dx],
-                y=[y_en_x - res["derivada"] * dx, y_en_x + res["derivada"] * dx],
+                x=x_loc.tolist(),
+                y=y_loc.tolist(),
                 mode="lines",
-                name=f"Recta tangente (m={res['derivada']:.4f})",
-                line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dash"),
+                name=f"Recta tangente (pendiente = {res['derivada']:.4f})",
+                line=dict(color=PALETA_ARANDU["terracota"], width=2.6, dash="dash"),
             )
         )
+    else:
+        try:
+            r_p1 = calcular_derivada_gregory_completa(xs, ys, x_eval, orden_derivada=1, esquema=esquema_cod)
+            m_loc = float(r_p1["derivada"])
+            y_loc = y_en_x + m_loc * (x_loc - x_eval) + 0.5 * res["derivada"] * ((x_loc - x_eval) ** 2)
+            fig.add_trace(
+                go.Scatter(
+                    x=x_loc.tolist(),
+                    y=y_loc.tolist(),
+                    mode="lines",
+                    name=f"Curvatura local (f'' = {res['derivada']:.4f})",
+                    line=dict(color=PALETA_ARANDU["terracota"], width=2.5, dash="dash"),
+                )
+            )
+        except Exception:
+            pass
+
     fig.add_trace(
         go.Scatter(
             x=[x_eval],
             y=[y_en_x],
             mode="markers",
-            name="Punto x*",
-            marker=dict(size=13, color=PALETA_ARANDU["marfil_nodo"], symbol="star", line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8)),
+            name=f"Evaluación ({x_eval:g}, {y_en_x:.3f})",
+            marker=dict(
+                size=13,
+                color=PALETA_ARANDU["marfil_nodo"],
+                symbol="star",
+                line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.8),
+            ),
         )
     )
     render_plotly_arandu(fig, key="plot_int_deriv")
+
+    registrar_contexto_ia(
+        "Derivada Numérica (Newton-Gregory)",
+        f"- **Contexto:** {'Telemetría Radar s(t)' if es_caso_real else 'Tabla de Cátedra / Libre'} | "
+        f"**Sentido:** `{esquema_cod}` | **Orden:** `{orden}` | **Punto:** `{x_eval:g}` | **{param_name}:** `{param_val:.4f}` | **Paso `h`:** `{res['h']:g}`\n"
+        f"- **Resultado:** `{res['derivada']:.6f}`",
+        clave="ing_deriv_res",
+    )
+
+    if modo_detallado:
+        simb_diff = r"\Delta" if esquema_cod == "ascendente" else r"\nabla"
+        pasos_der_vivos = [
+            (
+                f"**Ancla y parámetro adimensional:** Con paso uniforme $h = {res['h']:g}$ e índice base "
+                f"$x_{{{res['indice_usado']}}} = {xs[res['indice_usado']]:g}$, calculamos "
+                f"${param_name} = \\frac{{{x_eval:g} - {xs[res['indice_usado']]:g}}}{{{res['h']:g}}} = {param_val:.6f}$."
+            )
+        ]
+        suma_aportes = 0.0
+        for td in res["terminos_detalle"]:
+            suma_aportes += td["aporte"]
+            pasos_der_vivos.append(
+                f"**Diferencia de orden {td['orden_diff']} (${simb_diff}^{{{td['orden_diff']}}} y$):** "
+                f"Factor `{td['polinomio_param']}` $\\implies$ derivada `{td['derivada_param_expr']}` $= {td['coeficiente']:.6f}$ "
+                f"$\\times$ `{td['diferencia']:.6g}` $= {td['aporte']:.6f}$."
+            )
+        denom_h = f"h = {res['h']:g}" if orden == 1 else f"h^2 = {res['h']**2:g}"
+        pasos_der_vivos.append(
+            f"**División final por ${denom_h}$:** $\\frac{{{suma_aportes:.6f}}}{{{res['h'] if orden == 1 else res['h']**2:g}}} = {res['derivada']:.6f}$."
+        )
+        render_deduccion_paso_a_paso_viva(
+            f"Diferenciación ({esquema_cod.capitalize()}, orden {orden}, x*={x_eval:g})",
+            pasos_der_vivos,
+            clave_ia="ing_deriv_viva",
+            expanded=True,
+        )
+
+        st.markdown("#### Tabla de Términos de Diferencias Finitas")
+        filas_terminos = [
+            {
+                "Orden k": td["orden_diff"],
+                "Polinomio en u/v": td["polinomio_param"],
+                "Derivada del Factor": td["derivada_param_expr"],
+                "Coeficiente Evaluado": round(float(td["coeficiente"]), 6),
+                "Diferencia Finita (Δᵏy / ∇ᵏy)": round(float(td["diferencia"]), 6),
+                "Aporte al Numerador": round(float(td["aporte"]), 6),
+            }
+            for td in res["terminos_detalle"]
+        ]
+        render_dataframe_acotado(filas_terminos, max_filas=300, key_prefix="tbl_int_deriv")
 
 
 _ESCENARIOS_SECANTE_TANGENTE: tuple[dict[str, Any], ...] = (
@@ -677,7 +880,8 @@ def _frag_secante_tangente() -> None:
 
 
 def _tab_diferenciacion() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("diferenciacion_numerica")
+    modo_detallado = render_toggle_modo_detallado("diferenciacion")
+    meta = render_bloque_1_teoria_y_ejemplo("diferenciacion_numerica", modo_detallado=modo_detallado)
     practica = meta.get("practica_profesora", {})
     defaults = {
         "x": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
@@ -685,15 +889,18 @@ def _tab_diferenciacion() -> None:
         "x_eval": 12.4,
         **practica.get("datos_iniciales", {}),
     }
+    if modo_detallado:
+        render_practica_catedra_info(
+            titulo_practica=practica.get("titulo"),
+            enunciado_practica=practica.get("enunciado"),
+            solucion_referencia=practica.get("solucion_referencia"),
+        )
     st.divider()
-    render_practica_catedra_info(
-        titulo_practica=practica.get("titulo"),
-        enunciado_practica=practica.get("enunciado"),
-        solucion_referencia=practica.get("solucion_referencia"),
-    )
-    _frag_diferenciacion(defaults)
-    st.divider()
-    _frag_secante_tangente()
+    _frag_diferenciacion(defaults, modo_detallado=modo_detallado)
+    if modo_detallado:
+        st.divider()
+        with st.expander("Simulador Geométrico: Recta Secante y Recta Tangente (Interpretación del límite)", expanded=False):
+            _frag_secante_tangente()
 
 
 @st.fragment
@@ -1072,6 +1279,1019 @@ def _frag_integracion(clave_state: str, metodo_solicitado: str, defaults: dict) 
     render_plotly_arandu(fig, key=f"plot_{clave_state}")
 
 
+_FUNC_TELEMETRIA_POTENCIA = "2.5 + 1.5*sin(x) + 0.15*x**2"
+_FUNC_TELEMETRIA_CAUDAL = "0.1*x**3 - 0.6*x**2 + 1.5*x + 4.0"
+_FUNC_TOPOGRAFIA_LOTE = "sin(x) + 0.5*x + 1.5"
+_SUBINDICES_S13 = ("₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈")
+
+
+def _aplicar_preset_pasos(clave_state: str, pasos_nuevos: list[float]) -> None:
+    """Fija una secuencia de pasos Δt_k para un caso real de cuadratura híbrida."""
+    st.session_state[f"{clave_state}_real_n"] = len(pasos_nuevos)
+    st.session_state[f"{clave_state}_real_pasos"] = list(pasos_nuevos)
+    st.session_state.pop(f"ui_{clave_state}_real_n", None)
+    for k in range(1, 9):
+        st.session_state.pop(f"ui_{clave_state}_real_h_{k}", None)
+
+
+def _al_cambiar_preset_libre_hibrido(clave_state: str, metodo_clave: str) -> None:
+    """Sincroniza escenario seleccionado en el modo de función libre / TP6."""
+    escenarios = _ESCENARIOS_INTEGRACION[metodo_clave]
+    id_sel = st.session_state.get(f"ui_{clave_state}_libre_preset")
+    esc = next((e for e in escenarios if e["id"] == id_sel), None)
+    if esc is None:
+        return
+    xn, yn = _materializar_escenario_integracion(esc)
+    pasos = [round(float(xn[i + 1] - xn[i]), 6) for i in range(len(xn) - 1)]
+    st.session_state[f"{clave_state}_libre_x"] = xn
+    st.session_state[f"{clave_state}_libre_y"] = yn
+    st.session_state[f"{clave_state}_libre_f_str"] = esc["f_str"]
+    st.session_state[f"{clave_state}_libre_nota"] = esc["nota"]
+    st.session_state[f"{clave_state}_libre_pasos"] = pasos
+    for k in range(1, 9):
+        st.session_state.pop(f"ui_{clave_state}_libre_h_{k}", None)
+    st.session_state.pop(f"{clave_state}_libre__editor_df", None)
+    for suf_ui in ("fstr", "a", "b", "n", "x0", "np"):
+        st.session_state.pop(f"ui_{clave_state}_libre_{suf_ui}", None)
+
+
+def _sincronizar_pasos_lista(lista_base: list[float], n_objetivo: int, valor_relleno: float = 1.0) -> list[float]:
+    if len(lista_base) == n_objetivo:
+        return list(lista_base)
+    if len(lista_base) > n_objetivo:
+        return list(lista_base[:n_objetivo])
+    return list(lista_base) + [valor_relleno] * (n_objetivo - len(lista_base))
+
+
+def _render_inputs_pasos_h(
+    pasos_actuales: list[float],
+    prefijo_key: str,
+    etiqueta_prefijo: str,
+    min_h: float = 0.1,
+    max_h: float = 10.0,
+    step_h: float = 0.1,
+) -> list[float]:
+    """Renderiza inputs numéricos por cada subintervalo para editar pasos h_k en vivo."""
+    n = len(pasos_actuales)
+    nuevos: list[float] = []
+    cols_por_fila = min(4, n) if n > 0 else 1
+    for ini in range(0, n, cols_por_fila):
+        fin = min(ini + cols_por_fila, n)
+        cols = st.columns(fin - ini)
+        for offset, idx in enumerate(range(ini, fin)):
+            sub_txt = _SUBINDICES_S13[idx] if idx < len(_SUBINDICES_S13) else f"_{idx + 1}"
+            w_key = f"{prefijo_key}_{idx + 1}"
+            if w_key not in st.session_state:
+                st.session_state[w_key] = float(pasos_actuales[idx])
+            val = cols[offset].number_input(
+                f"{etiqueta_prefijo}{sub_txt}:",
+                min_value=float(min_h),
+                max_value=float(max_h),
+                step=float(step_h),
+                format="%.2f",
+                key=w_key,
+            )
+            nuevos.append(float(val))
+    return nuevos
+
+
+def _render_malla_libre_hibrida(
+    clave_state: str,
+    metodo_clave: str,
+    defaults: dict,
+    ejemplo_defecto: str,
+) -> tuple[list[float], list[float], str | None] | None:
+    """Renderiza el selector de escenario libre y edición por malla uniforme, pasos h_k o tabla."""
+    escenarios = _ESCENARIOS_INTEGRACION[metodo_clave]
+    ids_esc = [e["id"] for e in escenarios]
+    mapa_nom = {e["id"]: e["nombre"] for e in escenarios}
+    if f"{clave_state}_libre_x" not in st.session_state:
+        st.session_state[f"{clave_state}_libre_x"] = list(defaults["x"])
+        st.session_state[f"{clave_state}_libre_y"] = list(defaults["y"])
+        st.session_state[f"{clave_state}_libre_f_str"] = str(defaults.get("f_str", "x**2 / 5"))
+        st.session_state[f"{clave_state}_libre_nota"] = escenarios[0]["nota"]
+        st.session_state[f"{clave_state}_libre_pasos"] = [
+            round(float(defaults["x"][i + 1] - defaults["x"][i]), 6) for i in range(len(defaults["x"]) - 1)
+        ]
+
+    preset_key = f"ui_{clave_state}_libre_preset"
+    if preset_key not in st.session_state or st.session_state[preset_key] not in ids_esc:
+        st.session_state[preset_key] = ids_esc[0]
+
+    esc_id = st.selectbox(
+        "Escenario o función de estudio:",
+        options=ids_esc,
+        format_func=lambda k_e: mapa_nom[k_e],
+        key=preset_key,
+        on_change=_al_cambiar_preset_libre_hibrido,
+        args=(clave_state, metodo_clave),
+    )
+    esc_actual = next((e for e in escenarios if e["id"] == esc_id), escenarios[0])
+    st.caption(st.session_state.get(f"{clave_state}_libre_nota", esc_actual["nota"]))
+
+    c_f, c_modo_malla = st.columns([1.2, 1.5])
+    with c_f:
+        f_libre = st.text_input(
+            "Función $f(x)$ (opcional si editás nodos manuales):",
+            value=str(st.session_state[f"{clave_state}_libre_f_str"]),
+            key=f"ui_{clave_state}_libre_fstr",
+        )
+        st.session_state[f"{clave_state}_libre_f_str"] = f_libre
+    with c_modo_malla:
+        modo_malla = st.radio(
+            "Definición de la malla:",
+            options=["uniforme", "pasos", "tabla"],
+            format_func=lambda m: (
+                "Malla uniforme [a, b]"
+                if m == "uniforme"
+                else ("Editar pasos hₖ por tramo" if m == "pasos" else "Tabla editable de nodos")
+            ),
+            horizontal=True,
+            key=f"ui_{clave_state}_libre_malla",
+        )
+
+    xs_cur = list(st.session_state[f"{clave_state}_libre_x"])
+    ys_cur = list(st.session_state[f"{clave_state}_libre_y"])
+    f_limpia = f_libre.strip() or None
+
+    try:
+        if modo_malla == "uniforme":
+            ca, cb, cn = st.columns([1.0, 1.0, 1.3])
+            a_in = ca.number_input("Límite inferior a:", value=float(xs_cur[0]), step=0.5, format="%.2f", key=f"ui_{clave_state}_libre_a")
+            b_in = cb.number_input("Límite superior b:", value=float(xs_cur[-1]), step=0.5, format="%.2f", key=f"ui_{clave_state}_libre_b")
+            n_in = cn.slider(
+                "Subintervalos n:",
+                min_value=2,
+                max_value=16,
+                value=min(16, max(2, len(xs_cur) - 1)),
+                key=f"ui_{clave_state}_libre_n",
+            )
+            if b_in <= a_in + 1e-6:
+                st.warning("El límite superior b debe ser mayor que a.")
+                return None
+            mismos_extremos = (
+                f_limpia is None
+                and abs(float(a_in) - float(xs_cur[0])) < 1e-6
+                and abs(float(b_in) - float(xs_cur[-1])) < 1e-6
+            )
+            xs, ys, _ = remuestrear_tabla_integracion(
+                xs_cur if mismos_extremos else [float(a_in), float(b_in)],
+                ys_cur if mismos_extremos else [float(ys_cur[0]), float(ys_cur[-1])],
+                nuevo_n=int(n_in),
+                f_str=f_limpia,
+            )
+            st.session_state[f"{clave_state}_libre_x"] = xs
+            st.session_state[f"{clave_state}_libre_y"] = ys
+            st.session_state[f"{clave_state}_libre_pasos"] = [
+                round(float(xs[i + 1] - xs[i]), 6) for i in range(len(xs) - 1)
+            ]
+        elif modo_malla == "pasos":
+            c_x0, c_np = st.columns([1.0, 1.5])
+            x0_in = c_x0.number_input("Origen x₀:", value=float(xs_cur[0]), step=0.5, format="%.2f", key=f"ui_{clave_state}_libre_x0")
+            n_pasos = int(
+                c_np.slider(
+                    "Cantidad de subintervalos n:",
+                    min_value=2,
+                    max_value=8,
+                    value=min(8, max(2, len(xs_cur) - 1)),
+                    key=f"ui_{clave_state}_libre_np",
+                )
+            )
+            h_def = round(float(xs_cur[1] - xs_cur[0]), 4) if len(xs_cur) >= 2 else 1.0
+            pasos_sync = _sincronizar_pasos_lista(st.session_state.get(f"{clave_state}_libre_pasos", [h_def]), n_pasos, max(0.2, h_def))
+            pasos_edit = _render_inputs_pasos_h(
+                pasos_sync,
+                prefijo_key=f"ui_{clave_state}_libre_h",
+                etiqueta_prefijo="h",
+                min_h=0.1,
+                max_h=20.0,
+                step_h=0.5,
+            )
+            st.session_state[f"{clave_state}_libre_pasos"] = pasos_edit
+            xs, ys = reconstruir_malla_por_pasos(
+                float(x0_in),
+                pasos_edit,
+                f_str=f_limpia,
+                y_base=ys_cur if not f_limpia else None,
+            )
+            st.session_state[f"{clave_state}_libre_x"] = xs
+            st.session_state[f"{clave_state}_libre_y"] = ys
+        else:
+            df_in = pd.DataFrame({"x": xs_cur, "y": ys_cur})
+            df_edit = render_data_editor_arandu(
+                df_in,
+                use_container_width=True,
+                hide_index=True,
+                num_rows="dynamic",
+                column_config={
+                    "x": st.column_config.NumberColumn("Abscisa xᵢ", format="%.4f"),
+                    "y": st.column_config.NumberColumn("Ordenada yᵢ", format="%.4f"),
+                },
+                key=f"{clave_state}_libre__editor_df",
+            )
+            df_limpia = df_edit.dropna()
+            if len(df_limpia) < 2:
+                st.warning("Ingresá al menos 2 nodos válidos en la tabla.")
+                return None
+            xs = [float(v) for v in df_limpia["x"].tolist()]
+            ys = [float(v) for v in df_limpia["y"].tolist()]
+            st.session_state[f"{clave_state}_libre_x"] = xs
+            st.session_state[f"{clave_state}_libre_y"] = ys
+    except Exception as exc:
+        render_excepcion_validacion(
+            exc,
+            campo="Configuración de malla o función f(x)",
+            sugerencia_defecto="Verificá que los pasos h_k sean positivos y la expresión de f(x) use sintaxis Python válida.",
+            ejemplo_defecto=ejemplo_defecto,
+        )
+        return None
+
+    return xs, ys, f_limpia
+
+
+def _plot_cuadratura_hibrida(
+    res: dict[str, Any],
+    xs: list[float],
+    ys: list[float],
+    titulo_plot: str,
+    x_lbl: str,
+    y_lbl: str,
+    nombre_exacta: str,
+    nombre_nodos: str,
+    plot_key: str,
+    color_exacta: str,
+) -> None:
+    """Grafica diferenciando Simpson 3/8 (cúbica), Simpson 1/3 (parábola) y Trapecio (recta)."""
+    fig = crear_figura_base_plotly(titulo_plot, x_lbl, y_lbl)
+    estilos_regla = {
+        "Simpson 3/8": (PALETA_ARANDU["oro"], PALETA_ARANDU["oro_fill"], "solid", "Cúbica"),
+        "Simpson 1/3": (PALETA_ARANDU["salvia"], PALETA_ARANDU["salvia_fill"], "solid", "Parábola"),
+        "Trapecio": (PALETA_ARANDU["terracota"], PALETA_ARANDU["terracota_fill"], "dash", "Respaldo"),
+    }
+
+    for idx, b in enumerate(res["bloques"], start=1):
+        regla_b = b["regla"]
+        color_b, fill_b, dash_b, tipo_b = estilos_regla.get(
+            regla_b, (PALETA_ARANDU["salvia"], PALETA_ARANDU["salvia_fill"], "solid", "")
+        )
+        etiqueta = f"Tramo {idx}: {regla_b} ({tipo_b}, h={b['h']:g})"
+        fig.add_trace(
+            go.Scatter(
+                x=b["x_curva"],
+                y=limpiar_valores_plotly(b["y_curva"], limite_abs=1e9),
+                mode="lines",
+                fill="tozeroy",
+                fillcolor=fill_b,
+                name=etiqueta,
+                line=dict(color=color_b, width=2.6, dash=dash_b),
+            )
+        )
+
+    stem_x: list[float | None] = []
+    stem_y: list[float | None] = []
+    for nx, ny in zip(xs, ys):
+        stem_x.extend([nx, nx, None])
+        stem_y.extend([0.0, ny, None])
+    fig.add_trace(
+        go.Scatter(
+            x=stem_x,
+            y=stem_y,
+            mode="lines",
+            showlegend=False,
+            hoverinfo="skip",
+            line=dict(color=PALETA_ARANDU["texto_atenuado"], width=1.1, dash="dot"),
+        )
+    )
+
+    if res.get("exacta") and res["exacta"].get("curva_exacta"):
+        curva_ex = res["exacta"]["curva_exacta"]
+        fig.add_trace(
+            go.Scatter(
+                x=curva_ex["x"],
+                y=limpiar_valores_plotly(curva_ex["y"], limite_abs=1e9),
+                mode="lines",
+                name=nombre_exacta,
+                line=dict(color=color_exacta, width=2.4),
+            )
+        )
+
+    pond = res.get("ponderacion_nodal") or {}
+    nodos_pond = pond.get("nodos", [])
+    ver_etq = len(xs) <= 12
+    custom_nodos = [[nd["weight"], nd["rol"]] for nd in nodos_pond] if len(nodos_pond) == len(xs) else None
+    fig.add_trace(
+        go.Scatter(
+            x=xs,
+            y=ys,
+            mode="markers+text" if ver_etq else "markers",
+            name=nombre_nodos,
+            text=[f"x{i}" for i in range(len(xs))] if ver_etq else None,
+            textposition="top center",
+            customdata=custom_nodos,
+            hovertemplate=(
+                "x=%{x:.4f}<br>y=%{y:.4f}<br>Peso w=%{customdata[0]} (%{customdata[1]})<extra></extra>"
+                if custom_nodos is not None
+                else "x=%{x:.4f}<br>y=%{y:.4f}<extra></extra>"
+            ),
+            marker=dict(
+                size=9,
+                color=PALETA_ARANDU["marfil_nodo"],
+                line=dict(color=PALETA_ARANDU["terracota_oscuro"], width=1.6),
+            ),
+        )
+    )
+
+    render_plotly_arandu(fig, key=plot_key)
+
+
+def _render_detalle_cuadratura_hibrida(
+    res: dict[str, Any],
+    clave_state: str,
+    titulo_deduccion: str,
+    unidad_txt: str,
+) -> None:
+    """Despliega tarjetas de pesos, deducción viva y tablas con encabezados en español."""
+    pond = res.get("ponderacion_nodal")
+    if pond:
+        st.markdown(_construir_html_ponderacion_nodal(pond, clave_state), unsafe_allow_html=True)
+
+    pasos_vivos = [
+        f"**Malla analizada ({res['n_intervalos_total']} subintervalos):** pasos $h = {[round(v, 4) for v in res['pasos_h']]}$.",
+    ]
+    if res.get("es_uniforme") and res.get("P") is not None and res.get("I") is not None:
+        pasos_vivos.append(
+            f"**Acumuladores de cátedra ($E, P, I$):** $E = {res['E']:.4f}$, $P = {res['P']:.4f}$, $I = {res['I']:.4f}$."
+        )
+    for idx_b, b in enumerate(res["bloques"], start=1):
+        pasos_vivos.append(
+            f"**Tramo {idx_b} — {b['regla']} en {b['intervalo']}:** {b['motivo']} "
+            f"`{b['formula']}` $\\implies$ aporte $= {b['area']:.6f}{unidad_txt}$."
+        )
+    pasos_vivos.append(f"**Suma total:** `{res['area_total']:.6f}{unidad_txt}` ({res['reglas_aplicadas']}).")
+    render_deduccion_paso_a_paso_viva(
+        titulo_deduccion,
+        pasos_vivos,
+        clave_ia=f"{clave_state}_viva",
+        expanded=True,
+    )
+
+    st.markdown("#### Tabla Completa de Tramos Integrados")
+    filas_tramos = [
+        {
+            "Tramo": idx_b,
+            "Regla Aplicada": b["regla"],
+            "Nodos": b["nodos_label"],
+            "Intervalo": b["intervalo"],
+            "Paso h": round(b["h"], 6),
+            "Fórmula Evaluada": b["formula"],
+            "Resultado Parcial": round(b["area"], 6),
+            "Criterio Geométrico": b["motivo"],
+        }
+        for idx_b, b in enumerate(res["bloques"], start=1)
+    ]
+    render_dataframe_acotado(filas_tramos, max_filas=300, key_prefix=f"tbl_{clave_state}_tramos")
+
+    if pond:
+        st.markdown("#### Tabla de Evaluación Nodal")
+        filas_nodos = [
+            {
+                "Índice i": nd["index"],
+                "Nodo xᵢ": round(nd["x"], 4),
+                "Valor f(xᵢ)": round(nd["y"], 5),
+                "Peso Nodal wᵢ": nd["weight"],
+                "Rol": nd["rol"],
+                "Producto wᵢ·f(xᵢ)": round(nd["wy"], 5),
+                "Aporte al Total": round(nd["aporte"], 6),
+            }
+            for nd in pond["nodos"]
+        ]
+        render_dataframe_acotado(filas_nodos, max_filas=300, key_prefix=f"tbl_{clave_state}_nodos")
+
+
+@st.fragment
+def _frag_simpson_1_3(defaults: dict, modo_detallado: bool) -> None:
+    st.markdown("### 3. Simulador Protagonista")
+    contexto = st.radio(
+        "Escenario de simulación:",
+        options=["real_telemetria", "funcion_libre"],
+        format_func=lambda op: (
+            "Caso Real: Telemetría de Potencia P(t) → Energía (kWh)"
+            if op == "real_telemetria"
+            else "Función Matemática Libre f(x) / Cátedra TP6"
+        ),
+        horizontal=True,
+        key="ui_int_s13_contexto",
+    )
+    es_caso_real = contexto == "real_telemetria"
+
+    if es_caso_real:
+        st.caption(
+            r"Medidor inteligente desde $t_0 = 0\text{ h}$ sobre $P(t) = 2.5 + 1.5\sin(t) + 0.15t^2\;\text{[kW]}$. "
+            r"Modificá los intervalos de muestreo $\Delta t_k$ para provocar un cambio de paso y observar la caída automática a Trapecio."
+        )
+        if "int_s13_real_pasos" not in st.session_state:
+            st.session_state["int_s13_real_pasos"] = [1.0, 1.0, 1.0, 1.0]
+        if "int_s13_real_n" not in st.session_state:
+            st.session_state["int_s13_real_n"] = len(st.session_state["int_s13_real_pasos"])
+
+        b_unif, b_jit, b_imp = st.columns(3)
+        if b_unif.button(
+            "Muestreo uniforme (Δt = 1.0 h constante → 100% Simpson 1/3)",
+            key="btn_s13_real_unif",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_s13", [1.0, 1.0, 1.0, 1.0])
+            rerun_fragmento_seguro()
+        if b_jit.button(
+            "Jitter de red / Cambio de paso (Δt = [1.0, 1.0, 1.5, 0.5] h → Simpson 1/3 + Trapecio)",
+            key="btn_s13_real_jit",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_s13", [1.0, 1.0, 1.5, 0.5])
+            rerun_fragmento_seguro()
+        if b_imp.button(
+            "Muestreo impar (3 subintervalos de Δt = 1.0 h → 1 parábola + 1 Trapecio)",
+            key="btn_s13_real_imp",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_s13", [1.0, 1.0, 1.0])
+            rerun_fragmento_seguro()
+
+        n_real = int(
+            st.slider(
+                "Cantidad de subintervalos de muestreo ($n$):",
+                min_value=2,
+                max_value=6,
+                value=int(st.session_state["int_s13_real_n"]),
+                key="ui_int_s13_real_n",
+            )
+        )
+        st.session_state["int_s13_real_n"] = n_real
+        pasos_sync = _sincronizar_pasos_lista(st.session_state["int_s13_real_pasos"], n_real, 1.0)
+        pasos_edit = _render_inputs_pasos_h(
+            pasos_sync,
+            prefijo_key="ui_int_s13_real_h",
+            etiqueta_prefijo="Δt",
+            min_h=0.1,
+            max_h=5.0,
+            step_h=0.1,
+        )
+        st.session_state["int_s13_real_pasos"] = pasos_edit
+        f_str_activo = _FUNC_TELEMETRIA_POTENCIA
+        try:
+            xs, ys = reconstruir_malla_por_pasos(0.0, pasos_edit, f_str=f_str_activo)
+        except Exception as exc:
+            render_excepcion_validacion(
+                exc,
+                campo="Intervalos de muestreo Δt",
+                sugerencia_defecto="Ingresá intervalos Δt_k positivos (por ejemplo 1.0, 1.0, 1.5, 0.5).",
+                ejemplo_defecto="Δt = [1.0, 1.0, 1.5, 0.5]",
+            )
+            return
+    else:
+        malla_libre = _render_malla_libre_hibrida(
+            "int_s13",
+            "simpson_1_3",
+            defaults,
+            "f(x) = x**2 / 5, pasos h = [5.0, 5.0, 5.0, 5.0]",
+        )
+        if malla_libre is None:
+            return
+        xs, ys, f_str_activo = malla_libre
+
+    try:
+        res = integrar_simpson_1_3_hibrido(xs, ys, f_str=f_str_activo)
+    except Exception as exc:
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla de nodos (x, y)",
+            sugerencia_defecto="Asegurá al menos 2 nodos con valores x estrictamente crecientes y finitos.",
+            ejemplo_defecto="x = [0.0, 1.0, 2.0, 3.5, 4.0]",
+        )
+        return
+
+    if res["tramos_trapecio"] > 0:
+        for aviso in res["avisos_pedagogicos"]:
+            st.warning(aviso)
+    else:
+        st.success(
+            "Todos los tramos mantienen 3 puntos equidistantes: se aplica **Simpson 1/3** puro (orden $\\mathcal{O}(h^4)$)."
+        )
+
+    k1, k2, k3 = st.columns(3)
+    if es_caso_real:
+        delta_e = (
+            f"Exacta: {res['exacta']['integral_exacta']:.4f} kWh · Err {res['exacta']['error_relativo_pct']:.3f}%"
+            if res.get("exacta")
+            else f"{res['n_intervalos_total']} intervalos"
+        )
+        k1.metric("Resultado Total (Energía)", f"{res['area_total']:.4f} kWh", delta_e, delta_color="off")
+    else:
+        delta_i = (
+            f"Exacta: {res['exacta']['integral_exacta']:.6f} · Err {res['exacta']['error_relativo_pct']:.4f}%"
+            if res.get("exacta")
+            else f"{res['n_intervalos_total']} intervalos"
+        )
+        k1.metric("Resultado Total (Integral)", f"{res['area_total']:.6f}", delta_i, delta_color="off")
+
+    k2.metric(
+        "Tramos con Simpson 1/3",
+        str(res["tramos_simpson_1_3"]),
+        f"{res['subintervalos_simpson_1_3']} subintervalos (3 pts equidistantes c/u)",
+        delta_color="off",
+    )
+    k3.metric(
+        "Tramos resueltos por Trapecio",
+        str(res["tramos_trapecio"]),
+        (
+            "0 (sin caída)"
+            if res["tramos_trapecio"] == 0
+            else f"{res['subintervalos_trapecio']} subintervalo(s) por cambio de h / paridad"
+        ),
+        delta_color="off",
+    )
+
+    _plot_cuadratura_hibrida(
+        res,
+        xs,
+        ys,
+        titulo_plot=(
+            f"Energía Acumulada E = ∫ P(t) dt ({res['reglas_aplicadas']})"
+            if es_caso_real
+            else f"Regla de Simpson 1/3 Híbrida ({res['reglas_aplicadas']})"
+        ),
+        x_lbl="Tiempo t (horas)" if es_caso_real else "x",
+        y_lbl="Potencia P(t) [kW]" if es_caso_real else "f(x)",
+        nombre_exacta="Curva exacta P(t)" if es_caso_real else "Curva exacta f(x)",
+        nombre_nodos="Muestras medidas" if es_caso_real else "Nodos (xᵢ, yᵢ)",
+        plot_key="plot_int_s13_hibrido",
+        color_exacta=PALETA_ARANDU["oro"],
+    )
+
+    unidad_txt = " kWh" if es_caso_real else ""
+    exacta_ia = (
+        f" | **Exacta:** `{res['exacta']['integral_exacta']:.6f}{unidad_txt}` (Error rel: `{res['exacta']['error_relativo_pct']:.4f}%`)"
+        if res.get("exacta")
+        else ""
+    )
+    registrar_contexto_ia(
+        "Resultado Simpson 1/3 Híbrido",
+        f"- **Contexto:** {'Telemetría de Potencia P(t)' if es_caso_real else 'Función Libre / TP6'}\n"
+        f"- **Resultado total:** `{res['area_total']:.6f}{unidad_txt}`{exacta_ia}\n"
+        f"- **Tramos Simpson 1/3:** `{res['tramos_simpson_1_3']}` | **Tramos Trapecio:** `{res['tramos_trapecio']}`",
+        clave="int_s13_res",
+    )
+
+    if modo_detallado:
+        _render_detalle_cuadratura_hibrida(
+            res,
+            "int_s13",
+            f"Simpson 1/3 Híbrido ({res['reglas_aplicadas']})",
+            unidad_txt,
+        )
+
+
+def _render_simpson_1_3_tab() -> None:
+    modo_detallado = render_toggle_modo_detallado("simpson_1_3")
+    meta = render_bloque_1_teoria_y_ejemplo("simpson_1_3", modo_detallado=modo_detallado)
+    practica = meta.get("practica_profesora", {})
+    defaults = practica.get(
+        "datos_iniciales",
+        {
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05],
+            "f_str": "x**2 / 5",
+        },
+    )
+    if "f_str" not in defaults:
+        defaults = {**defaults, "f_str": "x**2 / 5"}
+    if modo_detallado:
+        render_practica_catedra_info(
+            titulo_practica=practica.get("titulo"),
+            enunciado_practica=practica.get("enunciado"),
+            solucion_referencia=practica.get("solucion_referencia"),
+        )
+    st.divider()
+    _frag_simpson_1_3(defaults, modo_detallado=modo_detallado)
+
+
+@st.fragment
+def _frag_simpson_3_8(defaults: dict, modo_detallado: bool) -> None:
+    st.markdown("### 3. Simulador Protagonista")
+    contexto = st.radio(
+        "Escenario de simulación:",
+        options=["real_caudal", "funcion_libre"],
+        format_func=lambda op: (
+            "Caso Real: Telemetría de Caudal Q(t) → Volumen de Agua (m³)"
+            if op == "real_caudal"
+            else "Función Matemática Libre f(x) / Cátedra TP6"
+        ),
+        horizontal=True,
+        key="ui_int_s38_contexto",
+    )
+    es_caso_real = contexto == "real_caudal"
+
+    if es_caso_real:
+        st.caption(
+            r"Caudalímetro desde $t_0 = 0\text{ h}$ sobre $Q(t) = 0.1t^3 - 0.6t^2 + 1.5t + 4.0\;\text{[m}^3/\text{h]}$. "
+            r"Con $n = 5$ lecturas equidistantes combina **Simpson 3/8 + 1/3** preservando orden $\mathcal{O}(h^4)$; modificá $\Delta t_k$ para activar el respaldo por **Trapecio**."
+        )
+        if "int_s38_real_pasos" not in st.session_state:
+            st.session_state["int_s38_real_pasos"] = [1.0, 1.0, 1.0, 1.0, 1.0]
+        if "int_s38_real_n" not in st.session_state:
+            st.session_state["int_s38_real_n"] = len(st.session_state["int_s38_real_pasos"])
+
+        b_comb, b_puro, b_jit = st.columns(3)
+        if b_comb.button(
+            "Turno de 5 h (n=5, Δt=1.0 h → Combinado 3/8 + 1/3 exacto)",
+            key="btn_s38_real_comb",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_s38", [1.0, 1.0, 1.0, 1.0, 1.0])
+            rerun_fragmento_seguro()
+        if b_puro.button(
+            "Múltiplo de 3 (n=3, Δt=1.0 h → 100% Simpson 3/8 puro)",
+            key="btn_s38_real_puro",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_s38", [1.0, 1.0, 1.0])
+            rerun_fragmento_seguro()
+        if b_jit.button(
+            "Cambio de muestreo (Δt = [1.0, 1.0, 1.0, 1.5, 0.5] h → 3/8 + Caída a Trapecio)",
+            key="btn_s38_real_jit",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_s38", [1.0, 1.0, 1.0, 1.5, 0.5])
+            rerun_fragmento_seguro()
+
+        n_real = int(
+            st.slider(
+                "Cantidad de subintervalos de muestreo ($n$):",
+                min_value=3,
+                max_value=8,
+                value=int(st.session_state["int_s38_real_n"]),
+                key="ui_int_s38_real_n",
+            )
+        )
+        st.session_state["int_s38_real_n"] = n_real
+        pasos_sync = _sincronizar_pasos_lista(st.session_state["int_s38_real_pasos"], n_real, 1.0)
+        pasos_edit = _render_inputs_pasos_h(
+            pasos_sync,
+            prefijo_key="ui_int_s38_real_h",
+            etiqueta_prefijo="Δt",
+            min_h=0.1,
+            max_h=5.0,
+            step_h=0.1,
+        )
+        st.session_state["int_s38_real_pasos"] = pasos_edit
+        f_str_activo = _FUNC_TELEMETRIA_CAUDAL
+        try:
+            xs, ys = reconstruir_malla_por_pasos(0.0, pasos_edit, f_str=f_str_activo)
+        except Exception as exc:
+            render_excepcion_validacion(
+                exc,
+                campo="Intervalos de muestreo Δt",
+                sugerencia_defecto="Ingresá intervalos Δt_k positivos (por ejemplo 1.0, 1.0, 1.0, 1.0, 1.0).",
+                ejemplo_defecto="Δt = [1.0, 1.0, 1.0, 1.5, 0.5]",
+            )
+            return
+    else:
+        malla_libre = _render_malla_libre_hibrida(
+            "int_s38",
+            "simpson_3_8",
+            defaults,
+            "f(x) = x**2 / 5, pasos h = [5.0, 5.0, 5.0, 5.0, 5.0]",
+        )
+        if malla_libre is None:
+            return
+        xs, ys, f_str_activo = malla_libre
+
+    try:
+        res = integrar_simpson_3_8_hibrido(xs, ys, f_str=f_str_activo)
+    except Exception as exc:
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla de nodos (x, y)",
+            sugerencia_defecto="Asegurá al menos 2 nodos con valores x estrictamente crecientes y finitos.",
+            ejemplo_defecto="x = [0.0, 1.0, 2.0, 3.0, 4.5, 5.0]",
+        )
+        return
+
+    if not res["avisos_pedagogicos"]:
+        st.success(
+            "Todos los tramos forman bloques de 4 puntos equidistantes: se aplica **Simpson 3/8** puro (orden $\\mathcal{O}(h^4)$)."
+        )
+    else:
+        for aviso in res["avisos_pedagogicos"]:
+            if "Trapecio" in aviso:
+                st.warning(aviso)
+            else:
+                st.info(aviso)
+
+    k1, k2, k3 = st.columns(3)
+    if es_caso_real:
+        delta_v = (
+            f"Exacta: {res['exacta']['integral_exacta']:.4f} m³ · Err {res['exacta']['error_relativo_pct']:.3f}%"
+            if res.get("exacta")
+            else f"{res['n_intervalos_total']} intervalos"
+        )
+        k1.metric("Resultado Total (Volumen)", f"{res['area_total']:.4f} m³", delta_v, delta_color="off")
+    else:
+        delta_i = (
+            f"Exacta: {res['exacta']['integral_exacta']:.6f} · Err {res['exacta']['error_relativo_pct']:.4f}%"
+            if res.get("exacta")
+            else f"{res['n_intervalos_total']} intervalos"
+        )
+        k1.metric("Resultado Total (Integral)", f"{res['area_total']:.6f}", delta_i, delta_color="off")
+
+    k2.metric(
+        "Tramos con Simpson 3/8",
+        str(res["tramos_simpson_3_8"]),
+        f"{res['subintervalos_simpson_3_8']} subintervalos (4 pts equidistantes c/u)",
+        delta_color="off",
+    )
+    if res["tramos_simpson_1_3"] == 0 and res["tramos_trapecio"] == 0:
+        delta_empalme = "Sin empalme ni caída"
+    else:
+        delta_empalme = (
+            f"{res['subintervalos_simpson_1_3']} subinterv. 1/3 · {res['subintervalos_trapecio']} Trapecio"
+        )
+    k3.metric(
+        "Empalme Simpson 1/3 y Trapecio",
+        f"{res['tramos_simpson_1_3']} Simpson 1/3 · {res['tramos_trapecio']} Trapecio",
+        delta_empalme,
+        delta_color="off",
+    )
+
+    _plot_cuadratura_hibrida(
+        res,
+        xs,
+        ys,
+        titulo_plot=(
+            f"Volumen Acumulado V = ∫ Q(t) dt ({res['reglas_aplicadas']})"
+            if es_caso_real
+            else f"Simpson 3/8 y Esquema Combinado ({res['reglas_aplicadas']})"
+        ),
+        x_lbl="Tiempo t (horas)" if es_caso_real else "x",
+        y_lbl="Caudal Q(t) [m³/h]" if es_caso_real else "f(x)",
+        nombre_exacta="Curva exacta Q(t)" if es_caso_real else "Curva exacta f(x)",
+        nombre_nodos="Lecturas medidas" if es_caso_real else "Nodos (xᵢ, yᵢ)",
+        plot_key="plot_int_s38_hibrido",
+        color_exacta=PALETA_ARANDU["texto_principal"],
+    )
+
+    unidad_txt = " m³" if es_caso_real else ""
+    exacta_ia = (
+        f" | **Exacta:** `{res['exacta']['integral_exacta']:.6f}{unidad_txt}` (Error rel: `{res['exacta']['error_relativo_pct']:.4f}%`)"
+        if res.get("exacta")
+        else ""
+    )
+    registrar_contexto_ia(
+        "Resultado Simpson 3/8 Híbrido",
+        f"- **Contexto:** {'Telemetría de Caudal Q(t)' if es_caso_real else 'Función Libre / TP6'}\n"
+        f"- **Resultado total:** `{res['area_total']:.6f}{unidad_txt}`{exacta_ia}\n"
+        f"- **Tramos Simpson 3/8:** `{res['tramos_simpson_3_8']}` | **Simpson 1/3:** `{res['tramos_simpson_1_3']}` | **Trapecio:** `{res['tramos_trapecio']}`",
+        clave="int_s38_res",
+    )
+
+    if modo_detallado:
+        _render_detalle_cuadratura_hibrida(
+            res,
+            "int_s38",
+            f"Simpson 3/8 y Combinado ({res['reglas_aplicadas']})",
+            unidad_txt,
+        )
+
+
+def _render_simpson_3_8_tab() -> None:
+    modo_detallado = render_toggle_modo_detallado("simpson_3_8")
+    meta = render_bloque_1_teoria_y_ejemplo("simpson_3_8_combinado", modo_detallado=modo_detallado)
+    practica = meta.get("practica_profesora", {})
+    defaults = practica.get(
+        "datos_iniciales",
+        {
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5, 25.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05, 130.05],
+            "f_str": "x**2 / 5",
+        },
+    )
+    if "f_str" not in defaults:
+        defaults = {**defaults, "f_str": "x**2 / 5"}
+    if modo_detallado:
+        render_practica_catedra_info(
+            titulo_practica=practica.get("titulo"),
+            enunciado_practica=practica.get("enunciado"),
+            solucion_referencia=practica.get("solucion_referencia"),
+        )
+    st.divider()
+    _frag_simpson_3_8(defaults, modo_detallado=modo_detallado)
+
+
+@st.fragment
+def _frag_trapecio(defaults: dict, modo_detallado: bool) -> None:
+    st.markdown("### 3. Simulador Protagonista")
+    contexto = st.radio(
+        "Escenario de simulación:",
+        options=["real_topografia", "funcion_libre"],
+        format_func=lambda op: (
+            "Caso Real: Agrimensura de Lote Ribereño y(x) → Área (m²)"
+            if op == "real_topografia"
+            else "Función Matemática Libre f(x) / Cátedra TP6"
+        ),
+        horizontal=True,
+        key="ui_int_trap_contexto",
+    )
+    es_caso_real = contexto == "real_topografia"
+
+    if es_caso_real:
+        st.caption(
+            r"Relevamiento topográfico desde estaca $x_0 = 0\text{ m}$ con ancho ribereño $y(x) = \sin(x) + 0.5x + 1.5\;\text{[m]}$. "
+            r"Probá estacas uniformes o espaciamientos variables $\Delta x_k$ sin perder validez."
+        )
+        if "int_trap_real_pasos" not in st.session_state:
+            st.session_state["int_trap_real_pasos"] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        if "int_trap_real_n" not in st.session_state:
+            st.session_state["int_trap_real_n"] = len(st.session_state["int_trap_real_pasos"])
+
+        b_unif, b_obst, b_gruesa = st.columns(3)
+        if b_unif.button(
+            "Estacas uniformes (6 tramos de Δx = 0.5 m → Regla Compuesta E, P, I)",
+            key="btn_trap_real_unif",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_trap", [0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+            rerun_fragmento_seguro()
+        if b_obst.button(
+            "Terreno con obstáculos (Δx = [0.5, 0.5, 1.2, 0.8, 0.5, 0.5] m → Paso Variable)",
+            key="btn_trap_real_obst",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_trap", [0.5, 0.5, 1.2, 0.8, 0.5, 0.5])
+            rerun_fragmento_seguro()
+        if b_gruesa.button(
+            "Malla gruesa (3 tramos de Δx = 1.0 m → Mayor error de curvatura O(h²))",
+            key="btn_trap_real_gruesa",
+            use_container_width=True,
+        ):
+            _aplicar_preset_pasos("int_trap", [1.0, 1.0, 1.0])
+            rerun_fragmento_seguro()
+
+        n_real = int(
+            st.slider(
+                "Cantidad de tramos entre estacas ($n$):",
+                min_value=2,
+                max_value=8,
+                value=int(st.session_state["int_trap_real_n"]),
+                key="ui_int_trap_real_n",
+            )
+        )
+        st.session_state["int_trap_real_n"] = n_real
+        pasos_sync = _sincronizar_pasos_lista(st.session_state["int_trap_real_pasos"], n_real, 0.5)
+        pasos_edit = _render_inputs_pasos_h(
+            pasos_sync,
+            prefijo_key="ui_int_trap_real_h",
+            etiqueta_prefijo="Δx",
+            min_h=0.1,
+            max_h=5.0,
+            step_h=0.1,
+        )
+        st.session_state["int_trap_real_pasos"] = pasos_edit
+        f_str_activo = _FUNC_TOPOGRAFIA_LOTE
+        try:
+            xs, ys = reconstruir_malla_por_pasos(0.0, pasos_edit, f_str=f_str_activo)
+        except Exception as exc:
+            render_excepcion_validacion(
+                exc,
+                campo="Distancias entre estacas Δx",
+                sugerencia_defecto="Ingresá distancias Δx_k positivas (por ejemplo 0.5, 0.5, 1.2, 0.8, 0.5, 0.5).",
+                ejemplo_defecto="Δx = [0.5, 0.5, 1.2, 0.8, 0.5, 0.5]",
+            )
+            return
+    else:
+        malla_libre = _render_malla_libre_hibrida(
+            "int_trap",
+            "trapecio",
+            defaults,
+            "f(x) = x**2 / 5, pasos h = [5.0, 5.0, 5.0, 5.0, 5.0]",
+        )
+        if malla_libre is None:
+            return
+        xs, ys, f_str_activo = malla_libre
+
+    try:
+        res = integrar_trapecio_hibrido(xs, ys, f_str=f_str_activo)
+    except Exception as exc:
+        render_excepcion_validacion(
+            exc,
+            campo="Tabla de nodos (x, y)",
+            sugerencia_defecto="Asegurá al menos 2 nodos con valores x estrictamente crecientes y finitos.",
+            ejemplo_defecto="x = [0.5, 5.5, 10.5, 15.5, 20.5, 25.5]",
+        )
+        return
+
+    if res["es_uniforme"]:
+        st.success(
+            f"Malla uniforme ($h = {res['pasos_h'][0]:g}$): aplica directamente la regla compuesta $\\frac{{h}}{{2}}[E + 2P + 2I]$."
+        )
+    else:
+        for aviso in res["avisos_pedagogicos"]:
+            st.info(aviso)
+
+    k1, k2, k3 = st.columns(3)
+    if es_caso_real:
+        delta_s = (
+            f"Exacta: {res['exacta']['integral_exacta']:.4f} m² · Err {res['exacta']['error_relativo_pct']:.3f}%"
+            if res.get("exacta")
+            else f"{res['n_intervalos_total']} tramos"
+        )
+        k1.metric("Resultado Total (Superficie)", f"{res['area_total']:.4f} m²", delta_s, delta_color="off")
+        simpson_val_txt = f"{res['area_simpson_ref']:.4f} m²"
+    else:
+        delta_i = (
+            f"Exacta: {res['exacta']['integral_exacta']:.6f} · Err {res['exacta']['error_relativo_pct']:.4f}%"
+            if res.get("exacta")
+            else f"{res['n_intervalos_total']} tramos"
+        )
+        k1.metric("Resultado Total (Integral)", f"{res['area_total']:.6f}", delta_i, delta_color="off")
+        simpson_val_txt = f"{res['area_simpson_ref']:.6f}"
+
+    k2.metric(
+        "Tramos Trapezoidales Activos",
+        f"{res['tramos_trapecio']} trapecios",
+        "Paso h constante (fórmula E, P, I)" if res["es_uniforme"] else "Paso hₖ variable por tramo",
+        delta_color="off",
+    )
+    k3.metric(
+        "Contraste vs. Simpson 1/3 Híbrido",
+        simpson_val_txt,
+        f"{res['tramos_simpson_posibles']} parábola(s) posibles en esta malla",
+        delta_color="off",
+    )
+
+    _plot_cuadratura_hibrida(
+        res,
+        xs,
+        ys,
+        titulo_plot=(
+            f"Superficie Ribereña por Trapecios ({'h constante' if res['es_uniforme'] else 'h variable'})"
+            if es_caso_real
+            else f"Regla de los Trapecios ({'h constante' if res['es_uniforme'] else 'h variable'})"
+        ),
+        x_lbl="Distancia x (m)" if es_caso_real else "x",
+        y_lbl="Ancho y(x) [m]" if es_caso_real else "f(x)",
+        nombre_exacta="Ribera exacta y(x)" if es_caso_real else "Curva exacta f(x)",
+        nombre_nodos="Estacas medidas" if es_caso_real else "Nodos (xᵢ, yᵢ)",
+        plot_key="plot_int_trap_hibrido",
+        color_exacta=PALETA_ARANDU["oro"],
+    )
+
+    unidad_txt = " m²" if es_caso_real else ""
+    exacta_ia = (
+        f" | **Exacta:** `{res['exacta']['integral_exacta']:.6f}{unidad_txt}` (Error rel: `{res['exacta']['error_relativo_pct']:.4f}%`)"
+        if res.get("exacta")
+        else ""
+    )
+    registrar_contexto_ia(
+        "Resultado Regla de Trapecios",
+        f"- **Contexto:** {'Agrimensura de Lote Ribereño' if es_caso_real else 'Función Libre / TP6'}\n"
+        f"- **Resultado total:** `{res['area_total']:.6f}{unidad_txt}`{exacta_ia}\n"
+        f"- **Trapecios activos:** `{res['tramos_trapecio']}` | **Contraste Simpson 1/3 Híbrido:** `{res['area_simpson_ref']:.6f}{unidad_txt}`",
+        clave="int_trap_res",
+    )
+
+    if modo_detallado:
+        _render_detalle_cuadratura_hibrida(
+            res,
+            "int_trap",
+            f"Regla de los Trapecios ({'Uniforme' if res['es_uniforme'] else 'Paso Variable'})",
+            unidad_txt,
+        )
+
+
+def _render_trapecio_tab() -> None:
+    modo_detallado = render_toggle_modo_detallado("trapecio")
+    meta = render_bloque_1_teoria_y_ejemplo("trapecio", modo_detallado=modo_detallado)
+    practica = meta.get("practica_profesora", {})
+    defaults = practica.get(
+        "datos_iniciales",
+        {
+            "x": [0.5, 5.5, 10.5, 15.5, 20.5, 25.5],
+            "y": [0.05, 6.05, 22.05, 48.05, 84.05, 130.05],
+            "f_str": "x**2 / 5",
+        },
+    )
+    if "f_str" not in defaults:
+        defaults = {**defaults, "f_str": "x**2 / 5"}
+    if modo_detallado:
+        render_practica_catedra_info(
+            titulo_practica=practica.get("titulo"),
+            enunciado_practica=practica.get("enunciado"),
+            solucion_referencia=practica.get("solucion_referencia"),
+        )
+    st.divider()
+    _frag_trapecio(defaults, modo_detallado=modo_detallado)
+
+
 def _render_integracion_tab(clave_catalogo: str, clave_state: str, metodo_solicitado: str) -> None:
     meta = render_bloque_1_teoria_y_ejemplo(clave_catalogo)
     practica = meta.get("practica_profesora", {})
@@ -1311,14 +2531,11 @@ def vista_integracion() -> None:
     if activo == 0:
         _tab_diferenciacion()
     elif activo == 1:
-        _render_integracion_tab("trapecio", "int_trap", "trapecio")
+        _render_trapecio_tab()
     elif activo == 2:
-        _render_integracion_tab("simpson_1_3", "int_s13", "simpson_1_3")
+        _render_simpson_1_3_tab()
     else:
-        _render_integracion_tab("simpson_3_8_combinado", "int_s38", "simpson_3_8")
-
-    st.divider()
-    _frag_laboratorio_paso_variable()
+        _render_simpson_3_8_tab()
 
 
 vista_integracion()

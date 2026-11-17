@@ -39,16 +39,60 @@ from views.ui_shared import (
     render_practica_catedra_info,
     render_selector_fichas_metodos,
     render_slider_paso_k,
+    render_toggle_modo_detallado,
+    rerun_fragmento_seguro,
 )
 
 
-def _editor_sistema(clave_state: str, solo_lectura: bool, incluir_x0: bool = False) -> tuple[list[list[float]], list[float], list[float] | None]:
+_A_CLUSTER_GAUSS = [
+    [1.0, -0.20, -0.10],
+    [-0.35, 1.0, -0.15],
+    [-0.25, -0.30, 1.0],
+]
+
+
+def _aplicar_preset_sistemas(valores: dict[str, object], claves_ui: tuple[str, ...]) -> None:
+    """Actualiza parámetros en session_state y limpia claves de widgets UI asociados."""
+    for clave, valor in valores.items():
+        st.session_state[clave] = valor
+    for clave_ui in claves_ui:
+        st.session_state.pop(clave_ui, None)
+
+
+def _parsear_fila_aumentada(texto: str, n_cols: int) -> tuple[list[float], float]:
+    """Convierte una fila 'a1, a2, a3 | b' o 'a1, a2, a3, b' en coeficientes y término b."""
+    limpio = (texto or "").replace("|", ",").replace(";", ",")
+    partes = [float(p.strip()) for p in limpio.split(",") if p.strip()]
+    if len(partes) != n_cols + 1:
+        raise ValueError(f"Se esperan {n_cols} coeficientes + 1 término independiente ({n_cols + 1} números); se recibieron {len(partes)}.")
+    return partes[:n_cols], partes[-1]
+
+
+def _construir_tabla_aumentada(matriz: list[list[float]], cols_vars: list[str]) -> list[dict]:
+    """Formatea una matriz aumentada [A | b] con encabezados 100% en español."""
+    filas = []
+    for idx, fila in enumerate(matriz, start=1):
+        registro: dict[str, object] = {"Ecuación": f"Fila {idx}"}
+        for j, nombre in enumerate(cols_vars):
+            registro[f"Col. {nombre}"] = float(fila[j])
+        registro["Término b"] = float(fila[-1])
+        filas.append(registro)
+    return filas
+
+
+def _editor_sistema(
+    clave_state: str,
+    solo_lectura: bool,
+    incluir_x0: bool = False,
+    cols_vars: list[str] | None = None,
+    col_b: str = "b",
+) -> tuple[list[list[float]], list[float], list[float] | None]:
     A = st.session_state[f"{clave_state}_A"]
     b = st.session_state[f"{clave_state}_b"]
     n = len(A)
-    cols_A = [f"a_{i+1}" for i in range(n)]
+    cols_A = cols_vars if (cols_vars is not None and len(cols_vars) == n) else [f"a_{i+1}" for i in range(n)]
     df_mat = pd.DataFrame(A, columns=cols_A)
-    df_mat["b"] = b
+    df_mat[col_b] = b
     if incluir_x0:
         x0 = st.session_state[f"{clave_state}_x0"]
         df_mat["x0"] = x0
@@ -62,7 +106,7 @@ def _editor_sistema(clave_state: str, solo_lectura: bool, incluir_x0: bool = Fal
     )
     if not solo_lectura:
         A = df_edit[cols_A].astype(float).values.tolist()
-        b = df_edit["b"].astype(float).tolist()
+        b = df_edit[col_b].astype(float).tolist()
         st.session_state[f"{clave_state}_A"] = A
         st.session_state[f"{clave_state}_b"] = b
         if incluir_x0:
@@ -73,77 +117,265 @@ def _editor_sistema(clave_state: str, solo_lectura: bool, incluir_x0: bool = Fal
 
 
 @st.fragment
-def _frag_gauss(defaults: dict) -> None:
-    modo = render_controles_edicion_practica(
-        clave_state="sis_gauss",
-        defaults_dict=defaults,
-        mensaje_edicion=r"Edita la matriz de coeficientes $A$ y el vector independiente $b$ directamente en la tabla.",
+def _frag_gauss(defaults: dict, modo_detallado: bool) -> None:
+    st.markdown("### 3. Simulador Protagonista")
+    contexto = st.radio(
+        "Escenario de simulación:",
+        options=["real_cluster", "libre_catedra"],
+        format_func=lambda op: (
+            "Caso Real: Balanceo de Tráfico en Clúster Cloud (req/s)"
+            if op == "real_cluster"
+            else "Sistema Libre 3×3 y Cátedra TP4 Ej. 5"
+        ),
+        horizontal=True,
+        key="ui_gauss_contexto",
     )
-    solo_lectura = modo == "catedra"
-    A, b, _ = _editor_sistema("sis_gauss", solo_lectura)
+    es_caso_real = contexto == "real_cluster"
+    if "sis_gauss_piv" not in st.session_state:
+        st.session_state["sis_gauss_piv"] = True
 
-    st.markdown("### Bloque 3 — Escalonamiento y Sustitución Regresiva")
+    if es_caso_real:
+        st.caption(
+            r"Malla de 3 nodos (`Gateway`, `Auth`, `Billing/DB`): modificá el tráfico externo entrante $d_i$ (req/s) "
+            r"para calcular la carga total real de cada servicio tras los reenvíos internos."
+        )
+        if "sis_gauss_d1" not in st.session_state:
+            st.session_state["sis_gauss_d1"] = 500.0
+        if "sis_gauss_d2" not in st.session_state:
+            st.session_state["sis_gauss_d2"] = 120.0
+        if "sis_gauss_d3" not in st.session_state:
+            st.session_state["sis_gauss_d3"] = 80.0
+
+        claves_ui_real = ("ui_gauss_d1", "ui_gauss_d2", "ui_gauss_d3", "ui_gauss_piv")
+        b1, b2, b3 = st.columns(3)
+        if b1.button("Carga normal (500 / 120 / 80 req/s)", key="btn_gauss_normal", use_container_width=True):
+            _aplicar_preset_sistemas(
+                {"sis_gauss_d1": 500.0, "sis_gauss_d2": 120.0, "sis_gauss_d3": 80.0, "sis_gauss_piv": True},
+                claves_ui_real,
+            )
+            rerun_fragmento_seguro()
+        if b2.button("Pico Black Friday (1250 / 300 / 150)", key="btn_gauss_pico", use_container_width=True):
+            _aplicar_preset_sistemas(
+                {"sis_gauss_d1": 1250.0, "sis_gauss_d2": 300.0, "sis_gauss_d3": 150.0, "sis_gauss_piv": True},
+                claves_ui_real,
+            )
+            rerun_fragmento_seguro()
+        if b3.button("Presión fuerte DB (200 / 180 / 650)", key="btn_gauss_db", use_container_width=True):
+            _aplicar_preset_sistemas(
+                {"sis_gauss_d1": 200.0, "sis_gauss_d2": 180.0, "sis_gauss_d3": 650.0, "sis_gauss_piv": True},
+                claves_ui_real,
+            )
+            rerun_fragmento_seguro()
+
+        c1, c2, c3 = st.columns(3)
+        d1_val = float(c1.number_input("d₁ API Gateway (req/s):", min_value=0.0, value=float(st.session_state["sis_gauss_d1"]), step=20.0, key="ui_gauss_d1"))
+        d2_val = float(c2.number_input("d₂ Auth (req/s):", min_value=0.0, value=float(st.session_state["sis_gauss_d2"]), step=20.0, key="ui_gauss_d2"))
+        d3_val = float(c3.number_input("d₃ Billing/DB (req/s):", min_value=0.0, value=float(st.session_state["sis_gauss_d3"]), step=20.0, key="ui_gauss_d3"))
+        usar_pivoteo = bool(st.checkbox("Activar pivoteo parcial", value=bool(st.session_state["sis_gauss_piv"]), key="ui_gauss_piv"))
+        st.session_state["sis_gauss_d1"] = d1_val
+        st.session_state["sis_gauss_d2"] = d2_val
+        st.session_state["sis_gauss_d3"] = d3_val
+        st.session_state["sis_gauss_piv"] = usar_pivoteo
+        A = _A_CLUSTER_GAUSS
+        b = [d1_val, d2_val, d3_val]
+        etiquetas_vars = ["Gateway", "Auth", "Billing/DB"]
+        error_parseo = None
+    else:
+        if "sis_gauss_A" not in st.session_state:
+            st.session_state["sis_gauss_A"] = [list(r) for r in defaults.get("A", [[18.72, 8.2, 8.76], [6.4, 15.9, 7.18], [5.22, 6.4, 14.31]])]
+        if "sis_gauss_b" not in st.session_state:
+            st.session_state["sis_gauss_b"] = list(defaults.get("b", [121.28, 126.321, 118.522]))
+
+        claves_ui_lib = ("ui_gauss_row_0", "ui_gauss_row_1", "ui_gauss_row_2", "sis_gauss__editor_df", "ui_gauss_piv")
+        b_l1, b_l2 = st.columns(2)
+        if b_l1.button("Restaurar TP4 Ej. 5 (Cátedra 3×3)", key="btn_gauss_tp4", use_container_width=True):
+            _aplicar_preset_sistemas(
+                {
+                    "sis_gauss_A": [list(r) for r in defaults.get("A", [[18.72, 8.2, 8.76], [6.4, 15.9, 7.18], [5.22, 6.4, 14.31]])],
+                    "sis_gauss_b": list(defaults.get("b", [121.28, 126.321, 118.522])),
+                    "sis_gauss_piv": True,
+                },
+                claves_ui_lib,
+            )
+            rerun_fragmento_seguro()
+        if b_l2.button("Trampa pivote 10⁻¹³ (probá Pivoteo ON vs OFF)", key="btn_gauss_piv_trap", use_container_width=True):
+            _aplicar_preset_sistemas(
+                {
+                    "sis_gauss_A": [[1e-13, 1.0, 1.0], [1.0, 2.0, 3.0], [2.0, 1.0, 1.0]],
+                    "sis_gauss_b": [2.0 + 1e-13, 6.0, 4.0],
+                    "sis_gauss_piv": False,
+                },
+                claves_ui_lib,
+            )
+            rerun_fragmento_seguro()
+
+        usar_pivoteo = bool(st.checkbox("Activar pivoteo parcial", value=bool(st.session_state["sis_gauss_piv"]), key="ui_gauss_piv"))
+        st.session_state["sis_gauss_piv"] = usar_pivoteo
+        error_parseo = None
+        if modo_detallado:
+            n_m = len(st.session_state["sis_gauss_A"])
+            A, b, _ = _editor_sistema(
+                "sis_gauss",
+                solo_lectura=False,
+                cols_vars=[f"Coef. x{i+1}" for i in range(n_m)],
+                col_b="Término b",
+            )
+        else:
+            A_cur = st.session_state["sis_gauss_A"]
+            b_cur = st.session_state["sis_gauss_b"]
+            n_m = len(A_cur)
+            cols_r = st.columns(n_m)
+            A_tmp, b_tmp = [], []
+            for idx_r in range(n_m):
+                def_txt = ", ".join(f"{v:g}" for v in A_cur[idx_r]) + f" | {b_cur[idx_r]:g}"
+                txt_r = cols_r[idx_r].text_input(
+                    f"Ecuación {idx_r + 1} [aᵢ₁, aᵢ₂, aᵢ₃ | bᵢ]:",
+                    value=def_txt,
+                    key=f"ui_gauss_row_{idx_r}",
+                )
+                try:
+                    fila_a, val_b = _parsear_fila_aumentada(txt_r, n_m)
+                    A_tmp.append(fila_a)
+                    b_tmp.append(val_b)
+                except Exception as exc:
+                    error_parseo = exc
+                    break
+            if error_parseo is None:
+                A, b = A_tmp, b_tmp
+                st.session_state["sis_gauss_A"] = A
+                st.session_state["sis_gauss_b"] = b
+            else:
+                A, b = A_cur, b_cur
+        etiquetas_vars = [f"x_{i+1}" for i in range(len(A))]
+
     try:
-        res = eliminacion_gauss(A, b)
+        if error_parseo is not None:
+            raise error_parseo
+        res = eliminacion_gauss(A, b, pivoteo=usar_pivoteo)
     except Exception as exc:
         render_excepcion_validacion(
             exc,
-            campo="Matriz A y vector b (Gauss)",
-            sugerencia_defecto="Verificá que A sea cuadrada no singular y sin ceros insalvables tras pivoteo parcial.",
-            ejemplo_defecto="A = [[4, -1, 0], [-1, 4, -1], [0, -1, 4]], b = [2, 6, 2]",
+            campo="Matriz A y vector b (Eliminación de Gauss)",
+            sugerencia_defecto="Verificá formato numérico válido (N coefs | b), que A sea cuadrada no singular y sin pivotes nulos insalvables.",
+            ejemplo_defecto="18.72, 8.2, 8.76 | 121.28",
         )
         return
 
-    cols = st.columns(len(res["solucion"]) + 1)
-    for i, val in enumerate(res["solucion"]):
-        cols[i].metric(f"x_{i+1}", f"{val:.6f}")
-    cols[-1].metric("‖Ax - b‖₂", f"{res['norma_error']:.3e}")
-    sol_txt = ", ".join(f"x_{i+1}={v:.6f}" for i, v in enumerate(res["solucion"]))
+    sol = res["solucion"]
+    m1, m2, m3 = st.columns(3)
+    if es_caso_real:
+        m1.metric(
+            "Carga Total Gateway (x₁)",
+            f"{sol[0]:.2f} req/s",
+            f"Externo d₁ = {b[0]:g} req/s",
+            delta_color="off",
+        )
+        m2.metric(
+            "Auth (x₂) / Billing (x₃)",
+            f"{sol[1]:.1f} / {sol[2]:.1f}",
+            f"req/s ({res['intercambios']} pivoteos)",
+            delta_color="off",
+        )
+    else:
+        m1.metric(
+            "Incógnitas x₁ / x₂",
+            f"{sol[0]:.4f} / {sol[1]:.4f}" if len(sol) >= 2 else f"{sol[0]:.4f}",
+            f"x₃ = {sol[2]:.4f}" if len(sol) == 3 else f"{len(sol)} variables",
+            delta_color="off",
+        )
+        m2.metric(
+            "Pasos de Escalonamiento",
+            f"{len(res['pasos_escalonamiento']) - 1} columnas",
+            f"Pivoteo {'ON' if usar_pivoteo else 'OFF'} ({res['intercambios']} swaps)",
+            delta_color="off",
+        )
+    m3.metric(
+        "Residuo ‖Ax − b‖₂",
+        f"{res['norma_error']:.2e}",
+        f"{'Precisión máquina' if res['norma_error'] < 1e-10 else 'Error numérico elevado (sin pivoteo)'}",
+        delta_color="off",
+    )
+
+    sol_txt = ", ".join(f"{etiquetas_vars[i]}={v:.6f}" for i, v in enumerate(sol))
     registrar_contexto_ia(
         "Solución Eliminación de Gauss",
+        f"- **Escenario:** {'Clúster Cloud' if es_caso_real else 'Libre / TP4 Ej. 5'} | **Pivoteo parcial:** `{usar_pivoteo}`\n"
         f"- **Vector solución:** `[{sol_txt}]`\n- **Norma residual $\\|Ax - b\\|_2$:** `{res['norma_error']:.3e}`",
         clave="sis_gauss_res",
     )
 
-    pasos = res["pasos_escalonamiento"]
-    pasos_gauss_vivos = [
-        "**Armado del sistema aumentado $[A \\mid b]$:** Aplicamos eliminación progresiva con pivoteo parcial columna por columna para triangular la matriz sin cambiar la solución."
-    ]
-    for p_e in pasos[1:]:
-        ops = "; ".join(f"`{op}`" for op in p_e.get("operaciones", [])) or "Sin intercambio ni eliminación requerida."
-        pasos_gauss_vivos.append(f"**{p_e['descripcion']}:** {ops}")
-    for p_s in reversed(res.get("pasos_sustitucion", [])):
-        pasos_gauss_vivos.append(
-            f"**Sustitución regresiva (`{p_s['variable']}`):** `{p_s['ecuacion']}` $= {p_s['valor']:.6f}$."
-        )
-    render_deduccion_paso_a_paso_viva(
-        "Eliminación Gaussiana y Sustitución Regresiva",
-        pasos_gauss_vivos,
-        clave_ia="sis_gauss_viva",
+    fig = crear_figura_base_plotly(
+        "Carga Externa dᵢ vs Carga Total Solucionada xᵢ (req/s)" if es_caso_real else "Solución xᵢ del Sistema Lineal",
+        "Servicio del Clúster" if es_caso_real else "Componente",
+        "Tráfico (req/s)" if es_caso_real else "Valor xᵢ",
+        altura=330,
     )
-    if pasos:
-        st.markdown("### Bloque 4 — Matriz Aumentada Paso a Paso")
-        k_vis = render_slider_paso_k("Ver paso de escalonamiento $k$:", len(pasos), key="vis_gauss_k")
-        paso = pasos[k_vis - 1]
-        st.info(paso["descripcion"])
-        render_dataframe_acotado(paso["matriz"], max_filas=300, key_prefix="tbl_sis_gauss", hide_index=False)
-
-    fig = crear_figura_base_plotly("Solución xᵢ y Magnitud de Componentes", "Componente", "Valor", altura=320)
-    fig.add_trace(
-        go.Bar(
-            x=[f"x_{i+1}" for i in range(len(res["solucion"]))],
-            y=res["solucion"],
-            name="Solución x",
-            marker_color=PALETA_ARANDU["oro"],
-            marker_line_color=PALETA_ARANDU["terracota_oscuro"],
-            marker_line_width=1.2,
+    if es_caso_real:
+        fig.add_trace(
+            go.Bar(
+                x=etiquetas_vars,
+                y=b,
+                name="Tráfico externo dᵢ",
+                marker_color=PALETA_ARANDU["salvia"],
+            )
         )
-    )
+        fig.add_trace(
+            go.Bar(
+                x=etiquetas_vars,
+                y=sol,
+                name="Tráfico total xᵢ",
+                marker_color=PALETA_ARANDU["oro"],
+                marker_line_color=PALETA_ARANDU["terracota_oscuro"],
+                marker_line_width=1.2,
+            )
+        )
+        fig.update_layout(barmode="group")
+    else:
+        fig.add_trace(
+            go.Bar(
+                x=etiquetas_vars,
+                y=sol,
+                name="Solución x",
+                marker_color=PALETA_ARANDU["oro"],
+                marker_line_color=PALETA_ARANDU["terracota_oscuro"],
+                marker_line_width=1.2,
+            )
+        )
     render_plotly_arandu(fig, key="plot_sis_gauss")
+
+    if modo_detallado:
+        pasos = res["pasos_escalonamiento"]
+        pasos_gauss_vivos = [
+            "**Armado del sistema aumentado $[A \\mid b]$:** Aplicamos eliminación progresiva con pivoteo parcial columna por columna para triangular la matriz sin cambiar la solución."
+        ]
+        for p_e in pasos[1:]:
+            ops = "; ".join(f"`{op}`" for op in p_e.get("operaciones", [])) or "Sin intercambio ni eliminación requerida."
+            pasos_gauss_vivos.append(f"**{p_e['descripcion']}:** {ops}")
+        for p_s in reversed(res.get("pasos_sustitucion", [])):
+            pasos_gauss_vivos.append(
+                f"**Sustitución regresiva (`{p_s['variable']}`):** `{p_s['ecuacion']}` $= {p_s['valor']:.6f}$."
+            )
+        render_deduccion_paso_a_paso_viva(
+            "Eliminación Gaussiana y Sustitución Regresiva",
+            pasos_gauss_vivos,
+            clave_ia="sis_gauss_viva",
+            expanded=True,
+        )
+        if pasos:
+            k_vis = render_slider_paso_k("Ver paso de escalonamiento $k$:", len(pasos), key="vis_gauss_k")
+            paso = pasos[k_vis - 1]
+            st.info(paso["descripcion"])
+            render_dataframe_acotado(
+                _construir_tabla_aumentada(paso["matriz"], etiquetas_vars),
+                max_filas=300,
+                key_prefix="tbl_sis_gauss",
+                hide_index=True,
+            )
 
 
 def _tab_gauss() -> None:
-    meta = render_bloque_1_teoria_y_ejemplo("eliminacion_gauss")
+    modo_detallado = render_toggle_modo_detallado("eliminacion_gauss")
+    meta = render_bloque_1_teoria_y_ejemplo("eliminacion_gauss", modo_detallado=modo_detallado)
     practica = meta.get("practica_profesora", {})
     defaults = practica.get(
         "datos_iniciales",
@@ -152,13 +384,14 @@ def _tab_gauss() -> None:
             "b": [121.280, 126.321, 118.522],
         },
     )
+    if modo_detallado:
+        render_practica_catedra_info(
+            titulo_practica=practica.get("titulo"),
+            enunciado_practica=practica.get("enunciado"),
+            solucion_referencia=practica.get("solucion_referencia"),
+        )
     st.divider()
-    render_practica_catedra_info(
-        titulo_practica=practica.get("titulo"),
-        enunciado_practica=practica.get("enunciado"),
-        solucion_referencia=practica.get("solucion_referencia"),
-    )
-    _frag_gauss(defaults)
+    _frag_gauss(defaults, modo_detallado=modo_detallado)
 
 
 @st.fragment

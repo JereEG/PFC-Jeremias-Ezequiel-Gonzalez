@@ -70,6 +70,7 @@ _UI_SHARED_EXPORTS = {
     "render_slider_paso_k",
     "render_subtitulo_controles_vivo",
     "render_tarjeta_catalogo",
+    "render_toggle_modo_detallado",
     "rerun_fragmento_seguro",
     "restaurar_estado_practica",
 }

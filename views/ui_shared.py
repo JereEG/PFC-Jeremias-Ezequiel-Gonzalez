@@ -209,12 +209,101 @@ def inject_arandu_css() -> None:
     reiniciar_contexto_ia()
 
 
-def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
+def render_toggle_modo_detallado(
+    clave: str = "global",
+    label: str = "Modo Detallado (Ingenierías / Deducción formal)",
+) -> bool:
+    """Renderiza el selector de cabecera entre Modo Presentación de Clase y Modo Detallado."""
+    toggle_key = f"ui_modo_detallado_{clave}"
+    estado_actual = bool(st.session_state.get(toggle_key, False))
+    with st.container(border=True):
+        c_info, c_tog = st.columns([2.2, 1.5])
+        with c_info:
+            if estado_actual:
+                st.markdown(
+                    "**Vista activa: Modo Detallado** — Deducción formal, error analítico "
+                    "y tablas completas para estudio de Ingenierías."
+                )
+            else:
+                st.markdown(
+                    "**Vista activa: Modo Presentación de Clase** — Enfoque limpio y escaneable "
+                    "para proyector y Licenciatura en Sistemas."
+                )
+        with c_tog:
+            activo = bool(
+                st.toggle(
+                    label,
+                    value=False,
+                    key=toggle_key,
+                    help="Activá para desplegar deducción formal, cota de error de truncamiento, ejemplo paso a paso y tablas completas.",
+                )
+            )
+    return activo
+
+
+def _render_tarjetas_veredicto(
+    cuando_usar: list[str],
+    cuando_falla: list[str],
+    titulo_pro: str = "Cuándo elegirlo",
+    titulo_warn: str = "Cuándo evitarlo o tener cuidado",
+) -> None:
+    """Renderiza dos tarjetas comparativas de criterio práctico."""
+    col_pro, col_warn = st.columns(2)
+    with col_pro:
+        with st.container(border=True):
+            st.markdown(
+                f'<div class="arandu-verdict-head arandu-verdict-head-pro">{html.escape(titulo_pro)}</div>',
+                unsafe_allow_html=True,
+            )
+            for item in cuando_usar:
+                st.markdown(f"- {item}")
+    with col_warn:
+        with st.container(border=True):
+            st.markdown(
+                f'<div class="arandu-verdict-head arandu-verdict-head-warn">{html.escape(titulo_warn)}</div>',
+                unsafe_allow_html=True,
+            )
+            for item in cuando_falla:
+                st.markdown(f"- {item}")
+
+
+def _render_panel_profundizacion(meta: dict[str, Any], guru: dict[str, Any]) -> None:
+    """Renderiza deducción formal, error de truncamiento y ejemplo paso a paso."""
+    ejemplo = meta.get("ejemplo_teorico", {})
+    profundizacion = guru.get("profundizacion", [])
+    deduccion_teorica = meta.get("deduccion_teorica", [])
+    if deduccion_teorica:
+        st.markdown("#### Deducción formal paso a paso")
+        for idx, paso_d in enumerate(deduccion_teorica, start=1):
+            st.markdown(f"{idx}. {paso_d}")
+    if profundizacion:
+        st.markdown("#### Error de truncamiento y comparación")
+        for detalle in profundizacion:
+            st.markdown(f"- {detalle}")
+    if ejemplo:
+        st.markdown(f"#### Ejemplo resuelto: {ejemplo.get('titulo', '')}")
+        if ejemplo.get("enunciado"):
+            st.markdown(f"**Enunciado:** {ejemplo['enunciado']}")
+        pasos = ejemplo.get("pasos", [])
+        if pasos:
+            st.markdown("**Pasos:**")
+            for idx, paso in enumerate(pasos, start=1):
+                st.markdown(f"{idx}. {paso}")
+        if ejemplo.get("resultado_final"):
+            st.success(f"**Conclusión:** {ejemplo['resultado_final']}")
+
+
+def render_bloque_1_teoria_y_ejemplo(
+    clave_metodo: str,
+    modo_detallado: bool | None = None,
+) -> dict[str, Any]:
     """
-    Renderiza la arquitectura de lectura en 3 niveles (Anti-Muro de Texto) para Sistemas:
-    - Bloque A: Título + Resumen Ejecutivo (2-3 líneas).
-    - Bloque B: Intuición visual/algorítmica + fórmulas st.latex() + Expander de profundización.
-    - Bloque C: Veredicto Práctico (Cuándo elegirlo / Cuándo evitarlo o tener cuidado).
+    Renderiza la arquitectura pedagógica de cada método.
+    - Cuando ``modo_detallado`` es ``None``, mantiene el formato clásico de 3 niveles.
+    - Cuando ``modo_detallado`` es ``False`` (Modo Presentación de Clase), muestra únicamente
+      el problema real + intuición rápida, fórmula clave y regla práctica breve.
+    - Cuando ``modo_detallado`` es ``True`` (Modo Detallado Ingenierías), despliega además la
+      deducción formal, error de truncamiento y ejemplo paso a paso.
     """
     meta = obtener_metodo(clave_metodo)
     if not meta:
@@ -225,9 +314,42 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     ctx["teoria"] = copy.deepcopy(meta)
 
     guru = meta.get("guru", {})
+    st.subheader(meta["nombre"])
+
+    if modo_detallado is not None:
+        # Bloque 1: El Problema Real y la Intuición (máx. 3-4 líneas)
+        problema_real = meta.get("problema_real") or {}
+        with st.container(border=True):
+            st.markdown("### 1. El Problema Real y la Intuición")
+            if problema_real:
+                if problema_real.get("titulo"):
+                    st.markdown(f"**Caso aplicado:** {problema_real['titulo']}")
+                if problema_real.get("descripcion"):
+                    st.markdown(problema_real["descripcion"])
+            elif meta.get("resumen_corto"):
+                st.markdown(meta["resumen_corto"])
+            if guru.get("intuicion_geometrica"):
+                st.markdown(f"**Intuición geométrica:** {guru['intuicion_geometrica']}")
+
+        # Bloque 2: Fórmula Clave + Regla Práctica
+        with st.container(border=True):
+            st.markdown("### 2. Fórmula Clave y Regla Práctica")
+            for formula in meta.get("formulas_latex", []):
+                st.latex(formula)
+            _render_tarjetas_veredicto(
+                cuando_usar=list(guru.get("cuando_usar", []))[:2],
+                cuando_falla=list(guru.get("cuando_falla", []))[:2],
+                titulo_pro="Cuándo conviene",
+                titulo_warn="Cuándo pierde precisión",
+            )
+
+        if modo_detallado:
+            with st.container(border=True):
+                st.markdown("### Rigor Matemático (Ingenierías) — Deducción, Error y Ejemplo")
+                _render_panel_profundizacion(meta, guru)
+        return meta
 
     # Bloque A: Título + Resumen Ejecutivo (siempre visible arriba)
-    st.subheader(meta["nombre"])
     with st.container(border=True):
         st.markdown(f"**Resumen Ejecutivo:** {meta.get('resumen_corto', '')}")
 
@@ -252,42 +374,13 @@ def render_bloque_1_teoria_y_ejemplo(clave_metodo: str) -> dict[str, Any]:
     deduccion_teorica = meta.get("deduccion_teorica", [])
     if deduccion_teorica or profundizacion or ejemplo:
         with st.expander("Ver desarrollo teórico detallado y deducción paso a paso (Para profundizar)", expanded=False):
-            if deduccion_teorica:
-                st.markdown("#### Deducción matemática paso a paso con explicación")
-                for idx, paso_d in enumerate(deduccion_teorica, start=1):
-                    st.markdown(f"{idx}. {paso_d}")
-            for detalle in profundizacion:
-                st.markdown(f"- {detalle}")
-            if ejemplo:
-                st.markdown(f"#### Ejemplo resuelto: {ejemplo.get('titulo', '')}")
-                if ejemplo.get("enunciado"):
-                    st.markdown(f"**Enunciado:** {ejemplo['enunciado']}")
-                pasos = ejemplo.get("pasos", [])
-                if pasos:
-                    st.markdown("**Pasos:**")
-                    for idx, paso in enumerate(pasos, start=1):
-                        st.markdown(f"{idx}. {paso}")
-                if ejemplo.get("resultado_final"):
-                    st.success(f"**Conclusión:** {ejemplo['resultado_final']}")
+            _render_panel_profundizacion(meta, guru)
 
     # Bloque C: Conclusión / Veredicto Práctico
-    col_pro, col_warn = st.columns(2)
-    with col_pro:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="arandu-verdict-head arandu-verdict-head-pro">Cuándo elegirlo</div>',
-                unsafe_allow_html=True,
-            )
-            for item in guru.get("cuando_usar", []):
-                st.markdown(f"- {item}")
-    with col_warn:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="arandu-verdict-head arandu-verdict-head-warn">Cuándo evitarlo o tener cuidado</div>',
-                unsafe_allow_html=True,
-            )
-            for item in guru.get("cuando_falla", []):
-                st.markdown(f"- {item}")
+    _render_tarjetas_veredicto(
+        cuando_usar=list(guru.get("cuando_usar", [])),
+        cuando_falla=list(guru.get("cuando_falla", [])),
+    )
 
     return meta
 
@@ -1194,6 +1287,7 @@ __all__ = [
     "render_slider_paso_k",
     "render_subtitulo_controles_vivo",
     "render_tarjeta_catalogo",
+    "render_toggle_modo_detallado",
     "rerun_fragmento_seguro",
     "restaurar_estado_practica",
 ]
