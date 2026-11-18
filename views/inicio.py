@@ -18,7 +18,7 @@ def vista_inicio() -> None:
 
     logo_uri = obtener_logo_arandu_src(prefer_svg=False)
     logo_html = (
-        f'<img src="{logo_uri}" class="arandu-hero-logo" alt="Isotipo Oficial de Arandú" />'
+        f'<img src="{logo_uri}" class="arandu-hero-logo" width="132" height="132" fetchpriority="high" decoding="async" alt="Isotipo Oficial de Arandú" />'
         if logo_uri
         else ""
     )

@@ -13,7 +13,7 @@ import shutil
 from pathlib import Path
 
 from core.version import APP_VERSION
-from views.theme import PALETA_ARANDU, hex_a_rgba
+from views.theme import PALETA_ARANDU, PALETA_ARANDU_CLARO, hex_a_rgba
 
 ROOT_DIR = Path(__file__).resolve().parent
 DIST_DIR = ROOT_DIR / "dist_offline"
@@ -97,42 +97,96 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
         },
         ensure_ascii=False,
     )
-    css_root_lines = "\n".join(
-        f"      {clave}: {valor};"
-        for clave, valor in {
-            "--arandu-bg": PALETA_ARANDU["bg_principal"],
-            "--arandu-surface": PALETA_ARANDU["bg_secundario"],
-            "--arandu-gold": PALETA_ARANDU["oro"],
-            "--arandu-sage": PALETA_ARANDU["salvia"],
-            "--arandu-sage-border": PALETA_ARANDU["salvia_borde"],
-            "--arandu-text": PALETA_ARANDU["texto_principal"],
-            "--arandu-muted": PALETA_ARANDU["texto_secundario"],
-            "--arandu-border": PALETA_ARANDU["borde"],
-            "--arandu-elevated": PALETA_ARANDU["bg_elevado"],
-            "--arandu-gold-14": hex_a_rgba(PALETA_ARANDU["oro"], 0.14),
-            "--arandu-gold-20": hex_a_rgba(PALETA_ARANDU["oro"], 0.20),
-            "--arandu-gold-35": hex_a_rgba(PALETA_ARANDU["oro"], 0.35),
-            "--arandu-surface-94": hex_a_rgba(PALETA_ARANDU["bg_secundario"], 0.94),
-            "--arandu-shadow-45": hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.45),
-        }.items()
-    )
+    tokens_pares = [
+        ("--arandu-bg", PALETA_ARANDU_CLARO["bg_principal"], PALETA_ARANDU["bg_principal"]),
+        ("--arandu-surface", PALETA_ARANDU_CLARO["bg_secundario"], PALETA_ARANDU["bg_secundario"]),
+        ("--arandu-gold", PALETA_ARANDU_CLARO["oro"], PALETA_ARANDU["oro"]),
+        ("--arandu-sage", PALETA_ARANDU_CLARO["salvia"], PALETA_ARANDU["salvia"]),
+        ("--arandu-sage-border", PALETA_ARANDU_CLARO["salvia_borde"], PALETA_ARANDU["salvia_borde"]),
+        ("--arandu-terracota", PALETA_ARANDU_CLARO["terracota"], PALETA_ARANDU["terracota"]),
+        ("--arandu-text", PALETA_ARANDU_CLARO["texto_principal"], PALETA_ARANDU["texto_principal"]),
+        ("--arandu-muted", PALETA_ARANDU_CLARO["texto_secundario"], PALETA_ARANDU["texto_secundario"]),
+        ("--arandu-border", PALETA_ARANDU_CLARO["borde"], PALETA_ARANDU["borde"]),
+        ("--arandu-elevated", PALETA_ARANDU_CLARO["bg_elevado"], PALETA_ARANDU["bg_elevado"]),
+        ("--arandu-gold-14", hex_a_rgba(PALETA_ARANDU_CLARO["oro"], 0.14), hex_a_rgba(PALETA_ARANDU["oro"], 0.14)),
+        ("--arandu-gold-20", hex_a_rgba(PALETA_ARANDU_CLARO["oro"], 0.20), hex_a_rgba(PALETA_ARANDU["oro"], 0.20)),
+        ("--arandu-gold-35", hex_a_rgba(PALETA_ARANDU_CLARO["oro"], 0.35), hex_a_rgba(PALETA_ARANDU["oro"], 0.35)),
+        (
+            "--arandu-surface-94",
+            hex_a_rgba(PALETA_ARANDU_CLARO["bg_secundario"], 0.94),
+            hex_a_rgba(PALETA_ARANDU["bg_secundario"], 0.94),
+        ),
+        (
+            "--arandu-shadow-45",
+            hex_a_rgba(PALETA_ARANDU_CLARO["negro_sombra"], 0.20),
+            hex_a_rgba(PALETA_ARANDU["negro_sombra"], 0.45),
+        ),
+    ]
+    css_root_lines = "\n".join(f"      {k}: {v_o};" for k, _v_c, v_o in tokens_pares)
+    css_claro_fallback = "\n".join(f"        {k}: {v_c};" for k, v_c, _v_o in tokens_pares)
+    css_light_dark = "\n".join(f"        {k}: light-dark({v_c}, {v_o});" for k, v_c, v_o in tokens_pares)
 
     html = f"""<!doctype html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <meta name="theme-color" content="{PALETA_ARANDU["bg_principal"]}" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="{PALETA_ARANDU_CLARO["bg_principal"]}" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="{PALETA_ARANDU["bg_principal"]}" />
   <meta name="description" content="Arandú — Métodos Computacionales v{APP_VERSION} (Modo Offline WebAssembly / PWA)" />
+  <script>
+    (function () {{
+      try {{
+        var saved = window.localStorage ? window.localStorage.getItem("arandu-theme") : null;
+        var root = document.documentElement;
+        var metaCs = document.querySelector('meta[name="color-scheme"]');
+        if (saved === "claro" || saved === "oscuro") {{
+          if (metaCs) metaCs.content = (saved === "claro") ? "light" : "dark";
+          root.dataset.aranduTheme = saved;
+        }} else if (window.matchMedia) {{
+          var mq = window.matchMedia("(prefers-color-scheme: light)");
+          var sync = function () {{
+            var m = mq.matches ? "claro" : "oscuro";
+            document.cookie = "arandu_sys_tema=" + m + "; path=/; max-age=2592000; SameSite=Lax";
+          }};
+          sync();
+          if (mq.addEventListener) mq.addEventListener("change", sync);
+        }}
+      }} catch (_err) {{}}
+    }})();
+  </script>
   <title>Arandú — Métodos Computacionales (Offline v{APP_VERSION})</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/svg+xml" href="./assets/svg/arandu.svg" />
   <link rel="apple-touch-icon" href="./assets/logo_arandu.jpg" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link id="arandu-fonts-link" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" />
   <link rel="stylesheet" href="{STLITE_CDN_BASE}/stlite.css" />
   <style>
     :root {{
+      color-scheme: light dark;
+      &:has(> head > meta[name="color-scheme"][content="dark"]) {{ color-scheme: dark; }}
+      &:has(> head > meta[name="color-scheme"][content="light"]) {{ color-scheme: light; }}
 {css_root_lines}
+    }}
+    :root[data-arandu-theme="oscuro"] {{ color-scheme: dark; }}
+    :root[data-arandu-theme="claro"] {{ color-scheme: light; }}
+    @supports (color: light-dark(white, black)) {{
+      :root {{
+{css_light_dark}
+      }}
+    }}
+    @supports not (color: light-dark(white, black)) {{
+      @media (prefers-color-scheme: light) {{
+        :root {{
+{css_claro_fallback}
+        }}
+      }}
+      :root[data-arandu-theme="claro"] {{
+{css_claro_fallback}
+      }}
     }}
     html, body {{
       margin: 0;
@@ -337,7 +391,7 @@ def _generar_index_html(archivos_vfs: dict[str, object]) -> None:
 <body>
   <a class="arandu-skip-link" href="#root">Saltar al contenido principal</a>
   <div id="arandu-splash" role="status" aria-live="polite" aria-busy="true">
-    <img src="./assets/svg/arandu.svg" class="splash-logo" alt="Isotipo de Arandú" />
+    <img src="./assets/svg/arandu.svg" class="splash-logo" width="96" height="96" fetchpriority="high" decoding="async" alt="Isotipo de Arandú" />
     <h1 class="splash-title">Arandú — Métodos Computacionales</h1>
     <span class="splash-badge">v{APP_VERSION} • PWA Offline WebAssembly</span>
     <div class="splash-spinner" id="arandu-spinner" aria-hidden="true"></div>

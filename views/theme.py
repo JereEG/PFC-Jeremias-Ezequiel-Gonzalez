@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import html
 import math
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -102,6 +103,14 @@ def obtener_preferencia_tema() -> str:
     pref = st.session_state.get("arandu_tema_pref")
     if pref in _PREFERENCIAS_TEMA:
         return str(pref)
+    try:
+        cookies = getattr(st.context, "cookies", None)
+        if cookies is not None:
+            ck = cookies.get("arandu_tema_pref")
+            if ck in _PREFERENCIAS_TEMA:
+                return str(ck)
+    except Exception:
+        pass
     modo_legacy = st.session_state.get("arandu_tema_modo")
     if modo_legacy in ("oscuro", "claro"):
         return str(modo_legacy)
@@ -277,6 +286,7 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
             ),
             xaxis=dict(
                 gridcolor=grid_suave,
+                showgrid=True,
                 minor=dict(showgrid=False),
                 linecolor=paleta["borde"],
                 zeroline=True,
@@ -295,6 +305,7 @@ def obtener_plotly_arandu_template(modo: str = "oscuro"):
             ),
             yaxis=dict(
                 gridcolor=grid_suave,
+                showgrid=True,
                 minor=dict(showgrid=False),
                 linecolor=paleta["borde"],
                 zeroline=True,
@@ -326,8 +337,8 @@ def __getattr__(name: str):
     raise AttributeError(f"module 'views.theme' has no attribute {name!r}")
 
 
-def _mapa_colores_oscuro_a_claro() -> dict[str, str]:
-    """Construye el mapeo de colores de paleta oscura hacia modo claro de alto contraste."""
+def _crear_mapas_colores_claro() -> tuple[dict[str, str], dict[str, str]]:
+    """Precalcula los diccionarios de remapeo oscuro -> claro una sola vez al importar el módulo."""
     claves = (
         "oro",
         "salvia",
@@ -349,7 +360,16 @@ def _mapa_colores_oscuro_a_claro() -> dict[str, str]:
             mapa[hex_a_rgba(PALETA_ARANDU[k_base], alpha).lower()] = hex_a_rgba(
                 PALETA_ARANDU_CLARO[k_base], alpha
             )
-    return mapa
+    mapa_linea = {**mapa, PALETA_ARANDU["marfil_nodo"].lower(): PALETA_ARANDU_CLARO["texto_principal"]}
+    return mapa, mapa_linea
+
+
+_MAPA_OSCURO_A_CLARO, _MAPA_LINEA_OSCURO_A_CLARO = _crear_mapas_colores_claro()
+
+
+def _mapa_colores_oscuro_a_claro() -> dict[str, str]:
+    """Retorna el mapeo cacheado de colores de paleta oscura hacia modo claro de alto contraste."""
+    return _MAPA_OSCURO_A_CLARO
 
 
 def _remapear_color(valor, mapa: dict[str, str]):
@@ -365,8 +385,10 @@ def _adaptar_colores_figura_al_tema(fig: go.Figure, modo: str) -> None:
     """Reemplaza colores oscuros en trazos, formas y anotaciones cuando el modo claro está activo."""
     if modo != "claro":
         return
-    mapa = _mapa_colores_oscuro_a_claro()
-    mapa_linea = {**mapa, PALETA_ARANDU["marfil_nodo"].lower(): PALETA_ARANDU_CLARO["texto_principal"]}
+    mapa = _MAPA_OSCURO_A_CLARO
+    mapa_linea = _MAPA_LINEA_OSCURO_A_CLARO
+    marfil_hex = PALETA_ARANDU["marfil_nodo"].lower()
+    texto_claro = PALETA_ARANDU_CLARO["texto_principal"]
 
     for traza in getattr(fig, "data", ()) or ():
         if getattr(traza, "fillcolor", None) is not None:
@@ -379,14 +401,14 @@ def _adaptar_colores_figura_al_tema(fig: go.Figure, modo: str) -> None:
             m_line = getattr(marcador, "line", None)
             if m_line is not None and getattr(m_line, "color", None) is not None:
                 m_line.color = _remapear_color(m_line.color, mapa_linea)
-            if getattr(marcador, "color", None) is not None:
-                m_color = marcador.color
+            m_color = getattr(marcador, "color", None)
+            if m_color is not None:
                 if (
                     isinstance(m_color, str)
-                    and m_color.lower() == PALETA_ARANDU["marfil_nodo"].lower()
+                    and m_color.lower() == marfil_hex
                     and not (m_line is not None and getattr(m_line, "color", None))
                 ):
-                    marcador.color = PALETA_ARANDU_CLARO["texto_principal"]
+                    marcador.color = texto_claro
                 else:
                     marcador.color = _remapear_color(m_color, mapa)
 
@@ -398,8 +420,9 @@ def _adaptar_colores_figura_al_tema(fig: go.Figure, modo: str) -> None:
             f_line.color = _remapear_color(f_line.color, mapa_linea)
 
     for anotacion in getattr(fig.layout, "annotations", ()) or ():
-        if getattr(anotacion, "font", None) is not None and getattr(anotacion.font, "color", None) is not None:
-            anotacion.font.color = _remapear_color(anotacion.font.color, mapa_linea)
+        font = getattr(anotacion, "font", None)
+        if font is not None and getattr(font, "color", None) is not None:
+            font.color = _remapear_color(font.color, mapa_linea)
 
 
 def _calcular_margen_superior_arandu(fig: go.Figure) -> int:
@@ -420,7 +443,6 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     """Aplica la plantilla y colores orgánicos de Arandú según el tema activo."""
     modo = obtener_modo_tema()
     paleta = obtener_paleta_activa(modo)
-    grid_suave = hex_a_rgba(paleta["grilla"], 0.42 if modo == "oscuro" else 0.52)
     template = obtener_plotly_arandu_template(modo)
     margen_prev = getattr(getattr(fig.layout, "margin", None), "t", None)
     t_prev = int(margen_prev) if isinstance(margen_prev, (int, float)) else 60
@@ -432,57 +454,29 @@ def estilizar_figura_arandu(fig: go.Figure) -> go.Figure:
     if isinstance(h_actual, (int, float)) and delta_t > 0:
         layout_kwargs["height"] = int(h_actual) + delta_t
 
-    fig.update_layout(
-        template=template,
-        paper_bgcolor=hex_a_rgba(paleta["bg_principal"], 0),
-        plot_bgcolor=paleta["bg_lienzo"],
-        margin=dict(l=50, r=30, t=margen_sup, b=50),
-        font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=13),
-        title=dict(
-            y=0.98,
-            yanchor="top",
-            automargin=True,
-            pad=dict(b=8),
-            font=dict(color=paleta["texto_principal"], family="'Outfit', sans-serif", size=17),
-        ),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="left",
-            x=0,
-            bgcolor=paleta["bg_secundario"],
-            bordercolor=paleta["borde"],
-            borderwidth=1,
-            font=dict(color=paleta["texto_principal"], size=13),
-        ),
-        hoverlabel=dict(
-            bgcolor=paleta["bg_secundario"],
-            bordercolor=paleta["terracota_oscuro"],
-            font=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=12),
-        ),
-        **layout_kwargs,
-    )
-    fig.update_xaxes(
-        showgrid=True,
-        gridcolor=grid_suave,
-        minor=dict(showgrid=False),
-        zeroline=True,
-        zerolinecolor=paleta["terracota_oscuro"],
-        zerolinewidth=1.6,
-        tickfont=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=13),
-        title_font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=14),
-    )
-    fig.update_yaxes(
-        showgrid=True,
-        gridcolor=grid_suave,
-        minor=dict(showgrid=False),
-        zeroline=True,
-        zerolinecolor=paleta["terracota_oscuro"],
-        zerolinewidth=1.6,
-        tickfont=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=13),
-        title_font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=14),
-    )
+    ya_estilizada = getattr(fig.layout, "template", None) is template
+    if not ya_estilizada or margen_sup != t_prev:
+        fig.update_layout(
+            template=template,
+            margin=dict(l=50, r=30, t=margen_sup, b=50),
+            **layout_kwargs,
+        )
+
+    if "xaxis2" in fig.layout or "yaxis2" in fig.layout:
+        grid_suave = hex_a_rgba(paleta["grilla"], 0.42 if modo == "oscuro" else 0.52)
+        eje_kw = dict(
+            showgrid=True,
+            gridcolor=grid_suave,
+            minor=dict(showgrid=False),
+            zeroline=True,
+            zerolinecolor=paleta["terracota_oscuro"],
+            zerolinewidth=1.6,
+            tickfont=dict(color=paleta["texto_principal"], family="'JetBrains Mono', monospace", size=13),
+            title_font=dict(color=paleta["texto_principal"], family="'Inter', sans-serif", size=14),
+        )
+        fig.update_xaxes(**eje_kw)
+        fig.update_yaxes(**eje_kw)
+
     _adaptar_colores_figura_al_tema(fig, modo)
     return fig
 
@@ -520,8 +514,33 @@ def obtener_asset_data_uri(ruta_relativa: str, mime_type: str | None = None) -> 
 
 
 @st.cache_data(show_spinner=False)
+def _obtener_logo_compacto_data_uri(ruta_relativa: str = "logo_arandu.jpg", max_px: int = 264) -> str | None:
+    """Genera una miniatura JPEG/WebP Retina 2x compacta en caché para evitar enviar ~373 KB inline."""
+    raw = leer_asset_bytes(ruta_relativa)
+    if raw is None:
+        return None
+    try:
+        import io
+        from PIL import Image
+
+        with Image.open(io.BytesIO(raw)) as img:
+            img_rgb = img.convert("RGB")
+            img_rgb.thumbnail((max_px, max_px), Image.Resampling.LANCZOS)
+            buf = io.BytesIO()
+            img_rgb.save(buf, format="WEBP", quality=86, method=4)
+            encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+            return f"data:image/webp;base64,{encoded}"
+    except Exception:
+        return obtener_asset_data_uri(ruta_relativa)
+
+
+@st.cache_data(show_spinner=False)
 def obtener_logo_arandu_src(prefer_svg: bool = False) -> str | None:
-    """Retorna un data URI cacheado (JPEG o SVG transparente) del logo oficial Arandú."""
+    """Retorna un data URI cacheado ligero del logo oficial Arandú (WebP compacto o SVG)."""
+    if not prefer_svg:
+        uri_compacto = _obtener_logo_compacto_data_uri("logo_arandu.jpg", max_px=264)
+        if uri_compacto is not None:
+            return uri_compacto
     candidatos = ("svg/arandu.svg", "logo_arandu.jpg") if prefer_svg else ("logo_arandu.jpg", "svg/arandu.svg")
     for rel in candidatos:
         uri = obtener_asset_data_uri(rel)
@@ -532,85 +551,164 @@ def obtener_logo_arandu_src(prefer_svg: bool = False) -> str | None:
 
 @st.cache_data(show_spinner=False)
 def obtener_logos_app() -> tuple[bytes | str | None, str | bytes]:
-    """Retorna (sidebar_logo, page_icon) cacheados para app.py sin lecturas repetidas a disco."""
+    """Retorna (sidebar_logo, page_icon) cacheados y optimizados para app.py."""
     jpg_bytes = leer_asset_bytes("logo_arandu.jpg")
-    svg_txt = leer_asset_texto("svg/arandu.svg")
-    sidebar_logo = jpg_bytes if jpg_bytes is not None else svg_txt
-    page_icon: str | bytes = (
-        svg_txt
-        if svg_txt is not None
-        else (jpg_bytes if jpg_bytes is not None else ":material/calculate:")
-    )
+    sidebar_logo: bytes | str | None = jpg_bytes
+    if jpg_bytes is not None:
+        try:
+            import io
+            from PIL import Image
+
+            with Image.open(io.BytesIO(jpg_bytes)) as img:
+                img_rgb = img.convert("RGB")
+                img_rgb.thumbnail((160, 160), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                img_rgb.save(buf, format="PNG", optimize=True)
+                sidebar_logo = buf.getvalue()
+        except Exception:
+            sidebar_logo = jpg_bytes
+    else:
+        sidebar_logo = leer_asset_texto("svg/arandu.svg")
+    page_icon: str | bytes = sidebar_logo if sidebar_logo is not None else ":material/calculate:"
     return sidebar_logo, page_icon
 
 
+_GOOGLE_FONTS_URL = (
+    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600"
+    "&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap"
+)
+
+
+@st.cache_data(show_spinner=False)
+def obtener_html_fuentes_arandu() -> str:
+    """Retorna resource hints preconnect y enlace no bloqueante a Google Fonts (sin @import en CSSOM)."""
+    return (
+        '<link rel="preconnect" href="https://fonts.googleapis.com">'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+        f'<link rel="stylesheet" href="{_GOOGLE_FONTS_URL}">'
+    )
+
+
+def _pares_tokens_arandu() -> list[tuple[str, str, str]]:
+    """Genera pares ordenados (propiedad_css, valor_claro, valor_oscuro) para todos los tokens Arandú."""
+    c = PALETA_ARANDU_CLARO
+    d = PALETA_ARANDU
+    return [
+        ("--arandu-bg", c["bg_principal"], d["bg_principal"]),
+        ("--arandu-surface", c["bg_secundario"], d["bg_secundario"]),
+        ("--arandu-canvas", c["bg_lienzo"], d["bg_lienzo"]),
+        ("--arandu-gold", c["oro"], d["oro"]),
+        ("--arandu-sage", c["salvia"], d["salvia"]),
+        ("--arandu-terracotta", c["terracota"], d["terracota"]),
+        ("--arandu-text", c["texto_principal"], d["texto_principal"]),
+        ("--arandu-muted", c["texto_secundario"], d["texto_secundario"]),
+        ("--arandu-border", c["borde"], d["borde"]),
+        ("--arandu-sage-border", c["salvia_borde"], d["salvia_borde"]),
+        ("--arandu-terracotta-dark", c["terracota_oscuro"], d["terracota_oscuro"]),
+        ("--arandu-node-ivory", c["marfil_nodo"], d["marfil_nodo"]),
+        ("--arandu-text-faint", c["texto_atenuado"], d["texto_atenuado"]),
+        ("--arandu-grid", c["grilla"], d["grilla"]),
+        ("--arandu-elevated", c["bg_elevado"], d["bg_elevado"]),
+        ("--arandu-frame-bg", c["bg_marco"], d["bg_marco"]),
+        ("--arandu-shadow-bg", c["bg_sombra"], d["bg_sombra"]),
+        ("--arandu-deep-bg", c["bg_profundo"], d["bg_profundo"]),
+        ("--arandu-card-top", c["bg_carta_top"], d["bg_carta_top"]),
+        ("--arandu-card-mid", c["bg_carta_mid"], d["bg_carta_mid"]),
+        ("--arandu-card-bot", c["bg_carta_bot"], d["bg_carta_bot"]),
+        ("--arandu-card-active-top", c["bg_carta_activa_top"], d["bg_carta_activa_top"]),
+        ("--arandu-card-active-bot", c["bg_carta_activa_bot"], d["bg_carta_activa_bot"]),
+        ("--arandu-card-inset", c["bg_carta_inset"], d["bg_carta_inset"]),
+        ("--arandu-horner", c["bg_horner"], d["bg_horner"]),
+        ("--arandu-btn-bg", c["bg_lienzo"], d["bg_elevado"]),
+        ("--arandu-gold-09", hex_a_rgba(c["oro"], 0.09), hex_a_rgba(d["oro"], 0.09)),
+        ("--arandu-gold-10", hex_a_rgba(c["oro"], 0.10), hex_a_rgba(d["oro"], 0.10)),
+        ("--arandu-gold-12", hex_a_rgba(c["oro"], 0.12), hex_a_rgba(d["oro"], 0.12)),
+        ("--arandu-gold-15", hex_a_rgba(c["oro"], 0.15), hex_a_rgba(d["oro"], 0.15)),
+        ("--arandu-gold-16", hex_a_rgba(c["oro"], 0.16), hex_a_rgba(d["oro"], 0.16)),
+        ("--arandu-gold-18", hex_a_rgba(c["oro"], 0.18), hex_a_rgba(d["oro"], 0.18)),
+        ("--arandu-gold-20", hex_a_rgba(c["oro"], 0.20), hex_a_rgba(d["oro"], 0.20)),
+        ("--arandu-gold-22", hex_a_rgba(c["oro"], 0.22), hex_a_rgba(d["oro"], 0.22)),
+        ("--arandu-gold-24", hex_a_rgba(c["oro"], 0.24), hex_a_rgba(d["oro"], 0.24)),
+        ("--arandu-gold-26", hex_a_rgba(c["oro"], 0.26), hex_a_rgba(d["oro"], 0.26)),
+        ("--arandu-gold-45", hex_a_rgba(c["oro"], 0.45), hex_a_rgba(d["oro"], 0.45)),
+        ("--arandu-gold-55", hex_a_rgba(c["oro"], 0.55), hex_a_rgba(d["oro"], 0.55)),
+        ("--arandu-gold-56", hex_a_rgba(c["oro"], 0.56), hex_a_rgba(d["oro"], 0.56)),
+        ("--arandu-gold-65", hex_a_rgba(c["oro"], 0.65), hex_a_rgba(d["oro"], 0.65)),
+        ("--arandu-gold-84", hex_a_rgba(c["oro"], 0.84), hex_a_rgba(d["oro"], 0.84)),
+        ("--arandu-sage-14", hex_a_rgba(c["salvia"], 0.14), hex_a_rgba(d["salvia"], 0.14)),
+        ("--arandu-sage-18", hex_a_rgba(c["salvia_borde"], 0.18), hex_a_rgba(d["salvia_borde"], 0.18)),
+        ("--arandu-sage-22", hex_a_rgba(c["salvia_borde"], 0.22), hex_a_rgba(d["salvia_borde"], 0.22)),
+        ("--arandu-sage-55", hex_a_rgba(c["salvia"], 0.55), hex_a_rgba(d["salvia"], 0.55)),
+        ("--arandu-terracotta-12", hex_a_rgba(c["terracota"], 0.12), hex_a_rgba(d["terracota"], 0.12)),
+        ("--arandu-terracotta-18", hex_a_rgba(c["terracota_oscuro"], 0.18), hex_a_rgba(d["terracota_oscuro"], 0.18)),
+        ("--arandu-terracotta-26", hex_a_rgba(c["terracota_oscuro"], 0.26), hex_a_rgba(d["terracota_oscuro"], 0.26)),
+        ("--arandu-terracotta-45", hex_a_rgba(c["terracota"], 0.45), hex_a_rgba(d["terracota"], 0.45)),
+        ("--arandu-text-10", hex_a_rgba(c["texto_principal"], 0.10), hex_a_rgba(d["texto_principal"], 0.10)),
+        ("--arandu-text-45", hex_a_rgba(c["texto_principal"], 0.45), hex_a_rgba(d["texto_principal"], 0.45)),
+        ("--arandu-surface-92", hex_a_rgba(c["bg_secundario"], 0.92), hex_a_rgba(d["bg_secundario"], 0.92)),
+        ("--arandu-bg-55", hex_a_rgba(c["bg_principal"], 0.55), hex_a_rgba(d["bg_principal"], 0.55)),
+        ("--arandu-shadow-30", hex_a_rgba(c["negro_sombra"], 0.14), hex_a_rgba(d["negro_sombra"], 0.30)),
+        ("--arandu-shadow-32", hex_a_rgba(c["negro_sombra"], 0.16), hex_a_rgba(d["negro_sombra"], 0.32)),
+        ("--arandu-shadow-44", hex_a_rgba(c["negro_sombra"], 0.20), hex_a_rgba(d["negro_sombra"], 0.44)),
+        ("--arandu-shadow-45", hex_a_rgba(c["negro_sombra"], 0.18), hex_a_rgba(d["negro_sombra"], 0.45)),
+        ("--arandu-black-35", hex_a_rgba(c["negro_sombra"], 0.22), hex_a_rgba(d["negro_sombra"], 0.35)),
+    ]
+
+
+_PARES_TOKENS = tuple(_pares_tokens_arandu())
+
+
 def _construir_tokens_css(paleta: dict[str, str], es_claro: bool) -> str:
-    """Construye las declaraciones de variables CSS de Arandú sin duplicar lógica."""
-    tokens = {
-        "--arandu-bg": paleta["bg_principal"],
-        "--arandu-surface": paleta["bg_secundario"],
-        "--arandu-canvas": paleta["bg_lienzo"],
-        "--arandu-gold": paleta["oro"],
-        "--arandu-sage": paleta["salvia"],
-        "--arandu-terracotta": paleta["terracota"],
-        "--arandu-text": paleta["texto_principal"],
-        "--arandu-muted": paleta["texto_secundario"],
-        "--arandu-border": paleta["borde"],
-        "--arandu-sage-border": paleta["salvia_borde"],
-        "--arandu-terracotta-dark": paleta["terracota_oscuro"],
-        "--arandu-node-ivory": paleta["marfil_nodo"],
-        "--arandu-text-faint": paleta["texto_atenuado"],
-        "--arandu-grid": paleta["grilla"],
-        "--arandu-elevated": paleta["bg_elevado"],
-        "--arandu-frame-bg": paleta["bg_marco"],
-        "--arandu-shadow-bg": paleta["bg_sombra"],
-        "--arandu-deep-bg": paleta["bg_profundo"],
-        "--arandu-card-top": paleta["bg_carta_top"],
-        "--arandu-card-mid": paleta["bg_carta_mid"],
-        "--arandu-card-bot": paleta["bg_carta_bot"],
-        "--arandu-card-active-top": paleta["bg_carta_activa_top"],
-        "--arandu-card-active-bot": paleta["bg_carta_activa_bot"],
-        "--arandu-card-inset": paleta["bg_carta_inset"],
-        "--arandu-gold-09": hex_a_rgba(paleta["oro"], 0.09),
-        "--arandu-gold-10": hex_a_rgba(paleta["oro"], 0.10),
-        "--arandu-gold-12": hex_a_rgba(paleta["oro"], 0.12),
-        "--arandu-gold-15": hex_a_rgba(paleta["oro"], 0.15),
-        "--arandu-gold-16": hex_a_rgba(paleta["oro"], 0.16),
-        "--arandu-gold-18": hex_a_rgba(paleta["oro"], 0.18),
-        "--arandu-gold-20": hex_a_rgba(paleta["oro"], 0.20),
-        "--arandu-gold-22": hex_a_rgba(paleta["oro"], 0.22),
-        "--arandu-gold-24": hex_a_rgba(paleta["oro"], 0.24),
-        "--arandu-gold-26": hex_a_rgba(paleta["oro"], 0.26),
-        "--arandu-gold-45": hex_a_rgba(paleta["oro"], 0.45),
-        "--arandu-gold-55": hex_a_rgba(paleta["oro"], 0.55),
-        "--arandu-gold-56": hex_a_rgba(paleta["oro"], 0.56),
-        "--arandu-gold-65": hex_a_rgba(paleta["oro"], 0.65),
-        "--arandu-gold-84": hex_a_rgba(paleta["oro"], 0.84),
-        "--arandu-sage-14": hex_a_rgba(paleta["salvia"], 0.14),
-        "--arandu-sage-18": hex_a_rgba(paleta["salvia_borde"], 0.18),
-        "--arandu-sage-22": hex_a_rgba(paleta["salvia_borde"], 0.22),
-        "--arandu-sage-55": hex_a_rgba(paleta["salvia"], 0.55),
-        "--arandu-terracotta-12": hex_a_rgba(paleta["terracota"], 0.12),
-        "--arandu-terracotta-18": hex_a_rgba(paleta["terracota_oscuro"], 0.18),
-        "--arandu-terracotta-26": hex_a_rgba(paleta["terracota_oscuro"], 0.26),
-        "--arandu-terracotta-45": hex_a_rgba(paleta["terracota"], 0.45),
-        "--arandu-text-10": hex_a_rgba(paleta["texto_principal"], 0.10),
-        "--arandu-text-45": hex_a_rgba(paleta["texto_principal"], 0.45),
-        "--arandu-surface-92": hex_a_rgba(paleta["bg_secundario"], 0.92),
-        "--arandu-bg-55": hex_a_rgba(paleta["bg_principal"], 0.55),
-        "--arandu-shadow-30": hex_a_rgba(paleta["negro_sombra"], 0.14 if es_claro else 0.30),
-        "--arandu-shadow-32": hex_a_rgba(paleta["negro_sombra"], 0.16 if es_claro else 0.32),
-        "--arandu-shadow-44": hex_a_rgba(paleta["negro_sombra"], 0.20 if es_claro else 0.44),
-        "--arandu-shadow-45": hex_a_rgba(paleta["negro_sombra"], 0.18 if es_claro else 0.45),
-    }
-    return "\n".join(f"            {clave}: {valor};" for clave, valor in tokens.items())
+    """Construye las declaraciones de variables CSS de Arandú para un modo explícito."""
+    idx = 1 if es_claro else 2
+    _ = paleta
+    return "\n".join(f"{p[0]}:{p[idx]};" for p in _PARES_TOKENS)
 
 
-_CSS_STREAMLIT_CLARO = """
+def _construir_root_tokens_moderno(pref_eff: str, modo_eff: str) -> str:
+    """Construye bloque :root compacto con light-dark() nativo, mapeo de <meta> y fallback Baseline."""
+    idx_base = 1 if modo_eff == "claro" else 2
+    idx_opuesto = 2 if modo_eff == "claro" else 1
+    media_opuesta = "dark" if modo_eff == "claro" else "light"
+
+    fallback_base = "".join(f"{k}:{v};" for k, v_c, v_o in _PARES_TOKENS for v in ((v_c if idx_base == 1 else v_o),))
+    pares_ld = "".join(f"{k}:light-dark({v_c},{v_o});" for k, v_c, v_o in _PARES_TOKENS)
+
+    reglas_scheme = (
+        ":root:has(> head > meta[name='color-scheme'][content='dark']),"
+        ":root:has(.arandu-pref-oscuro),"
+        ":root[data-arandu-theme='oscuro']{color-scheme:dark;}"
+        ":root:has(> head > meta[name='color-scheme'][content='light']),"
+        ":root:has(.arandu-pref-claro),"
+        ":root[data-arandu-theme='claro']{color-scheme:light;}"
+    )
+
+    fallback_media = ""
+    if pref_eff == "sistema":
+        opuesto_decls = "".join(
+            f"{k}:{v};" for k, v_c, v_o in _PARES_TOKENS for v in ((v_c if idx_opuesto == 1 else v_o),)
+        )
+        fallback_media = (
+            f"@supports not (color:light-dark(white,black)){{"
+            f"@media (prefers-color-scheme:{media_opuesta}){{:root{{{opuesto_decls}}}}}"
+            f"}}"
+        )
+
+    return (
+        f":root{{{fallback_base}color-scheme:light dark;"
+        "accent-color:var(--arandu-gold);"
+        "scrollbar-color:var(--arandu-border) var(--arandu-surface);}"
+        f"{reglas_scheme}"
+        ".arandu-pref-sistema,.arandu-pref-oscuro,.arandu-pref-claro{display:none!important;}"
+        f"@supports (color:light-dark(white,black)){{:root{{{pares_ld}}}}}"
+        f"{fallback_media}"
+    )
+
+
+_CSS_STREAMLIT_SHELL = """
         :root, html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
             background-color: var(--arandu-bg) !important;
             color: var(--arandu-text) !important;
-            color-scheme: light;
         }
         [data-testid="stHeader"], [data-testid="stToolbar"] {
             background-color: var(--arandu-bg) !important;
@@ -635,7 +733,7 @@ _CSS_STREAMLIT_CLARO = """
         }
         button[kind="secondary"], [data-testid="stBaseButton-secondary"],
         [data-testid="stLinkButton"] a {
-            background-color: var(--arandu-canvas) !important;
+            background-color: var(--arandu-btn-bg) !important;
             color: var(--arandu-text) !important;
             border: 1px solid var(--arandu-gold) !important;
             border-radius: 8px !important;
@@ -652,15 +750,9 @@ _CSS_STREAMLIT_CLARO = """
             border-color: var(--arandu-border) !important;
             color: var(--arandu-text) !important;
         }
-        [data-testid="stAlert"] {
-            color: var(--arandu-text) !important;
-        }
-        [data-testid="stExpander"] summary, [data-testid="stExpander"] summary p {
-            color: var(--arandu-text) !important;
-        }
-        [data-testid="stExpander"] details,
-        [data-testid="stExpander"] summary,
-        [data-testid="stExpanderDetails"] {
+        [data-testid="stAlert"] { color: var(--arandu-text) !important; }
+        [data-testid="stExpander"] summary, [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] details, [data-testid="stExpanderDetails"] {
             background-color: var(--arandu-surface) !important;
             color: var(--arandu-text) !important;
             border-color: var(--arandu-border) !important;
@@ -675,39 +767,25 @@ _CSS_STREAMLIT_CLARO = """
             color: var(--arandu-text) !important;
             fill: currentColor !important;
         }
-        [data-baseweb="popover"],
-        [data-baseweb="popover"] > div,
-        [data-baseweb="menu"],
-        ul[role="listbox"],
-        li[role="option"],
-        [data-baseweb="menu"] li {
+        [data-baseweb="popover"], [data-baseweb="popover"] > div, [data-baseweb="menu"],
+        ul[role="listbox"], li[role="option"], [data-baseweb="menu"] li {
             background-color: var(--arandu-canvas) !important;
             color: var(--arandu-text) !important;
             border-color: var(--arandu-border) !important;
         }
-        li[role="option"]:hover,
-        li[role="option"][aria-selected="true"],
+        li[role="option"]:hover, li[role="option"][aria-selected="true"],
         [data-baseweb="menu"] li:hover {
             background-color: var(--arandu-surface) !important;
             color: var(--arandu-text) !important;
         }
-        [data-testid="stNumberInput"] button,
-        [data-testid="stNumberInputStepUp"],
-        [data-testid="stNumberInputStepDown"] {
+        [data-testid="stNumberInput"] button, [data-testid="stNumberInputStepUp"],
+        [data-testid="stNumberInputStepDown"], [data-testid="stToast"],
+        [data-testid="stCode"], pre, [data-testid="stMarkdownContainer"] code {
             background-color: var(--arandu-surface) !important;
             color: var(--arandu-text) !important;
             border-color: var(--arandu-border) !important;
         }
-        [data-testid="stToast"],
-        [data-testid="stCode"],
-        pre,
-        [data-testid="stMarkdownContainer"] code {
-            background-color: var(--arandu-surface) !important;
-            color: var(--arandu-text) !important;
-            border-color: var(--arandu-border) !important;
-        }
-        [data-testid="stDialog"] [role="dialog"],
-        [data-baseweb="modal"] > div > div {
+        [data-testid="stDialog"] [role="dialog"], [data-baseweb="modal"] > div > div {
             background-color: var(--arandu-surface) !important;
             color: var(--arandu-text) !important;
             border: 1px solid var(--arandu-border) !important;
@@ -723,9 +801,17 @@ _CSS_STREAMLIT_CLARO = """
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {
             color: var(--arandu-text) !important;
         }
+        @supports not (scrollbar-color: auto) {
+            html, [data-testid="stSidebarContent"], [data-testid="stMain"] {
+                scrollbar-width: auto;
+            }
+            ::-webkit-scrollbar { width: 10px; height: 10px; }
+            ::-webkit-scrollbar-thumb { background: var(--arandu-border); border-radius: 5px; }
+            ::-webkit-scrollbar-track { background: var(--arandu-surface); }
+        }
 """
 
-_CSS_PLOTLY_SISTEMA_CLARO = """
+_CSS_PLOTLY_AUTO = """
         [data-testid="stPlotlyChart"] svg.main-svg > rect:first-child,
         [data-testid="stPlotlyChart"] .bglayer rect.bg {
             fill: var(--arandu-canvas) !important;
@@ -745,44 +831,32 @@ _CSS_PLOTLY_SISTEMA_CLARO = """
 """
 
 
+def _compactar_css(css: str) -> str:
+    """Compacta indentación y espacios redundantes sin alterar combinadores CSS ni literales."""
+    lineas = [ln.strip() for ln in css.splitlines() if ln.strip()]
+    compacto = " ".join(lineas)
+    return re.sub(r"[ \t]*([{};,])[ \t]*", r"\1", compacto)
+
+
 @st.cache_data(show_spinner=False)
 def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> str:
-    """Genera y cachea la hoja CSS de Arandú con soporte para Sistema, Oscuro y Claro."""
+    """Genera, compacta y cachea la hoja CSS de Arandú con soporte para Sistema, Oscuro y Claro."""
     pref_eff = preferencia if preferencia in _PREFERENCIAS_TEMA else ("claro" if modo == "claro" else "oscuro")
-    paleta_base = PALETA_ARANDU_CLARO if modo == "claro" else PALETA_ARANDU
-    root_lines = _construir_tokens_css(paleta_base, es_claro=(modo == "claro"))
+    modo_eff = "claro" if modo == "claro" else "oscuro"
+    root_block = _construir_root_tokens_moderno(pref_eff, modo_eff)
 
     if pref_eff == "sistema":
-        root_claro = _construir_tokens_css(PALETA_ARANDU_CLARO, es_claro=True)
-        root_oscuro = _construir_tokens_css(PALETA_ARANDU, es_claro=False)
-        plotly_fb = _CSS_PLOTLY_SISTEMA_CLARO if modo != "claro" else ""
-        css_claro_streamlit = f"""
-        @media (prefers-color-scheme: light) {{
-            :root {{
-{root_claro}
-                color-scheme: light;
-            }}
-{_CSS_STREAMLIT_CLARO}
-{plotly_fb}
-        }}
-        @media (prefers-color-scheme: dark) {{
-            :root {{
-{root_oscuro}
-                color-scheme: dark;
-            }}
-        }}
-        """
-    elif modo == "claro":
-        css_claro_streamlit = _CSS_STREAMLIT_CLARO
+        media_opuesta = "dark" if modo_eff == "claro" else "light"
+        css_plotly_sync = (
+            f"@media (prefers-color-scheme:{media_opuesta}){{{_CSS_PLOTLY_AUTO}}}"
+            f":root[data-arandu-theme='{'oscuro' if modo_eff == 'claro' else 'claro'}']{{{_CSS_PLOTLY_AUTO}}}"
+        )
     else:
-        css_claro_streamlit = ""
-    return f"""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap');
+        css_plotly_sync = ""
 
-        :root {{
-{root_lines}
-        }}
+    css_claro_streamlit = f"{_CSS_STREAMLIT_SHELL}{css_plotly_sync}"
+    cuerpo_css = f"""
+        {root_block}
 
         html, body, [class*="css"] {{
             font-family: 'Inter', sans-serif;
@@ -1186,6 +1260,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             background-color: var(--arandu-surface);
             box-shadow: 0 6px 18px var(--arandu-shadow-30);
             margin-bottom: 0.85rem;
+            contain: layout style paint;
         }}
         .arandu-badge {{
             display: inline-block;
@@ -1211,7 +1286,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             font-weight: 600 !important;
             cursor: pointer !important;
             box-shadow: 0 3px 10px var(--arandu-shadow-30) !important;
-            transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
+            transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease !important;
         }}
         div.stButton > button[kind="primary"],
         div.stButton > [data-testid="stBaseButton-primary"] {{
@@ -1227,7 +1302,6 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             background-color: var(--arandu-terracotta-26) !important;
             border-color: var(--arandu-terracotta-dark) !important;
             color: var(--arandu-text) !important;
-            box-shadow: 0 6px 16px var(--arandu-gold-24) !important;
         }}
 
         button[data-baseweb="tab"] {{
@@ -1331,13 +1405,13 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             border: 1px solid var(--arandu-border);
             border-radius: 12px;
             overflow: hidden;
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, border-color 0.2s ease;
             margin-bottom: 0.45rem;
+            contain: layout style paint;
         }}
         .arandu-nav-card:hover {{
             transform: translateY(-4px);
             border-color: var(--arandu-gold);
-            box-shadow: 0 10px 24px var(--arandu-gold-16);
         }}
         .arandu-nav-card-header {{
             height: 120px;
@@ -1412,6 +1486,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             border: 1px solid var(--arandu-border);
             border-left: 3px solid var(--arandu-gold);
             transition: transform 0.2s ease, border-color 0.2s ease;
+            contain: layout style paint;
         }}
         .arandu-mini-card:hover {{
             transform: translateY(-2px);
@@ -1462,13 +1537,13 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             padding: 0.75rem 0.82rem 0.85rem 0.82rem;
             box-shadow: inset 0 0 0 4px var(--arandu-card-inset), inset 0 0 0 5px var(--arandu-gold-22), 0 8px 20px var(--arandu-shadow-44);
             margin-bottom: 0.45rem;
-            transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+            transition: transform 0.22s ease, border-color 0.22s ease;
             position: relative;
+            contain: layout style paint;
         }}
         .arandu-ficha-card:hover {{
             transform: translateY(-5px);
             border-color: var(--arandu-gold);
-            box-shadow: inset 0 0 0 4px var(--arandu-card-inset), inset 0 0 0 5px var(--arandu-gold-56), 0 14px 28px var(--arandu-gold-18);
         }}
         .arandu-ficha-card.is-active {{
             background: radial-gradient(circle at 50% 34%, var(--arandu-gold-15), transparent 64%),
@@ -2076,7 +2151,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             z-index: 9999;
             padding: 0.65rem 1.1rem;
             border-radius: 8px;
-            background-color: var(--arandu-surface-elevated);
+            background-color: var(--arandu-elevated);
             color: var(--arandu-gold) !important;
             border: 2px solid var(--arandu-gold);
             font-family: 'Outfit', sans-serif;
@@ -2123,6 +2198,19 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             padding: 0.25rem;
             background-color: var(--arandu-surface);
         }}
+        .arandu-ng-diff-wrap,
+        .arandu-gauss-comp-wrap,
+        .arandu-chart-table-wrap {{
+            content-visibility: auto;
+            contain-intrinsic-size: auto none auto 240px;
+        }}
+        @supports not (content-visibility: auto) {{
+            .arandu-ng-diff-wrap,
+            .arandu-gauss-comp-wrap,
+            .arandu-chart-table-wrap {{
+                contain: layout style paint;
+            }}
+        }}
         table.arandu-chart-table {{
             width: 100%;
             border-collapse: collapse;
@@ -2139,7 +2227,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             padding: 0.35rem 0.5rem;
         }}
         table.arandu-chart-table th {{
-            background-color: var(--arandu-surface-elevated);
+            background-color: var(--arandu-elevated);
             color: var(--arandu-gold);
             font-weight: 700;
             text-align: left;
@@ -2154,7 +2242,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             border: none;
             border-left: 4px solid var(--arandu-terracotta);
             border-radius: 0 4px 4px 0;
-            background-color: var(--arandu-terr-18);
+            background-color: var(--arandu-terracotta-18);
             padding: 0.8rem 1.05rem;
             margin: 0.5rem 0 0.9rem 0;
             color: var(--arandu-text);
@@ -2198,6 +2286,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             width: fit-content !important;
             max-width: 100% !important;
             margin-left: auto !important;
+            contain: layout style;
         }}
         .st-key-ui_tema_modo [data-testid="stButtonGroup"] {{
             display: inline-flex !important;
@@ -2283,6 +2372,7 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             border: 1px solid var(--arandu-border);
             background-color: var(--arandu-surface);
             margin: 0.65rem 0 1rem 0;
+            contain: layout style paint;
         }}
         .arandu-simpson-weights-head {{
             display: flex;
@@ -2373,23 +2463,25 @@ def obtener_css_arandu(modo: str = "oscuro", preferencia: str | None = None) -> 
             display: none !important;
         }}
         {css_claro_streamlit}
-        </style>
         """
+    return f"<style>{_compactar_css(cuerpo_css)}</style>"
+
+
+_COLORES_SVG_TARJETA_CSS: dict[str, str] = {
+    "borde": "var(--arandu-border)",
+    "salvia": "var(--arandu-sage-border)",
+    "oro": "var(--arandu-gold)",
+    "texto": "var(--arandu-text)",
+    "terracota": "var(--arandu-terracotta-dark)",
+    "lienzo": "var(--arandu-canvas)",
+    "secundario": "var(--arandu-surface)",
+}
 
 
 @st.cache_data(show_spinner=False)
-def obtener_svg_tarjeta_arandu(clave_svg: str, modo: str = "oscuro") -> str:
-    """Retorna una ilustración SVG minimalista e inline en paleta Arandú para tarjetas del catálogo."""
-    paleta = PALETA_ARANDU_CLARO if modo == "claro" else PALETA_ARANDU
-    colores_svg = {
-        "borde": paleta["borde"],
-        "salvia": paleta["salvia_borde"],
-        "oro": paleta["oro"],
-        "texto": paleta["texto_principal"],
-        "terracota": paleta["terracota_oscuro"],
-        "lienzo": paleta["bg_lienzo"],
-        "secundario": paleta["bg_secundario"],
-    }
+def _obtener_svg_tarjeta_css(clave_svg: str) -> str:
+    """Retorna una ilustración SVG adaptable automáticamente mediante tokens CSS Arandú."""
+    colores_svg = _COLORES_SVG_TARJETA_CSS
     svgs: dict[str, str] = {
         "fundamentos": (
             '<svg viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Precisión binaria y series escalonadas">'
@@ -2529,7 +2621,42 @@ def obtener_svg_tarjeta_arandu(clave_svg: str, modo: str = "oscuro") -> str:
     return svgs.get(clave_svg, svgs["arena_versus"]).format(**colores_svg)
 
 
+def obtener_svg_tarjeta_arandu(clave_svg: str, modo: str = "oscuro") -> str:
+    """Retorna una ilustración SVG minimalista e inline en paleta Arandú para tarjetas del catálogo."""
+    _ = modo
+    return _obtener_svg_tarjeta_css(clave_svg)
+
+
 _EXTENSIONES_IMAGEN_METODO = (".png", ".jpg", ".jpeg", ".svg")
+
+
+@st.cache_data(show_spinner=False, ttl=30)
+def _listar_assets_metodos() -> dict[str, tuple[str, int, str]]:
+    """Indexa una sola vez por ventana de TTL los assets personalizados en assets/metodos/."""
+    indice: dict[str, tuple[str, int, str]] = {}
+    prioridad_ext = {ext: idx for idx, ext in enumerate(_EXTENSIONES_IMAGEN_METODO)}
+    mejor_rango: dict[str, tuple[int, int]] = {}
+    for raiz_idx, raiz in enumerate((_ASSETS_DIR / "metodos", Path("assets") / "metodos")):
+        try:
+            base = raiz.resolve()
+            if not base.is_dir():
+                continue
+            for entrada in base.iterdir():
+                if not entrada.is_file():
+                    continue
+                ext = entrada.suffix.lower()
+                prio = prioridad_ext.get(ext)
+                if prio is None:
+                    continue
+                clave = entrada.stem
+                rango = (prio, raiz_idx)
+                if clave not in mejor_rango or rango < mejor_rango[clave]:
+                    mejor_rango[clave] = rango
+                    mime = _MIME_TYPES.get(ext, "application/octet-stream")
+                    indice[clave] = (str(entrada), entrada.stat().st_mtime_ns, mime)
+        except OSError:
+            continue
+    return indice
 
 
 def _buscar_asset_metodo(clave_metodo: str) -> tuple[str, int, str] | None:
@@ -2537,12 +2664,7 @@ def _buscar_asset_metodo(clave_metodo: str) -> tuple[str, int, str] | None:
     limpia = clave_metodo.strip().replace("\\", "/").split("/")[-1]
     if not limpia:
         return None
-    for ext in _EXTENSIONES_IMAGEN_METODO:
-        ruta = _resolver_ruta_asset(f"metodos/{limpia}{ext}")
-        if ruta is not None:
-            mime = _MIME_TYPES.get(ext, "application/octet-stream")
-            return str(ruta), ruta.stat().st_mtime_ns, mime
-    return None
+    return _listar_assets_metodos().get(limpia)
 
 
 @st.cache_data(show_spinner=False)
@@ -2552,7 +2674,7 @@ def _leer_asset_metodo_html(ruta_str: str, mtime_ns: int, mime: str, alt: str) -
     raw = Path(ruta_str).read_bytes()
     encoded = base64.b64encode(raw).decode("ascii")
     alt_esc = html.escape(alt)
-    return f'<img src="data:{mime};base64,{encoded}" class="arandu-card-media-img" alt="{alt_esc}" />'
+    return f'<img src="data:{mime};base64,{encoded}" class="arandu-card-media-img" alt="{alt_esc}" decoding="async" />'
 
 
 @st.cache_data(show_spinner=False)
@@ -2564,10 +2686,11 @@ def _construir_html_tarjeta_catalogo_cached(
     firma_asset: tuple[str, int, str] | None,
     modo: str,
 ) -> str:
+    _ = modo
     if firma_asset is not None:
         media_html = _leer_asset_metodo_html(*firma_asset, alt=titulo)
     else:
-        media_html = obtener_svg_tarjeta_arandu(clave_svg, modo=modo)
+        media_html = _obtener_svg_tarjeta_css(clave_svg)
     tag_html = (
         f'<span class="arandu-nav-card-tag">{html.escape(subtitulo_tag)}</span>'
         if subtitulo_tag
@@ -2601,7 +2724,7 @@ def construir_html_tarjeta_catalogo(
         descripcion=descripcion,
         subtitulo_tag=subtitulo_tag,
         firma_asset=firma_asset,
-        modo=obtener_modo_tema(),
+        modo="css",
     )
 
 
@@ -2863,23 +2986,30 @@ _BORRADOR_METODO_SVGS: dict[str, tuple[str, str]] = {
 }
 
 
+_COLORES_FICHA_CSS: dict[str, str] = {
+    "marco": "var(--arandu-frame-bg)",
+    "borde": "var(--arandu-border)",
+    "oro": "var(--arandu-gold)",
+    "lienzo": "var(--arandu-canvas)",
+    "texto": "var(--arandu-text)",
+    "salvia": "var(--arandu-sage-border)",
+    "terracota": "var(--arandu-terracotta-dark)",
+    "horner": "var(--arandu-horner)",
+}
+
+
 @st.cache_data(show_spinner=False)
+def _obtener_svg_borrador_css(clave_svg: str) -> str:
+    """Retorna la ilustración vertical SVG borrador adaptable automáticamente por tokens CSS."""
+    label, body = _BORRADOR_METODO_SVGS.get(clave_svg, _BORRADOR_METODO_SVGS["biseccion"])
+    prefix = _FICHA_SVG_FRAME_PREFIX.format(label=html.escape(label), **_COLORES_FICHA_CSS)
+    return f"{prefix}{body.format(**_COLORES_FICHA_CSS)}</svg>"
+
+
 def obtener_svg_borrador_metodo(clave_svg: str, modo: str = "oscuro") -> str:
     """Retorna la ilustración vertical SVG borrador por defecto para una ficha de método."""
-    paleta = PALETA_ARANDU_CLARO if modo == "claro" else PALETA_ARANDU
-    colores_ficha = {
-        "marco": paleta["bg_marco"],
-        "borde": paleta["borde"],
-        "oro": paleta["oro"],
-        "lienzo": paleta["bg_lienzo"],
-        "texto": paleta["texto_principal"],
-        "salvia": paleta["salvia_borde"],
-        "terracota": paleta["terracota_oscuro"],
-        "horner": paleta["bg_horner"],
-    }
-    label, body = _BORRADOR_METODO_SVGS.get(clave_svg, _BORRADOR_METODO_SVGS["biseccion"])
-    prefix = _FICHA_SVG_FRAME_PREFIX.format(label=html.escape(label), **colores_ficha)
-    return f"{prefix}{body.format(**colores_ficha)}</svg>"
+    _ = modo
+    return _obtener_svg_borrador_css(clave_svg)
 
 
 @st.cache_data(show_spinner=False)
@@ -2894,12 +3024,13 @@ def _construir_html_ficha_metodo_cached(
     firma_asset: tuple[str, int, str] | None,
     modo: str,
 ) -> str:
+    _ = modo
     clase_activa = " is-active" if activa else ""
     badge = '<span class="arandu-ficha-badge">Activo</span>' if activa else ""
     if firma_asset is not None:
         media_html = _leer_asset_metodo_html(*firma_asset, alt=titulo)
     else:
-        media_html = obtener_svg_borrador_metodo(clave_svg, modo=modo)
+        media_html = _obtener_svg_borrador_css(clave_svg)
     return (
         f'<article class="arandu-ficha-card{clase_activa}" aria-label="Método {html.escape(numero)}: {html.escape(titulo)}">'
         '<div class="arandu-ficha-main">'
@@ -2935,7 +3066,7 @@ def construir_html_ficha_metodo(
         pista=pista,
         activa=activa,
         firma_asset=firma_asset,
-        modo=obtener_modo_tema(),
+        modo="css",
     )
 
 
@@ -2979,8 +3110,16 @@ def construir_html_control_tema_esquina(modo: str = "sistema") -> str:
 
 
 def aplicar_estilo_arandu() -> None:
-    """Inyecta tipografías, tarjetas, tablas y controles orgánicos de Arandú."""
+    """Inyecta tipografías, tarjetas, tablas y controles orgánicos de Arandú (deduplicado por ejecución)."""
+    if st.session_state.get("_arandu_css_aplicado_en_run") is True:
+        return
     pref = obtener_preferencia_tema()
     modo_eff = resolver_modo_tema(pref)
-    st.markdown(obtener_css_arandu(modo_eff, preferencia=pref), unsafe_allow_html=True)
+    css_html = obtener_css_arandu(modo_eff, preferencia=pref)
+    st.markdown(
+        f'{css_html}<span class="arandu-pref-{pref}" aria-hidden="true"></span>',
+        unsafe_allow_html=True,
+    )
+    if "_arandu_css_aplicado_en_run" in st.session_state:
+        st.session_state["_arandu_css_aplicado_en_run"] = True
 
