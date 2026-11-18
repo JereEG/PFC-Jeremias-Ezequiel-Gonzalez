@@ -195,5 +195,21 @@ def vista_inicio() -> None:
                 use_container_width=True,
             )
 
+    with st.expander("Bibliografía, Créditos Académicos y Licencias", expanded=False):
+        st.markdown(
+            "**Autoría y licencia del código:**\n"
+            "- **Arandú: Métodos Computacionales** — Proyecto Final de Carrera de **Jeremías Ezequiel González** (Lic. en Sistemas de Información, **FaCENA — UNNE**).\n"
+            "- Código fuente e interfaz publicados bajo licencia **MIT** (`LICENSE`). Los textos citados, consignas de cátedra y librerías externas mantienen los derechos de sus respectivos autores y editoriales (`CREDITOS_Y_LICENCIAS.md`).\n\n"
+            "**Bibliografía académica de referencia:**\n"
+            "- **Pace, Guido José** *(citado también como Pacce, Guido en apuntes de cátedra)*. *Métodos Numéricos*. Corrientes: **EUDENE** (UNNE), 1997. ISBN `950-656-017-X`.\n"
+            "- **Chapra, Steven C.; Canale, Raymond P.** *Métodos numéricos para ingenieros*. McGraw-Hill Interamericana.\n"
+            "- **Burden, Richard L.; Faires, J. Douglas.** *Análisis numérico*. Cengage Learning / Editorial Sudamericana.\n"
+            "- **Cordero Barbero, A.; Hueso Pagoaga, J. L.; Martínez Molada, E.; Torregrosa Sánchez, J. R.** *Problemas resueltos de métodos numéricos*. Thomson / Paraninfo, 2006. ISBN `84-9732-409-9`.\n\n"
+            "**Material docente y cátedra:**\n"
+            "- Consignas, guías de laboratorio (TP 1–7) y propuestas de solución adaptadas con fines estrictamente educativos del material de la cátedra **Métodos Computacionales — FaCENA (UNNE)**, acreditando a su equipo docente (entre ellos material de la Prof. **Flavia S. Pucheta**).\n\n"
+            "**Tecnología, tipografías e íconos de código abierto:**\n"
+            "- Python (`PSF`), Streamlit (`Apache-2.0`), SymPy (`BSD`), NumPy (`BSD-3-Clause`), Pandas (`BSD-3-Clause`), Plotly (`MIT`), Pillow (`MIT-CMU`), `@stlite/browser` (`Apache-2.0`), Pyodide (`MPL-2.0`), KaTeX (`MIT`), Material Symbols (`Apache-2.0`) y fuentes *Inter*, *Outfit* y *JetBrains Mono* (`SIL OFL 1.1`)."
+        )
+
 
 vista_inicio()

@@ -277,8 +277,9 @@ with st.sidebar:
     st.markdown(
         f"""
         <footer class="arandu-footer" aria-label="Pie de página institucional">
-            <strong>Arandú v{APP_VERSION}</strong> • Dark Botanical &amp; Golden Wisdom<br/>
-            Proyecto Final de Carrera • FaCENA — UNNE
+            <strong>Arandú v{APP_VERSION}</strong> • Licencia MIT (código)<br/>
+            Jeremías E. González • PFC FaCENA — UNNE<br/>
+            Ref.: Pace (Pacce, EUDENE), Chapra &amp; Canale, Burden
         </footer>
         """,
         unsafe_allow_html=True,

@@ -83,3 +83,16 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 En Windows también puedes hacer doble clic en `ejecutar.bat`.
+
+---
+
+## 📚 Bibliografía, Créditos Académicos y Licencias
+
+- **Licencia del software:** Código fuente bajo **MIT License** ([`LICENSE`](./LICENSE)) — © 2026 Jeremías Ezequiel González (Proyecto Final de Carrera, **FaCENA — UNNE**).
+- **Bibliografía académica base:**
+  - **Pace, Guido José** *(citado también como Pacce, Guido)*. *Métodos Numéricos*. Corrientes: **EUDENE** (UNNE), 1997. ISBN `950-656-017-X`.
+  - **Chapra, Steven C.; Canale, Raymond P.** *Métodos numéricos para ingenieros*. McGraw-Hill Interamericana.
+  - **Burden, Richard L.; Faires, J. Douglas.** *Análisis numérico*. Cengage Learning / Editorial Sudamericana.
+  - **Cordero Barbero, A. y otros.** *Problemas resueltos de métodos numéricos*. Thomson / Paraninfo, 2006. ISBN `84-9732-409-9`.
+- **Material docente de cátedra:** Guías de Laboratorio 1–7, filminas teóricas y propuestas de solución de la cátedra **Métodos Computacionales (FaCENA — UNNE)**, acreditando a su equipo docente (incluyendo guías/presentaciones de la Prof. **Flavia S. Pucheta**).
+- **Dependencias y tipografías:** Detalle completo de licencias open-source (`Apache-2.0`, `BSD`, `MIT`, `MPL-2.0`) y fuentes (`SIL OFL 1.1`) en [`CREDITOS_Y_LICENCIAS.md`](./CREDITOS_Y_LICENCIAS.md).

@@ -166,5 +166,11 @@ def vista_laboratorios() -> None:
     with t_fib:
         _frag_lab1_fibonacci()
 
+    st.caption(
+        "Créditos académicos: consignas adaptadas del material de cátedra de Métodos Computacionales "
+        "(FaCENA — UNNE; equipo docente incl. Prof. Flavia S. Pucheta) y bibliografía base: "
+        "Pace (Pacce, EUDENE 1997), Chapra & Canale, Burden & Faires y Cordero et al."
+    )
+
 
 vista_laboratorios()
