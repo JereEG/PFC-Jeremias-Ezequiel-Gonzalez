@@ -1001,30 +1001,40 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Método de Gauss-Jordan y Matriz Inversa",
         "familia": "sistemas",
         "icono": "🔁",
+        "problema_real": {
+            "titulo": r"Calibración de Sensor IMU 3-Ejes (*Cross-Talk*): $[A \mid I] \to [I \mid A^{-1}]$",
+            "descripcion": (
+                r"En un acelerómetro o giróscopo de $3$ ejes, la desalineación física mezcla lecturas entre ejes ($\vec{y} = A\,\vec{x}$). "
+                r"Aplicando **Gauss-Jordan** sobre $[A \mid I_3]$ obtenemos en una sola pasada la matriz de desacoplamiento $A^{-1}$, "
+                r"para que el firmware recupere $\vec{x} = A^{-1}\vec{y}$ en tiempo real ($O(n^2)$) en cada muestra."
+            ),
+        },
         "resumen_corto": (
-            "Lleva la eliminación un paso más allá: en vez de dejar un triángulo, limpia ceros **por arriba y por abajo** "
-            "de la diagonal hasta obtener directamente el vector solución y la inversa $A^{-1}$."
+            "Lleva la eliminación de Gauss hasta diagonalizar por completo ($I$ a la izquierda): limpia ceros "
+            "**por arriba y por abajo** y entrega directamente $x$ o la matriz inversa explícita $A^{-1}$."
         ),
         "guru": {
             "que_resuelve": (
-                "Entrega al mismo tiempo la solución de $Ax = b$ y la matriz inversa explícita $A^{-1}$ sin paso regresivo posterior."
+                "Calcula la solución directa $x$ sin sustitución regresiva y construye la matriz inversa exacta $A^{-1}$."
             ),
             "intuicion_geometrica": (
-                "Escala cada fila para poner un $1$ en su diagonal principal y anula todo el resto de la columna, desacoplando cada incógnita."
+                "Escala cada pivote a $1$ y anula todo el resto de su columna hasta transformar $A$ en la identidad $I$."
             ),
             "algoritmo_pasos": [
-                "Se arma el bloque extendido $[A \\mid b \\mid I]$ en memoria.",
-                "Para cada columna $k$, dividís su fila por el pivote diagonal para normalizarlo a $1$.",
-                "Eliminás los coeficientes de todas las demás filas (tanto superiores como inferiores).",
+                "Se arma el bloque ampliado $[A \\mid b]$ o $[A \\mid I]$ en memoria.",
+                "En la columna $k$ (con pivoteo parcial), dividís la fila pivote para fijar diagonal $= 1$.",
+                "Anulás tanto las filas inferiores como las superiores hasta aislar cada incógnita o columna de $A^{-1}$.",
             ],
             "profundizacion": [
-                r"Su complejidad asciende a $\approx n^3$ operaciones ($\sim 50\%$ más costo de CPU que Eliminación Gaussiana estándar) cuando solo se busca un vector $x$.",
+                r"Su costo para un sistema único es $\approx n^3$ operaciones ($\sim 50\%$ mayor que Gauss), pero es ideal cuando se requiere explícitamente $A^{-1}$ o múltiples vectores $b$.",
             ],
             "cuando_usar": [
-                "Cuando tu programa necesita explícitamente calcular la matriz inversa $A^{-1}$ o resolver múltiples columnas $b$ a la vez.",
+                "Cuando necesitás explícitamente $A^{-1}$ (matrices de calibración, sensibilidad de red o gráficos 3D).",
+                "Cuando querés obtener múltiples soluciones o analizar la matriz inversa completa.",
             ],
             "cuando_falla": [
-                "Si solo querés resolver un sistema lineal $Ax = b$, es redundante frente a Gauss estándar o factorización $LU$.",
+                "Si solo buscás resolver $Ax = b$ para un único $b$, Gauss estándar o $LU$ realizan menos operaciones.",
+                "Si $A$ es singular ($\\det(A)=0$), no existe $A^{-1}$ y falla al encontrar pivote nulo.",
             ],
         },
         "formulas_latex": [
@@ -1046,37 +1056,46 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "A": [[18.72, 8.2, 8.76], [6.4, 15.9, 7.18], [5.22, 6.4, 14.31]],
                 "b": [121.280, 126.321, 118.522],
             },
-            "solucion_referencia": "Redondeo de apunte ($2$ dec.): $[1.82,\\, 4.72,\\, 5.50]$; cálculo numérico completo: $[1.8358,\\, 4.7213,\\, 5.5013]$.",
+            "solucion_referencia": "Redondeo de apunte ($2$ dec.): $[1.82,\\, 4.72,\\, 5.50]$; cálculo numérico exacto: $[1.83628,\\, 4.72149,\\, 5.50098]$ y $\\|A\\cdot A^{-1} - I\\|_2 = 3.78 \\times 10^{-16}$.",
         },
     },
     "factorizacion_lu": {
         "nombre": "Factorización $LU$ (Esquema de Doolittle)",
         "familia": "sistemas",
         "icono": "🧩",
+        "problema_real": {
+            "titulo": r"Malla Térmica de 3 Racks Cloud ante Cargas Variables: $A\,\Delta\vec{T} = \vec{q}$",
+            "descripcion": (
+                r"La matriz de conductancia térmica $A$ entre tres racks (*Web*, *DB* y *GPU-IA*) es fija según la geometría del Data Center, "
+                r"pero el vector de potencia $\vec{q}$ varía de carga normal a picos batch o IA. **Factorización $LU$** descompone $A = L \cdot U$ "
+                r"**una sola vez** ($O(n^3)$) y calcula cada nuevo perfil térmico en tiempo $O(n^2)$ mediante dos barridos triangulares."
+            ),
+        },
         "resumen_corto": (
             "Guarda en caché el trabajo pesado de Gauss factorizando $A = L \\cdot U$. "
-            "Si mañana cambia el vector de entradas $b$, resolvés el nuevo sistema en tiempo $\\mathcal{O}(n^2)$ sin recalcular $A$."
+            "Cuando cambia el vector $b$, resolvés el nuevo sistema en tiempo $\\mathcal{O}(n^2)$ sin recalcular $A$."
         ),
         "guru": {
             "que_resuelve": (
                 "Desacopla la matriz de coeficientes $A$ del vector independiente $b$ para acelerar múltiples simulaciones con la misma estructura."
             ),
             "intuicion_geometrica": (
-                "Separa los multiplicadores de la eliminación en una matriz triangular inferior ($L$) y guarda la matriz escalonada final en una triangular superior ($U$)."
+                "Guarda los multiplicadores debajo de la diagonal en $L$ (con unos en diagonal) y el resultado escalonado en $U$."
             ),
             "algoritmo_pasos": [
-                "Se descompone una sola vez $A = L \\cdot U$ (donde $L$ tiene $1$ en su diagonal y almacena los multiplicadores).",
-                "Para cada nuevo vector $b$, primero resolvés hacia adelante $L y = b$ (sustitución progresiva).",
-                "Finalmente resolvés hacia atrás $U x = y$ (sustitución regresiva).",
+                "Descomponé una sola vez $A = L \\cdot U$ (Doolittle fija $L_{ii} = 1$).",
+                "Para cada nuevo $b$, resolvé hacia adelante $L y = b$ (sustitución progresiva).",
+                "Luego resolvé hacia atrás $U x = y$ (sustitución regresiva) para obtener la solución.",
             ],
             "profundizacion": [
-                r"La descomposición cuesta $\approx \frac{1}{3}n^3$ multiplicaciones, idéntico a Gauss, pero cada vector adicional $b_k$ cuesta apenas $n^2$ operaciones.",
+                r"Factorizar cuesta $\approx \frac{2}{3}n^3$ operaciones (idéntico a Gauss), pero cada vector adicional $b_k$ cuesta apenas $2n^2$ operaciones.",
             ],
             "cuando_usar": [
-                "En motores gráficos, simuladores físicos o grafos donde la matriz $A$ es fija y cambia el vector $b$ en cada frame.",
+                "En simulaciones térmicas, redes eléctricas o gráficos 3D donde la matriz $A$ es constante y $b$ varía en cada instante.",
+                "Cuando resolvés múltiples sistemas con la misma matriz sin querer construir $A^{-1}$.",
             ],
             "cuando_falla": [
-                "La versión básica de Doolittle sin intercambio de filas se detiene si algún elemento diagonal $U_{kk}$ da cero.",
+                "Doolittle directo sin permutación falla si algún pivote diagonal $U_{kk}$ es nulo (ej. $a_{11} = 0$).",
             ],
         },
         "formulas_latex": [
@@ -1086,7 +1105,7 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
             "titulo": "Descomposición $3 \\times 3$ exacta de Cátedra",
             "enunciado": "Factorizar $A = [[4, -2, 1], [20, -7, 12], [-8, 13, 17]]$ y resolver para $b = [11, 70, 17]^T$.",
             "pasos": [
-                "Multiplicadores almacenados en $L$: $f_{21} = 5$, $f_{31} = -2$, $f_{32} = 3$.",
+                "Multiplicadores almacenados en $L$: $l_{21} = 5$, $l_{31} = -2$, $l_{32} = 3$.",
                 "Matriz escalonada $U = [[4, -2, 1], [0, 3, 7], [0, 0, -2]]$.",
                 "Paso progresivo $L y = b \\implies y = [11, 15, -6]^T$; paso regresivo $U x = y \\implies x = [1, -2, 3]^T$.",
             ],
@@ -1099,37 +1118,47 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "A": [[4.0, -2.0, 1.0], [20.0, -7.0, 12.0], [-8.0, 13.0, 17.0]],
                 "b": [11.0, 70.0, 17.0],
             },
-            "solucion_referencia": "$y = [11,\\, 15,\\, -6]^T$ y solución final $x = [1,\\, -2,\\, 3]^T$.",
+            "solucion_referencia": r"$y = [11,\, 15,\, -6]^T$ y solución final $x = [1,\, -2,\, 3]^T$ ($\|LU - A\|_2 = 0$, $\|Ax - b\|_2 = 0$).",
         },
     },
     "gauss_seidel": {
         "nombre": "Método Iterativo de Gauss-Seidel",
         "familia": "sistemas",
         "icono": "🔄",
+        "problema_real": {
+            "titulo": r"Latencias en Servidor BD Compartido (*Consultas, Updates y Reportes*): $A\,\vec{t} = \vec{b}$",
+            "descripcion": (
+                r"En un motor de base de datos con contención compartida, los tiempos medios de Consultas ($c$), Updates ($a$) y Reportes ($r$) "
+                r"se acoplan mediante $5c + a + r = 17$, $c + 6a + r = 24$ y $c + a + 7r = 33$. Ordenado por **dominancia diagonal**, "
+                r"**Gauss-Seidel** converge a $(2, 3, 4)\;\text{ms}$ en apenas **$5$ pasos**; si intercambiás filas $1 \leftrightarrow 2$, "
+                r"la solución es idéntica pero el algoritmo **diverge en $8$ pasos**."
+            ),
+        },
         "resumen_corto": (
-            "Resuelve sistemas enormes mediante un bucle `while` sin modificar la matriz original: despeja cada variable "
-            "y usa inmediatamente los valores recién actualizados en esa misma vuelta."
+            "Resuelve sistemas grandes sin alterar la matriz original: despeja cada variable e inyecta al instante "
+            "los valores recién calculados, garantizando convergencia cuando $A$ es diagonalmente dominante."
         ),
         "guru": {
             "que_resuelve": (
-                "Aproxima $A x = b$ en sistemas de miles de ecuaciones dispersas (con muchos ceros) donde almacenar matrices triangulares llenaría la RAM."
+                "Aproxima $Ax = b$ iterativamente en sistemas dispersos o grandes usando mínima memoria adicional."
             ),
             "intuicion_geometrica": (
-                "Despeja $x_i$ de la ecuación $i$-ésima y ajusta una coordenada por vez rebote tras rebote hasta estabilizarse en la solución."
+                "Despeja $x_i$ de cada ecuación y corrige una coordenada por vez rebote tras rebote hasta estabilizar el error."
             ),
             "algoritmo_pasos": [
-                "**Chequeo de estabilidad antes de iterar (Dominancia diagonal):** verificamos que en cada fila el elemento de la diagonal $|a_{ii}|$ pese más que la suma de los demás coeficientes de su fila ($|a_{ii}| \\ge \\sum_{j \\ne i} |a_{ij}|$).",
-                "Arrancás con una suposición inicial (por ejemplo $x^{(0)} = [0, 0, 0]$ o $[1, 1, 1]$) y recorres las variables actualizándolas in-place.",
-                "Se detiene cuando el mayor cambio entre iteraciones $|x^{(k+1)} - x^{(k)}|$ cae debajo de la tolerancia $E$.",
+                "**Chequeo de dominancia diagonal:** verificá que en toda fila $|a_{ii}| > \\sum_{j \\ne i} |a_{ij}|$ (reordenando ecuaciones si hace falta).",
+                "Partí desde $x^{(0)}$ (ej. $[0,0,0]$ o $[1,1,1]$) actualizando cada $x_i$ in-place con los valores nuevos de esa misma iteración.",
+                "Detené el bucle cuando $\\max |x_i^{(k)} - x_i^{(k-1)}| < E$.",
             ],
             "profundizacion": [
-                r"La convergencia ocurre si y solo si el factor de amplificación asintótica de la matriz de iteración (radio espectral $\rho(T_{GS})$) es estrictamente menor que $1$. La dominancia diagonal estricta es una condición suficiente fácil de programar en $\mathcal{O}(n^2)$ antes de arrancar.",
+                r"La iteración converge desde cualquier $x^{(0)}$ si el radio espectral $\rho(T_{GS}) < 1$; la dominancia diagonal estricta es la condición suficiente más rápida de verificar en $\mathcal{O}(n^2)$.",
             ],
             "cuando_usar": [
-                "En matrices grandes con mayoría de ceros (mallas físicas, grafos) que cumplen dominancia diagonal o permiten reordenar filas para lograrla.",
+                "En sistemas grandes con muchos ceros (redes, latencias, diferencias finitas) que cumplen o admiten dominancia diagonal.",
+                "Cuando preferís aproximación rápida dentro de una tolerancia $E$ antes que triangularizar toda la matriz.",
             ],
             "cuando_falla": [
-                "Si la matriz NO es diagonalmente dominante, los valores suelen oscilar creciendo cada iteración hasta desbordar (`Overflow`/`Inf`).",
+                "Si $|a_{ii}| = 0$ no se puede despejar la variable; y sin dominancia diagonal el algoritmo puede diverger a infinito en pocas iteraciones.",
             ],
         },
         "formulas_latex": [
@@ -1154,93 +1183,117 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "tol": 0.01,
                 "max_iter": 50,
             },
-            "solucion_referencia": "Converge en $6$ iteraciones a $[1.835,\\, 4.721,\\, 5.502]$ con errores $\\le 0.005$.",
+            "solucion_referencia": "Converge en $7$ iteraciones a $[1.835,\\, 4.721,\\, 5.502]$ con máximo cambio $|\\Delta x| = 4.95 \\times 10^{-3} < 0.01$.",
         },
     },
     "potencias": {
         "nombre": "Método de las Potencias (Directo e Inverso)",
         "familia": "autovalores",
         "icono": "⚡",
+        "problema_real": {
+            "titulo": r"Cascada de Reintentos en 3 Microservicios (*Gateway, API, BD*): $\vec{x}_k = A\,\vec{x}_{k-1}$",
+            "descripcion": (
+                r"En una cadena de tres servicios donde cada nodo retiene una fracción $d$ de carga local y rebota $c$ hacia sus vecinos, "
+                r"**Potencias Directas** extrae el factor dominante $\lambda_{\max}$: si $\lambda_{\max} < 1$ ($d=0.50,\; c=0.25 \implies 0.854$), "
+                r"la tormenta se apaga; si $\lambda_{\max} > 1$ ($c=0.45 \implies 1.136$), colapsa en cascada sobre la **API** "
+                r"(autovector $[0.707,\, 1.000,\, 0.707]^T$). **Potencia Inversa** mide el modo mínimo $\lambda_{\min}$."
+            ),
+        },
         "resumen_corto": (
-            "Encuentra el autovalor más grande ($\\lambda_{\\max}$) o más chico ($\\lambda_{\\min}$) multiplicando "
-            "una matriz por un vector repetidas veces dentro de un bucle y reescalando en cada paso."
+            "Calcula el autovalor dominante ($|\\lambda_{\\max}|$) o menor ($|\\lambda_{\\min}|$) y su dirección propia "
+            "multiplicando repetidamente un vector por $A$ (o $A^{-1}$) y normalizando en cada paso."
         ),
         "guru": {
             "que_resuelve": (
-                "Calcula los factores de escala extremos (máximo y mínimo) y sus direcciones propias sin construir polinomios gigantes."
+                "Extrae los modos extremos de escala ($\\lambda_{\\max}$ y $\\lambda_{\\min}$) y su autovector sin formar el polinomio característico."
             ),
             "intuicion_geometrica": (
-                "Al multiplicar repetidamente un vector por la matriz $A$, la dirección de mayor estiramiento crece mucho más rápido que las demás y termina dominando por completo al vector."
+                "Multiplicar repetidamente un vector por $A$ estira más rápido su componente en la dirección del autovalor dominante, que termina imponiéndose sobre las demás."
             ),
             "algoritmo_pasos": [
-                "Se multiplica `Y = A @ X` (o `Y = inv(A) @ X` para extraer $\\lambda_{\\min}$).",
-                "Se toma el componente de mayor módulo de `Y` como estimación actual de $\\lambda$ y se divide todo el vector por ese número para normalizarlo (evitando desbordes).",
-                "Se repite hasta que el cambio relativo entre $\\lambda_k$ y $\\lambda_{k-1}$ sea menor que la tolerancia.",
+                "Calculás $Y_k = A X_{k-1}$ (o $Y_k = A^{-1} X_{k-1}$ para $\\lambda_{\\min}$).",
+                "Elegís la componente de mayor magnitud $m_k$ como estimación de $\\lambda_k$ y normalizás $X_k = Y_k / m_k$.",
+                "Cortás cuando el error relativo porcentual $|\\lambda_k - \\lambda_{k-1}|/|\\lambda_k| \\times 100\\%$ cae debajo de $E$.",
             ],
             "profundizacion": [
-                r"La razón de convergencia depende de la distancia relativa entre los dos autovalores más grandes: $\left|\frac{\lambda_2}{\lambda_1}\right|^k \to 0$. Es la base conceptual del algoritmo original de PageRank para ordenar grafos web.",
+                r"La tasa de convergencia depende del cociente espectral $\left|\frac{\lambda_2}{\lambda_1}\right|^k \to 0$; es la base del cálculo de centralidad espectral y del algoritmo clásico de PageRank.",
             ],
             "cuando_usar": [
-                "En matrices grandes (redes, estabilidad estructural, grafos) donde solo interesa el modo dominante $\\lambda_{\\max}$ o el menor $\\lambda_{\\min}$.",
+                "Cuando solo necesitás el modo dominante ($\\lambda_{\\max}$) o el menor ($\\lambda_{\\min}$) de una matriz mediana o grande.",
+                "En análisis de estabilidad iterativa o cascadas donde importa detectar rápido si $|\\lambda_{\\max}| > 1$.",
             ],
             "cuando_falla": [
-                "Si dos autovalores dominantes empatan en tamaño ($|\\lambda_1| \\approx |\\lambda_2|$), la convergencia se estanca o queda oscilando.",
-                "Si el vector inicial $X_0$ arranca exactamente perpendicular al autovector dominante.",
-                "La versión inversa para $\\lambda_{\\min}$ falla si la matriz no tiene inversa ($\\det(A) = 0$).",
+                "Si dos autovalores dominantes empatan en módulo ($|\\lambda_1| \\approx |\\lambda_2|$), el algoritmo oscila sin converger.",
+                "La variante inversa falla cuando $A$ es singular ($\\det A = 0$), o si $X_0$ arranca ortogonal al autovector dominante.",
             ],
         },
         "formulas_latex": [
-            r"A X_{k-1} = \bar{\lambda}_k X_k \quad (\lambda_{\max}), \qquad A^{-1} X_{k-1} = \frac{1}{\bar{\lambda}_k} X_k \quad (\lambda_{\min})",
+            r"Y_k = A X_{k-1}, \qquad m_k = \max_i |Y_k[i]| \to \lambda_{\max}, \qquad X_k = \frac{Y_k}{m_k}, \qquad \lambda_{\min} = \frac{1}{\lambda_{\max}(A^{-1})}",
         ],
         "ejemplo_teorico": {
             "titulo": "Normalización por componente máxima (norma infinito)",
             "enunciado": "Dado un vector inicial $X_0$, calcular $Y_k = A X_{k-1}$, extraer $m_k$ igual al componente de mayor magnitud y normalizar $X_k = Y_k / m_k$.",
             "pasos": [
-                "Repetir el ciclo mientras $\\frac{|\\lambda_k - \\lambda_{k-1}|}{|\\lambda_k|} \\ge E$.",
+                "Repetir el ciclo mientras $\\frac{|\\lambda_k - \\lambda_{k-1}|}{|\\lambda_k|}\\times 100\\% \\ge E$.",
             ],
             "resultado_final": "$m_k \\to \\lambda_{\\max}$ y $X_k$ converge al autovector asociado.",
         },
         "practica_profesora": {
             "titulo": "TP4 Ej. 10: Matriz Tridiagonal Simétrica $3 \\times 3$ con $X_0 = [1, 1, 1]$",
-            "enunciado": "Calcular el mayor y menor autovalor de $A = [[3.556, -1.778, 0], [-1.778, 3.556, -1.778], [0, -1.778, 3.556]]$ partiendo de $X_0 = [1, 1, 1]$.",
+            "enunciado": "Calcular el mayor y menor autovalor de $A = [[3.556, -1.778, 0], [-1.778, 3.556, -1.778], [0, -1.778, 3.556]]$ partiendo de $X_0 = [1, 1, 1]$ con tolerancia $E = 0.05\\%$.",
             "datos_iniciales": {
                 "A": [[3.556, -1.778, 0.0], [-1.778, 3.556, -1.778], [0.0, -1.778, 3.556]],
                 "x0": [1.0, 1.0, 1.0],
                 "tol": 0.05,
                 "max_iter": 30,
             },
-            "solucion_referencia": "$\\lambda_{\\max} \\approx 6.095$ con $v = [-0.708,\\, 1,\\, -0.708]^T$ ($5$ iteraciones). $\\lambda_{\\min} \\approx 1.037$ con $v = [0.709,\\, 1,\\, 0.709]^T$ ($3$ iteraciones).",
+            "solucion_referencia": (
+                r"Con $E = 0.05\%$: Directo converge en $8$ pasos a $\lambda_{\max} \approx 6.0706$ "
+                r"($v = [-0.7071,\, 1,\, -0.7071]^T$, pasando por $6.096$ en $k=5$ con $2.08\%$); "
+                r"Inverso converge en $6$ pasos a $\lambda_{\min} \approx 1.0415$ "
+                r"($v = [0.7071,\, 1,\, 0.7071]^T$, pasando por $1.0372$ en $k=3$)."
+            ),
         },
     },
     "faddeev_leverrier": {
         "nombre": "Método de Faddeev-Leverrier (Espectro Completo)",
         "familia": "autovalores",
         "icono": "🔬",
+        "problema_real": {
+            "titulo": r"Lazo de Control en Pipeline de 3 Etapas (*Ingesta, Proceso, Salida*): Espectro Completo y $A^{-1}$",
+            "descripcion": (
+                r"En un sistema acoplado de tres etapas con realimentación $\beta$ de Salida a Ingesta ($A(\beta)$), mover $\beta$ solo "
+                r"desplaza $b_3 = \det(A)$: con $\beta = 0$ aparecen $3$ modos reales ($\{0.80, 0.50, 0.20\}$); con $\beta = -0.5$ "
+                r"nacen modos complejos oscilatorios ($0.689 \pm 0.131j$); y con $\beta = -2$ el sistema se vuelve singular ($\det A = 0$). "
+                r"**Faddeev-Leverrier** revela el espectro completo, $P(\lambda)$ y $A^{-1}$ en exactamente $n$ trazas."
+            ),
+        },
         "resumen_corto": (
-            "Un algoritmo en cadena de exactamente $n$ pasos matriciales que reconstruye todos los coeficientes "
-            "del polinomio característico, obtiene **todos los autovalores** y de regalo entrega $A^{-1}$."
+            "En exactamente $n$ pasos matriciales construye el polinomio característico completo, obtiene **todos los autovalores** "
+            "(reales o complejos), $\\det(A)$ y además entrega $A^{-1}$ mediante el penúltimo bloque."
         ),
         "guru": {
             "que_resuelve": (
-                "Calcula simultáneamente el espectro completo de autovalores, $\\det(A)$ y la matriz inversa $A^{-1}$ en matrices pequeñas."
+                "Calcula simultáneamente todos los autovalores ($P(\\lambda)=0$), $\\det(A)$ y $A^{-1}$ en matrices pequeñas sin perder raíces complejas o repetidas."
             ),
             "intuicion_geometrica": (
-                "En cada paso multiplica matrices acumuladas y lee la suma de su diagonal (la traza), extrayendo los coeficientes del polinomio cuyas raíces son todos los autovalores."
+                "Cada paso acumula potencias desplazadas de $A$ y lee la suma de su diagonal (la traza), reconstruyendo uno por uno los coeficientes del polinomio característico."
             ),
             "algoritmo_pasos": [
-                "Inicializás $B_1 = A$ y tomás $b_1 = \\operatorname{tr}(B_1)$ (suma de la diagonal).",
-                "Para $k = 2 \\dots n$, calculás $B_k = A(B_{k-1} - b_{k-1} I)$ y promediás su diagonal $b_k = \\frac{1}{k}\\operatorname{tr}(B_k)$.",
-                "Con $[1, -b_1, \\dots, -b_n]$ obtenés el polinomio característico $P(\\lambda) = 0$ y con el penúltimo bloque armás $A^{-1}$ gratis.",
+                "Iniciás $B_1 = A$ y $b_1 = \\operatorname{tr}(B_1)$.",
+                "Para $k = 2 \\dots n$, calculás $B_k = A(B_{k-1} - b_{k-1} I)$ y promediás su traza $b_k = \\frac{1}{k}\\operatorname{tr}(B_k)$.",
+                "Leés $\\det(A) = (-1)^{n-1}b_n$, hallás todas las raíces de $P(\\lambda)=0$ y armás $A^{-1} = \\frac{1}{b_n}(B_{n-1}-b_{n-1}I)$.",
             ],
             "profundizacion": [
                 r"Su costo computacional es $\mathcal{O}(n^4)$ porque realiza $n-1$ multiplicaciones de matrices $n \times n$ de costo $\mathcal{O}(n^3)$ cada una, además de requerir calcular las raíces de un polinomio de grado $n$.",
             ],
             "cuando_usar": [
-                "Para matrices pequeñas ($n \\le 6$) donde necesitás conocer **todos** los autovalores y la expresión simbólica del polinomio característico.",
+                "En matrices pequeñas ($n \\le 6$) cuando necesitás el espectro completo (incluyendo pares complejos conjugados o raíces múltiples) y $\\det(A)$.",
+                "Cuando además de los autovalores deseás verificar Cayley-Hamilton ($B_n = b_n I$) y obtener $A^{-1}$ analítica.",
             ],
             "cuando_falla": [
-                "En matrices de dimensión media o grande ($n > 8$): es lento ($\\mathcal{O}(n^4)$) y encontrar raíces de polinomios de grado alto se vuelve muy sensible al error de máquina.",
-                "No puede devolver $A^{-1}$ si la matriz es singular ($b_n = 0$).",
+                "En matrices grandes ($n > 8$): es costoso ($\\mathcal{O}(n^4)$) y extraer raíces de grado alto pierde precisión por redondeo.",
+                "No puede entregar $A^{-1}$ si la matriz es singular ($b_n = 0$), aunque sí sigue hallando todos los autovalores.",
             ],
         },
         "formulas_latex": [
@@ -1275,34 +1328,44 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Interpolación Lineal Directa e Inversa",
         "familia": "interpolacion",
         "icono": "📍",
+        "problema_real": {
+            "titulo": r"Carga Rápida de Batería USB-PD (*Minutos $t \leftrightarrow$ Porcentaje $\%$*)",
+            "descripcion": (
+                r"Un registro discreto mide la carga $[10, 35, 58, 76, 91, 98]\%$ en los minutos $[0, 10, 20, 30, 45, 60]$. "
+                r"Con **Interpolación Directa** estimás la batería a los $15\;\text{min}$ ($46.5\%$); "
+                r"con **Interpolación Inversa** despejás cuándo alcanza el $80\%$ ($34.0\;\text{min}$) uniendo solo los dos puntos vecinos."
+            ),
+        },
         "resumen_corto": (
-            "Conecta dos puntos consecutivos de una tabla con un segmento de recta para estimar valores intermedios "
-            "$y(x)$ o despejar al revés qué valor de $x$ alcanza cierta altura $y$."
+            "Une los dos puntos vecinos de una tabla mediante una recta secante para estimar una salida "
+            "$y(x^*)$ (**Directa**) o despejar el instante $x(y^*)$ que alcanza cierto umbral (**Inversa**)."
         ),
         "guru": {
             "que_resuelve": (
-                "Estima un dato faltante entre dos filas vecinas de una tabla o realiza búsqueda inversa de entrada $x$."
+                "Estima valores intermedios entre dos mediciones consecutivas de una tabla o invierte la búsqueda hacia una entrada $x^*$."
             ),
             "intuicion_geometrica": (
-                "Tira una línea recta entre $(x_0, y_0)$ y $(x_1, y_1)$ y evalúa la ecuación de la recta en el punto objetivo."
+                "Reemplaza la curva desconocida entre $(x_0, y_0)$ y $(x_1, y_1)$ por la cuerda recta que une esos dos vecinos y lee altura o abscisa sobre ella."
             ),
             "algoritmo_pasos": [
-                "Identificás los dos puntos de la tabla que rodean al objetivo.",
-                "Calculás la pendiente local $\\frac{y_1 - y_0}{x_1 - x_0} = \\frac{\\Delta y_0}{h}$.",
-                "Para interpolar directo despejás $y(x)$; para inversa despejás $x(y)$.",
+                "Localizás el par de nodos vecinos $(x_0, y_0)$ y $(x_1, y_1)$ que encierran el objetivo.",
+                "Calculás el paso $h = x_1 - x_0$, la diferencia $\\Delta y_0 = y_1 - y_0$ y la pendiente secante $m = \\Delta y_0 / h$.",
+                "Evaluás $y(x^*) = y_0 + m(x^* - x_0)$ (Directa) o despejás $x(y^*) = x_0 + (y^* - y_0)/m$ (Inversa).",
             ],
             "profundizacion": [
-                r"El error de interpolación lineal depende de la curvatura (segunda derivada): $E(x) = \frac{1}{2} f''(\xi)(x - x_0)(x - x_1)$, siendo máximo justo en la mitad del tramo.",
+                r"El error de interpolación lineal depende de la curvatura (segunda derivada): $E(x) = \frac{1}{2} f''(\xi)(x - x_0)(x - x_1)$, siendo máximo justo en la mitad del tramo ($\frac{h^2}{8}\max|f''|$).",
             ],
             "cuando_usar": [
-                "Cuando la distancia $h$ entre mediciones es chica o la variable crece de manera casi lineal.",
+                "Cuando el paso $h$ entre mediciones es chico o el comportamiento local es casi recto.",
+                "Para lecturas rápidas sobre tablas de laboratorio, sensores o curvas tabuladas en ambos sentidos.",
             ],
             "cuando_falla": [
-                "En tablas muy espaciadas con curvatura fuerte ($\\Delta^2 y$ grande), donde la línea recta pasa sistemáticamente por encima o por debajo de la curva real.",
+                "En tramos anchos con fuerte curvatura ($\\Delta^2 y$ grande), donde la secante subestima o sobreestima sistemáticamente la curva.",
+                "Al extrapolar fuera del intervalo tabulado o intentar interpolación inversa sobre un tramo plano ($\\Delta y_0 = 0$).",
             ],
         },
         "formulas_latex": [
-            r"P_1(x) = y_0 + \frac{\Delta y_0}{h}(x - x_0) \quad \Longleftrightarrow \quad x = x_0 + \frac{(y - y_0)\,h}{\Delta y_0}",
+            r"P_1(x) = y_0 + \frac{\Delta y_0}{h}(x - x_0) \quad \Longleftrightarrow \quad x = x_0 + \frac{(y^* - y_0)\,h}{\Delta y_0}",
         ],
         "ejemplo_teorico": {
             "titulo": "Aproximación lineal sobre $\\ln(x)$",
@@ -1329,31 +1392,40 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Interpolación Cuadrática Inversa (Grado 2)",
         "familia": "interpolacion",
         "icono": "➰",
+        "problema_real": {
+            "titulo": r"Peritaje de Frenado Vehicular (*Velocidad $v \leftrightarrow$ Distancia $d$*)",
+            "descripcion": (
+                r"Pruebas de frenado miden distancia $[18, 36, 60, 90, 126]\;\text{m}$ a velocidades equidistantes $[40, 60, 80, 100, 120]\;\text{km/h}$ "
+                r"($\Delta^2 d = +6\;\text{m}$ constante). Ante una huella de $d^* = 48\;\text{m}$, la interpolación lineal subestima $70.00\;\text{km/h}$; "
+                r"**Cuadrática Inversa** ajusta la parábola exacta ($70.62\;\text{km/h}$) y descarta la raíz externa ($-90.62\;\text{km/h}$)."
+            ),
+        },
         "resumen_corto": (
-            "En vez de una recta usa una **parábola ajustada con $3$ puntos** de la tabla y aplica la fórmula "
-            "cuadrática para despejar con mucha mayor exactitud qué $x$ genera un $y$ objetivo."
+            "Ajusta una **parábola por $3$ nodos equidistantes** con diferencias hasta $\\Delta^2 y_0$ y resuelve "
+            "$au^2 + bu + c = 0$ para despejar con alta precisión la entrada $x$ que produce $y^*$."
         ),
         "guru": {
             "que_resuelve": (
-                "Corrige el error por curvatura de la interpolación lineal inversa usando un nodo adicional."
+                "Corrige el sesgo por curvatura de la recta secante inversa sumando el término cuadrático $\\Delta^2 y_0$."
             ),
             "intuicion_geometrica": (
-                "Traza una parábola suave por $3$ puntos vecinos y la corta con la línea horizontal $y = y_{\\text{obj}}$ para leer la abscisa dentro del intervalo."
+                "Traza una parábola suave por $3$ nodos vecinos equidistantes y la corta con la recta horizontal $y = y^*$, reteniendo la raíz dentro del tramo."
             ),
             "algoritmo_pasos": [
-                "Se arma el polinomio de grado $2$ con las diferencias $\\Delta y_0$ y $\\Delta^2 y_0$.",
-                "Igualando al valor deseado $y_{\\text{obj}}$ se obtiene una ecuación cuadrática $au^2 + bu + c = 0$ en $u = x - x_0$.",
-                "Se calculan las dos raíces de la cuadrática y se elige la que pertenece al rango de la tabla.",
+                "Elegís $3$ nodos consecutivos equidistantes $(x_0, x_1, x_2)$ de paso $h$ que encierren $y^*$.",
+                "Calculás $\\Delta y_0$, $\\Delta^2 y_0$ y armás $au^2 + bu + c = 0$ en $u = x - x_0$.",
+                "Aplicás la resolvente cuadrática y descartás la raíz parabólica externa al intervalo $[x_0, x_2]$.",
             ],
             "profundizacion": [
                 r"Aunque los $x_i$ sean equidistantes, los valores tabulados $y_i$ no lo son; por eso no puede invertirse la tabla como diferencias finitas en $y$ y se plantea la cuadrática en función de $x$.",
             ],
             "cuando_usar": [
-                "En tablas con espaciamiento uniforme $h$ donde disponés de $3$ o más puntos y una recta queda corta.",
+                "En tablas de paso uniforme $h$ donde disponés de $3$ o más mediciones y la curvatura $\\Delta^2 y$ es significativa.",
+                "Cuando la búsqueda inversa lineal deja error visible entre tramos curvos (frenado, viscosidad, potencia).",
             ],
             "cuando_falla": [
-                "Si el discriminante $b^2 - 4ac < 0$, la altura $y_{\\text{obj}}$ queda por fuera del alcance de la parábola real.",
-                "Requiere que los nodos $x_i$ estén equiespaciados para usar el término con paso $h$ constante.",
+                "Si el discriminante $b^2 - 4ac < 0$, la recta $y = y^*$ no corta a la parábola real ajustada.",
+                "Falla si los $3$ nodos seleccionados no son equidistantes ($x_2 - x_1 \\ne x_1 - x_0$).",
             ],
         },
         "formulas_latex": [
@@ -1376,39 +1448,47 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "y": [1.792, 1.519, 1.308, 1.140],
                 "y_objetivo": 1.702,
             },
-            "solucion_referencia": "$0.00124 x^2 - 0.0608 x + 0.09 = 0 \\implies x_1 = 47.50$ (fuera de rango), $x_2 \\approx 1.5296\\ ^\\circ\\text{C}$ (apunte: $1.52\\ ^\\circ\\text{C}$).",
+            "solucion_referencia": "$0.00124 x^2 - 0.0608 x + 0.09 = 0 \\implies x_1 \\approx 47.50$ (fuera de rango), $x_2 \\approx 1.5279\\ ^\\circ\\text{C}$ (apunte truncado: $1.52\\ ^\\circ\\text{C}$).",
         },
     },
     "lagrange": {
         "nombre": "Polinomio Interpolador de Lagrange",
         "familia": "interpolacion",
         "icono": "🌊",
+        "problema_real": {
+            "titulo": r"Telemetría Irregular de Sensor (*Hora $t \to$ Temp. $^\circ\text{C}$*) y Trampa de Runge",
+            "descripcion": (
+                r"Un sensor IoT reporta lecturas solo cuando cambia el estado: $t = [0, 2, 5, 10]\;\text{h}$ ($T = [18, 32, 58, 72]\;^\circ\text{C}$). "
+                r"Como los pasos ($2, 3, 5\;\text{h}$) son variables, Newton-Gregory falla, pero **Lagrange** interpola exacto a las $7\;\text{h}$ ($71.20\;^\circ\text{C}$). "
+                r"Además, al forzar $9$ nodos sobre una campana, revela el **Fenómeno de Runge**."
+            ),
+        },
         "resumen_corto": (
-            "Construye una suma ponderada de polinomios de 'interruptor' $L_k(x)$ que pasan exactamente por todos los "
-            "datos, **incluso si tus mediciones en $x$ tienen espaciamiento irregular**."
+            "Construye el único polinomio de grado $n$ combinando 'interruptores' base $L_k(x)$ que valen $1$ en $x_k$ y $0$ en el resto, "
+            "**funcionando incluso cuando la tabla tiene paso $h$ irregular**."
         ),
         "guru": {
             "que_resuelve": (
-                "Interpola sobre datasets del mundo real (sensores, timestamps, experimentos) donde los intervalos entre $x_i$ no son iguales."
+                "Interpola exactamente tablas de sensores o experimentos con abscisas arbitrarias no equiespaciadas."
             ),
             "intuicion_geometrica": (
-                "Crea un filtro base $L_k(x)$ por cada fila de datos: ese filtro vale exactamente $1$ en su punto $x_k$ y $0$ en todos los demás. Al multiplicarlo por $y_k$ y sumar, la curva final toca cada punto exacto."
+                "Cada polinomio base $L_k(x)$ funciona como un interruptor unitario en su propio nodo $x_k$ y nulo en los demás; al ponderar $\\sum y_k L_k(x)$, la curva pasa obligatoriamente por todo punto."
             ),
             "algoritmo_pasos": [
-                "Para cada índice $k$, un doble bucle `for` calcula el producto $\\prod_{j \\ne k} \\frac{x - x_j}{x_k - x_j}$.",
-                "Se multiplica ese peso $L_k(x)$ por $y_k$ y se acumula en el total.",
-                "**Garantía de resultado idéntico (Teorema de Unicidad):** cuando los datos están igualmente espaciados, este cálculo da exactamente el mismo polinomio que Newton-Gregory.",
+                "Calculás cada peso base $L_k(x^*) = \\prod_{j \\ne k} \\frac{x^* - x_j}{x_k - x_j}$ (siempre suman $1$).",
+                "Multiplicás cada ordenada $y_k$ por su base $L_k(x^*)$ y sumás todos los aportes.",
+                "Por unicidad, coincide exactamente con Newton-Gregory cuando los nodos sí están equiespaciados.",
             ],
             "profundizacion": [
                 r"El algoritmo evalúa en $\mathcal{O}(n^2)$ operaciones por punto y requiere que todas las abscisas $x_i$ sean distintas entre sí para no dividir por cero en $x_k - x_j$.",
             ],
             "cuando_usar": [
-                "Siempre que los valores $x_i$ de tu tabla **no** estén a distancia constante ($h$ variable).",
-                "Cuando querés obtener la fórmula polinómica explícita completa.",
+                "Siempre que los nodos $x_i$ tengan espaciamiento variable ($h$ no uniforme).",
+                "En conjuntos pequeños o medianos ($n \\le 6$) donde buscás el polinomio único exacto.",
             ],
             "cuando_falla": [
-                "Si existen dos coordenadas $x_i$ iguales, aparece una división por cero.",
-                "**Oscilación artificial al forzar demasiados puntos (Fenómeno de Runge):** usar un único polinomio con muchos nodos ($n > 10$) genera picos gigantes en los bordes del gráfico.",
+                "Si existen dos coordenadas $x_i$ repetidas (división por cero en $x_k - x_j$).",
+                "Con demasiados nodos equidistantes ($N \\ge 7$): el **Fenómeno de Runge** genera fuertes oscilaciones artificiales cerca de los bordes.",
             ],
         },
         "formulas_latex": [
@@ -1435,37 +1515,47 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         },
     },
     "newton_gregory_asc": {
-        "nombre": "Newton-Gregory Ascendente (Diferencias Progresivas)",
+        "nombre": "Newton-Gregory Ascendente y Descendente (Diferencias Finitas)",
         "familia": "interpolacion",
         "icono": "📈",
+        "problema_real": {
+            "titulo": r"Monitoreo de Servidores cada $2\;\text{h}$ ($t = [0,2,4,6,8]\;\text{h}$): Ancla Inicial ($\Delta$) vs Final ($\nabla$)",
+            "descripcion": (
+                r"Con paso fijo $h = 2\;\text{h}$ y carga $y = [100, 125, 165, 225, 315]\;\text{req/s}$, en grado completo $k=4$ ambas "
+                r"fórmulas coinciden exactamente. Al truncar en $k=2$: al inicio ($t^*=1\;\text{h}$, $u=0.5$) **Ascendente ($\Delta$)** "
+                r"acierta ($110.63$ vs $131.25$); al final ($t^*=7\;\text{h}$, $v=-0.5$) gana **Descendente ($\nabla$)** ($266.25$ vs $253.13$)."
+            ),
+        },
         "resumen_corto": (
-            "Cuando la tabla tiene paso fijo $h$, precalcula una matriz triangular de restas sucesivas $\\Delta^k y_0$ "
-            "para ir refinando la estimación grado a grado cerca del comienzo de la tabla."
+            "Sobre tablas con paso constante $h$, calcula una tabla de diferencias finitas $\\Delta^k y_i$ y evalúa "
+            "desde el inicio (**Ascendente $\\Delta$**) o desde el final (**Descendente $\\nabla$**), revelando el grado real."
         ),
         "guru": {
             "que_resuelve": (
-                "Interpola rápidamente en tablas con intervalo constante $h$ cerca de los primeros nodos ($x_0$)."
+                "Interpola eficientemente en tablas equidistantes eligiendo el ancla ($x_0$ o $x_n$) más cercana al punto objetivo $x^*$."
             ),
             "intuicion_geometrica": (
-                "Arranca en $y_0$ y suma correcciones basadas en la pendiente inicial ($\\Delta y_0$), la curvatura ($\\Delta^2 y_0$) y órdenes siguientes sin rearmar todo desde cero."
+                "Parte del ancla elegida y va sumando correcciones incrementales (pendiente, curvatura, torsión...) leídas de la diagonal superior ($\\Delta^k y_0$) o inferior ($\\nabla^k y_n$) de la misma tabla triangular."
             ),
             "algoritmo_pasos": [
-                "Se verifica que el paso $h = x_{i+1} - x_i$ sea igual en toda la tabla y se normaliza $u = \\frac{x - x_0}{h}$.",
-                "Se arma la tabla triangular de restas consecutivas hacia abajo (diferencias progresivas $\\Delta^k y_i$).",
-                "Se suman los términos tomando la fila diagonal superior $[y_0,\\, \\Delta y_0,\\, \\Delta^2 y_0, \\dots]$.",
+                "Verificás paso uniforme $h$ y normalizás $u = (x^* - x_0)/h$ (Asc.) o $v = (x^* - x_n)/h$ (Desc.).",
+                "Construís la tabla triangular de restas sucesivas $\\Delta^k y_i = \\Delta^{k-1}y_{i+1} - \\Delta^{k-1}y_i$.",
+                "Elegís Ascendente si $x^*$ está en la primera mitad, Descendente en la segunda; en grado completo ambas coinciden con Lagrange.",
             ],
             "profundizacion": [
                 r"Una ventaja computacional clave de esta tabla triangular es detectar automáticamente el grado real de los datos: si las mediciones pertenecen a un polinomio de grado $k$, la columna $\Delta^{k+1} y$ se anula completamente (útil también para detectar errores de carga en una fila).",
             ],
             "cuando_usar": [
-                "Exclusivamente cuando todos los $x_i$ están igualmente espaciados ($h$ constante) y el valor buscado $x^*$ está cerca del principio.",
+                "Exclusivamente cuando todos los $x_i$ están equidistantes ($h$ constante).",
+                r"Ascendente ($\Delta$) cerca del comienzo ($x_0$); Descendente ($\nabla$) cerca del cierre ($x_n$).",
             ],
             "cuando_falla": [
-                "**Invalidado si se rompe la equidistancia:** si modificás un solo $x_i$ cambiando $h$, la fórmula deja de aplicar y debés pasar a Lagrange.",
+                "**Se invalida si cambia el paso $h$:** basta alterar un $x_i$ para perder validez y requerir **Lagrange**.",
+                "Truncar en grado bajo lejos del ancla ($|u|$ o $|v|$ grandes) amplifica rápidamente el residuo.",
             ],
         },
         "formulas_latex": [
-            r"u = \frac{x - x_0}{h}, \qquad P_n(x) = y_0 + u\,\Delta y_0 + \frac{u(u-1)}{2!}\Delta^2 y_0 + \frac{u(u-1)(u-2)}{3!}\Delta^3 y_0 + \dots",
+            r"u = \frac{x - x_0}{h}, \quad P_n^{\Delta}(u) = y_0 + u\,\Delta y_0 + \frac{u(u-1)}{2!}\Delta^2 y_0 + \dots \quad \Big| \quad v = \frac{x - x_n}{h}, \quad P_n^{\nabla}(v) = y_n + v\,\nabla y_n + \frac{v(v+1)}{2!}\nabla^2 y_n + \dots",
         ],
         "ejemplo_teorico": {
             "titulo": "Detección de grado en $y = x^2$ sobre $x = [0, 1, 2, 3, 4]$",
@@ -1490,9 +1580,16 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
         "nombre": "Newton-Gregory Descendente (Diferencias Retrógradas)",
         "familia": "interpolacion",
         "icono": "📉",
+        "problema_real": {
+            "titulo": r"Estimación al Cierre de Serie Horaria ($h = 2\;\text{h}$, $t^* = 7\;\text{h}$)",
+            "descripcion": (
+                r"Cuando consultás cerca del último registro ($t_4 = 8\;\text{h}$, $y = [100, 125, 165, 225, 315]\;\text{req/s}$), "
+                r"anclar al final ($v = -0.5$) logra en grado $k=2$ un error de apenas $0.82\;\text{req/s}$ frente a $12.30\;\text{req/s}$ de la variante Ascendente."
+            ),
+        },
         "resumen_corto": (
-            "Es la versión simétrica anclada al final de la tabla ($x_n$). Recorre la diagonal inferior "
-            "de la matriz de diferencias $\\nabla^k y_n$ para lograr mejor precisión sobre los últimos datos."
+            "Versión anclada al extremo final ($x_n$) que recorre la diagonal inferior $\\nabla^k y_n$ para "
+            "minimizar el error de truncamiento sobre los últimos nodos de una tabla equidistante."
         ),
         "guru": {
             "que_resuelve": (
@@ -1502,18 +1599,20 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "Toma el último punto $(x_n, y_n)$ como ancla y retrocede hacia la izquierda acumulando correcciones con signos positivos $v(v+1)$."
             ),
             "algoritmo_pasos": [
-                "Se define la coordenada relativa al extremo derecho $v = \\frac{x - x_n}{h}$ (habitualmente negativa cuando $x < x_n$).",
-                "Se leen los valores desde el borde inferior de la misma matriz de restas sucesivas ($\\nabla^k y_n$).",
-                "Si se truncan pocos grados, conserva mucha más precisión cerca de $x_n$ que la versión ascendente.",
+                "Calculás $v = \\frac{x - x_n}{h}$ (negativo dentro de $[x_0, x_n]$).",
+                "Leés la diagonal inferior retrógrada ($\\nabla^k y_n$) de la matriz triangular de diferencias.",
+                "Con todos los grados coincide con Ascendente; al truncar gana precisión cerca de $x_n$.",
             ],
             "profundizacion": [
                 r"Cuando se incluyen todas las diferencias hasta el grado $n$, la curva final obtenida coincide algebraicamente punto por punto con Newton-Gregory Ascendente y con Lagrange (**Teorema de Unicidad del Polinomio Interpolador**).",
             ],
             "cuando_usar": [
-                "Cuando el punto de consulta $x^*$ está próximo al último nodo $x_n$ y todos los $x_i$ están a igual distancia $h$.",
+                "Cuando $x^*$ está en la mitad final de la tabla (cerca de $x_n$) y el paso $h$ es uniforme.",
+                "Al truncar un polinomio de grado alto sobre la cola de una serie con paso fijo.",
             ],
             "cuando_falla": [
-                "Deja de ser válido si un dato de entrada rompe la distancia uniforme $h$.",
+                "Deja de ser válido si un dato rompe la equidistancia ($h$ variable); en ese caso usá Lagrange.",
+                "Pierde precisión al truncar lejos de $x_n$ (primera mitad de la tabla, donde $|v|$ crece).",
             ],
         },
         "formulas_latex": [
@@ -1541,43 +1640,53 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
     "formula_gauss": {
         "nombre": "Fórmula de Gauss (Diferencias Centrales en Zig-Zag)",
         "familia": "interpolacion",
-        "icono": "",
+        "icono": "🎯",
+        "problema_real": {
+            "titulo": r"Generación Solar Horaria cada $2\;\text{h}$ ($6\;\text{h}$ a $18\;\text{h}$): Ancla Central al Mediodía",
+            "descripcion": (
+                r"Con muestras de potencia $y = [6.42, 30.94, 74.71, 103.17, 80.68, 34.25, 5.56]\;\text{kW}$ "
+                r"equidistantes cada $h = 2\;\text{h}$ y grado completo $k=6$, las 4 fórmulas coinciden por Unicidad. "
+                r"Pero al truncar en el mediodía ($t^* = 12.7\;\text{h}$, $k = 2$, ancla $t_3 = 12\;\text{h}$), **Gauss** acierta "
+                r"$101.09\;\text{kW}$ mientras los anclajes extremos divergen (**Asc.** $164.33\;\text{kW}$, **Desc.** $120.37\;\text{kW}$); "
+                r"para $k = 3$, **Progresiva** domina si $u \ge 0$ y **Regresiva** si $u < 0$."
+            ),
+        },
         "resumen_corto": (
-            "Ancla el desarrollo en el nodo central de la tabla equidistante y avanza en zig-zag "
-            "para mantener mínimo el parámetro adimensional $|u| \\le 0.5$ cuando $x^*$ está en el centro."
+            r"Ancla el desarrollo en el nodo central $x_0^{\mathrm{c}}$ de una tabla equidistante y alterna diferencias "
+            r"en zig-zag para mantener mínimo el parámetro $|u| \le 0.5$ en el centro de la serie."
         ),
         "guru": {
             "que_resuelve": (
-                "Interpola con máxima precisión en el tercio central de una tabla equiespaciada cuando se trunca antes del grado máximo."
+                r"Interpola con máximo aprovechamiento cerca del centro de una tabla uniforme ($-0.5 \le u \le 0.5$) al truncar por debajo del grado máximo."
             ),
             "intuicion_geometrica": (
-                "En lugar de anclarse en un borde ($x_0$ o $x_n$), parte del corazón de la tabla y alterna nodos arriba y abajo en zig-zag para rodear simétricamente a $x^*$."
+                r"En lugar de nacer en un borde ($x_0$ o $x_n$), parte del corazón de la tabla y envuelve simétricamente a $x^*$ en zig-zag hacia arriba y abajo."
             ),
             "algoritmo_pasos": [
-                "Elegí como ancla central $x_0^{\\mathrm{c}}$ el nodo más próximo a $x^*$ en el centro de la tabla y definí $u = (x - x_0^{\\mathrm{c}})/h$.",
-                "Gauss Progresiva ($0 \\le u \\le 0.5$): da el primer paso hacia abajo en la tabla escalonada ($\\Delta f(x_0)$) y luego zigzaguea arriba/abajo con factores $u, (u-1)u, (u-1)u(u+1), \\dots$.",
-                "Gauss Regresiva ($-0.5 \\le u < 0$): da el primer paso hacia arriba ($\\Delta f(x_0 - h)$) y alterna simétricamente con factores $u, u(u+1), (u-1)u(u+1), \\dots$.",
+                r"Elegís el ancla central $x_0^{\mathrm{c}}$ más próxima a $x^*$ y normalizás $u = (x^* - x_0^{\mathrm{c}})/h$.",
+                r"**Gauss Progresiva** ($u \ge 0$): primer paso hacia abajo en $\Delta f(x_0)$ y luego zig-zag con factores $u, (u-1)u, (u-1)u(u+1), \dots$.",
+                r"**Gauss Regresiva** ($u < 0$): primer paso hacia arriba en $\Delta f(x_0 - h)$ y zig-zag simétrico con $u, u(u+1), (u-1)u(u+1), \dots$.",
             ],
             "profundizacion": [
-                r"Con grado completo ($k = n - 1$), Gauss Progresiva, Gauss Regresiva y ambas variantes de Newton-Gregory generan exactamente el mismo polinomio por Unicidad; su ventaja decisiva aparece al truncar ($k < n - 1$), porque cada nueva diferencia incorpora el nodo vecino más cercano al centro.",
+                r"En grado completo ($k = n - 1$), Gauss Progresiva, Regresiva y Newton-Gregory coinciden algebraicamente por **Unicidad Polinómica**; su ventaja aparece al truncar ($k < n - 1$), porque cada término nuevo suma el nodo vecino más cercano al centro.",
             ],
             "cuando_usar": [
-                "Cuando la malla tiene paso constante $h$ y el punto $x^*$ está próximo al centro de la tabla ($-0.5 \\le u \\le 0.5$).",
+                r"Tablas con paso uniforme $h$ cuando $x^*$ cae en el tercio central ($|u| \le 0.5$).",
             ],
             "cuando_falla": [
-                "Se invalida si los nodos $x_i$ pierden equidistancia, y pierde su ventaja por sobre Newton-Gregory si $x^*$ está pegado a $x_0$ o a $x_n$.",
+                r"Pierde validez si cambia el paso $h$ (usar **Lagrange**) y cede ventaja cerca de $x_0$ o $x_n$ frente a **Newton-Gregory**.",
             ],
         },
         "formulas_latex": [
-            r"u = \frac{x - x_0}{h}, \quad P_n(x) = f(x_0) + \Delta f(x_0)\, u + \frac{\Delta^2 f(x_0 - h)}{2!}(u - 1)u + \frac{\Delta^3 f(x_0 - h)}{3!}(u - 1)u(u + 1) + \frac{\Delta^4 f(x_0 - 2h)}{4!}(u - 2)(u - 1)u(u + 1) + \dots",
-            r"P_n^{\mathrm{reg}}(x) = f(x_0) + \Delta f(x_0 - h)\, u + \frac{\Delta^2 f(x_0 - h)}{2!}u(u + 1) + \frac{\Delta^3 f(x_0 - 2h)}{3!}(u - 1)u(u + 1) + \frac{\Delta^4 f(x_0 - 2h)}{4!}(u + 2)(u - 1)u(u + 1) + \dots",
+            r"u = \frac{x - x_0^{\mathrm{c}}}{h}, \quad P_k^{\mathrm{prog}}(u) = f(x_0) + u\,\Delta f(x_0) + \frac{(u-1)u}{2!}\Delta^2 f(x_0 - h) + \frac{(u-1)u(u+1)}{3!}\Delta^3 f(x_0 - h) + \dots",
+            r"P_k^{\mathrm{reg}}(u) = f(x_0) + u\,\Delta f(x_0 - h) + \frac{u(u+1)}{2!}\Delta^2 f(x_0 - h) + \frac{(u-1)u(u+1)}{3!}\Delta^3 f(x_0 - 2h) + \dots",
         ],
         "ejemplo_teorico": {
             "titulo": "Trayectoria central en zig-zag sobre tabla de 5 nodos",
-            "enunciado": "Centrar $x_0^{\\mathrm{c}} = x_2$ y alternar diferencias de la zona media de la tabla.",
+            "enunciado": r"Centrar $x_0^{\mathrm{c}} = x_2$ y alternar diferencias de la zona media de la tabla.",
             "pasos": [
-                "Gauss Progresiva toma filas $2, 2, 1, 1, 0$ (baja primero en orden impar, sube en orden par).",
-                "Gauss Regresiva toma filas $2, 1, 1, 0, 0$ (sube primero en orden impar, baja en orden par).",
+                r"Gauss Progresiva toma filas $2, 2, 1, 1, 0$ (baja primero en orden impar, sube en orden par).",
+                r"Gauss Regresiva toma filas $2, 1, 1, 0, 0$ (sube primero en orden impar, baja en orden par).",
             ],
             "resultado_final": "Al incluir el grado completo coincide exactamente con Lagrange y Newton-Gregory; al truncar en el centro logra el menor residuo.",
         },
@@ -1589,7 +1698,7 @@ CATALOGO_METODOS: dict[str, dict[str, Any]] = {
                 "y": [0.258, 2.535, 4.902, 6.722, 10.704],
                 "x_eval": 0.90,
             },
-            "solucion_referencia": "$u = \\frac{0.90 - 0.8}{0.3} = 0.333333$; zig-zag $[4.902,\\, 1.820,\\, -0.547,\\, 2.709,\\, 3.346] \\implies P_4(0.90) = 5.50451440$.",
+            "solucion_referencia": r"$u = \frac{0.90 - 0.8}{0.3} = 0.333333$; zig-zag $[4.902,\, 1.820,\, -0.547,\, 2.709,\, 3.346] \implies P_4(0.90) = 5.50451440$.",
         },
     },
 
@@ -2682,7 +2791,7 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
             r"**Bloque inicial $[A \mid b \mid I_3]$:** Cargamos las filas de $A$ ($18.72, 8.2, 8.76$, etc.), el vector $b = [121.280, 126.321, 118.522]^T$ y la identidad $I_3$ a la derecha.",
             r"**Pivote 1 ($18.72$):** Dividimos $F_1 \leftarrow F_1 / 18.72 \implies [1, 0.43803, 0.46795 \mid 6.47863]$. Anulamos la columna 1 en $F_2$ ($F_2 - 6.4 F_1$) y en $F_3$ ($F_3 - 5.22 F_1$).",
             r"**Pivote 2 ($\approx 13.09658$):** Normalizamos $F_2$ a pivote $1$ y eliminamos tanto hacia arriba (entrada $(1,2)$ de $F_1$) como hacia abajo (entrada $(3,2)$ de $F_3$).",
-            r"**Pivote 3 ($\approx 10.55282$) y lectura simultánea de $x$ y $A^{-1}$:** Normalizamos $F_3$ y anulamos $(1,3)$ y $(2,3)$. En la columna derecha de $b$ aparece directamente $x = [1.8358, 4.7214, 5.5014]^T$ (con $2$ decimales en apunte: $[1.82, 4.72, 5.50]$), y en el bloque derecho queda formada $A^{-1}$.",
+            r"**Pivote 3 ($\approx 10.55282$) y lectura simultánea de $x$ y $A^{-1}$:** Normalizamos $F_3$ y anulamos $(1,3)$ y $(2,3)$. En la columna derecha de $b$ aparece directamente $x = [1.83628, 4.72149, 5.50098]^T$ (con $2$ decimales en apunte: $[1.82, 4.72, 5.50]$), y en el bloque derecho queda formada $A^{-1}$.",
         ],
     },
     "factorizacion_lu": {
@@ -2722,7 +2831,7 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
             r"**Chequeo de dominancia diagonal en las $3$ filas:** Fila 1: $|18.72| > 8.2 + 8.76 = 16.96$ (sí); Fila 2: $|15.9| > 6.4 + 7.18 = 13.58$ (sí); Fila 3: $|14.31| > 5.22 + 6.4 = 11.62$ (sí). La convergencia está garantizada desde cualquier $X_0$.",
             r"**Fórmulas de recurrencia despejadas:** $x^{(k+1)} = \frac{121.280 - 8.2 y^{(k)} - 8.76 z^{(k)}}{18.72}$, $y^{(k+1)} = \frac{126.321 - 6.4 x^{(k+1)} - 7.18 z^{(k)}}{15.9}$, $z^{(k+1)} = \frac{118.522 - 5.22 x^{(k+1)} - 6.4 y^{(k+1)}}{14.31}$.",
             r"**Primera vuelta desde $X_0 = [1, 1, 1]$:** 1) $x^{(1)} = \frac{121.280 - 8.2 - 8.76}{18.72} \approx 5.57265$; 2) usando $x^{(1)}$ al instante, $y^{(1)} = \frac{126.321 - 6.4(5.57265) - 7.18(1)}{15.9} \approx 5.25007$; 3) usando ambos, $z^{(1)} = \frac{118.522 - 5.22(5.57265) - 6.4(5.25007)}{14.31} \approx 3.90163$.",
-            r"**Evolución hacia la convergencia ($E = 0.01$):** Cada vuelta contrae el error aproximadamente por un factor cercano a $0.4$; en la iteración $6$ se alcanza $[1.835, 4.721, 5.502]$ con máximo cambio entre pasos menor a $0.005 < 0.01$.",
+            r"**Evolución hacia la convergencia ($E = 0.01$):** Cada vuelta contrae el error aproximadamente por un factor cercano a $0.4$; en la iteración $7$ se alcanza $[1.835, 4.721, 5.502]$ con máximo cambio entre pasos $\approx 4.95 \times 10^{-3} < 0.01$.",
         ],
     },
     "potencias": {
@@ -2740,9 +2849,9 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
         ],
         "practica_pasos_deduccion": [
             r"**Potencias Directas ($\lambda_{\max}$) en $A$ simétrica con $X_0 = [1, 1, 1]^T$:** Paso 1: $Y_1 = A X_0 = [1.778, 0.000, 1.778]^T$; máximo módulo $m_1 = 1.778 \implies X_1 = [1, 0, 1]^T$.",
-            r"**Siguientes iteraciones directas:** Paso 2: $Y_2 = A X_1 = [3.556, -3.556, 3.556]^T \implies m_2 = 3.556$, $X_2 = [1, -1, 1]^T$. Paso 3: $Y_3 = [5.334, -7.112, 5.334]^T \implies m_3 = -7.112$ (con signo en norma infinito) o reescalando a componente máxima positiva $7.112$, oscila hasta $m_5 \approx 6.095$ con autovector $[-0.708, 1, -0.708]^T$.",
-            r"**Potencias Inversas ($\lambda_{\min}$) sobre $A^{-1}$:** Invertimos $A$ obteniendo $A^{-1}$ simétrica de filas positivas; aplicamos $Y_1 = A^{-1}X_0$, obteniendo en el paso 1 $m_1^{-1} = 1/\mu_1$ y vector normalizado positivo.",
-            r"**Convergencia rápida de $\lambda_{\min}$:** Al tercer ciclo ($k=3$), $\mu_k$ estabiliza en $0.964$, cuyo recíproco es $\lambda_{\min} = \frac{1}{\mu_3} \approx 1.037$ con autovector $[0.709, 1, 0.709]^T$ (razón teórica $|\lambda_2^{-1}/\lambda_{\min}^{-1}| = |\lambda_{\min}/\lambda_2|$ muy favorable).",
+            r"**Siguientes iteraciones directas:** Paso 2: $Y_2 = A X_1 = [3.556, -3.556, 3.556]^T \implies m_2 = 3.556$, $X_2 = [1, -1, 1]^T$. Paso 5 alcanza $m_5 = 6.096$ ($\varepsilon \approx 2.08\%$) y al paso $k = 8$ converge debajo de $0.05\%$ a $\lambda_{\max} = 6.0706$ con autovector $[-0.7071, 1, -0.7071]^T$.",
+            r"**Potencias Inversas ($\lambda_{\min}$) sobre $A^{-1}$:** Invertimos $A$ obteniendo $A^{-1}$ simétrica de filas positivas; aplicamos $Y_k = A^{-1}X_{k-1}$, obteniendo en el paso 1 $\mu_1 = 1.1249$ ($\lambda_1 = 0.889$) y vector $[0.75, 1, 0.75]^T$.",
+            r"**Convergencia rápida de $\lambda_{\min}$:** Al tercer ciclo ($k=3$), $\mu_3 = 0.9642 \implies \lambda_3 = 1.0372$ ($\varepsilon = 2.08\%$); al paso $k = 6$ estabiliza en $\mu_6 = 0.9601 \implies \lambda_{\min} = 1.0415$ ($\varepsilon = 0.0102\% < 0.05\%$) con autovector $[0.7071, 1, 0.7071]^T$.",
         ],
     },
     "faddeev_leverrier": {
@@ -2795,7 +2904,7 @@ DEDUCCIONES_PASO_A_PASO_METODOS: dict[str, dict[str, Any]] = {
         "practica_pasos_deduccion": [
             r"**Diferencias en los $3$ primeros nodos ($x = 0, 5, 10$, $h = 5$):** $\Delta y_0 = 1.519 - 1.792 = -0.273$; $\Delta y_1 = 1.308 - 1.519 = -0.211$; diferencia segunda $\Delta^2 y_0 = -0.211 - (-0.273) = +0.062$.",
             r"**Sustitución en el polinomio cuadrático igualado a $y^* = 1.702$:** Como $x_0 = 0$, $u = x$. Así $a = \frac{0.062}{2(25)} = 0.00124$, $b = \frac{-0.273}{5} - \frac{0.062}{10} = -0.0546 - 0.0062 = -0.0608$, y $c = 1.792 - 1.702 = +0.090$. Queda $0.00124 x^2 - 0.0608 x + 0.09 = 0$.",
-            r"**Resolvente cuadrática:** Discriminante $\Delta = (-0.0608)^2 - 4(0.00124)(0.09) = 0.00369664 - 0.0004464 = 0.00325024 \implies \sqrt{\Delta} \approx 0.057011$. Obtenemos $x_1 = \frac{0.0608 + 0.057011}{0.00248} \approx 47.50$ y $x_2 = \frac{0.0608 - 0.057011}{0.00248} \approx 1.5278\ ^\circ\text{C}$ (apunte: $1.52\ ^\circ\text{C}$).",
+            r"**Resolvente cuadrática:** Discriminante $\Delta = (-0.0608)^2 - 4(0.00124)(0.09) = 0.00369664 - 0.0004464 = 0.00325024 \implies \sqrt{\Delta} \approx 0.057011$. Obtenemos $x_1 = \frac{0.0608 + 0.057011}{0.00248} \approx 47.5044$ y $x_2 = \frac{0.0608 - 0.057011}{0.00248} \approx 1.5279\ ^\circ\text{C}$ (apunte truncado: $1.52\ ^\circ\text{C}$).",
             r"**Selección y mejora frente a lineal:** Descartamos $47.50$ (muy fuera de $[0, 10]$) y elegimos $x \approx 1.53\ ^\circ\text{C}$, que corrige la concavidad respecto al $1.65\ ^\circ\text{C}$ lineal.",
         ],
     },

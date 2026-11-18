@@ -44,8 +44,10 @@ def diagnosticar_espaciamiento_nodos(x_puntos: list[float] | np.ndarray) -> dict
     pedagógico explicando por qué Newton-Gregory pierde validez frente a Lagrange.
     """
     x = np.array(x_puntos, dtype=float)
-    if len(x) < 2:
+    if x.ndim != 1 or len(x) < 2:
         raise ValueError("Se requieren al menos 2 nodos.")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("Todas las abscisas x_i deben ser números finitos.")
     if len(np.unique(x)) != len(x):
         return {
             "es_equiespaciado": False,
@@ -132,10 +134,17 @@ def interpolar_lineal_directa(
     y_puntos: list[float] | np.ndarray,
     x_eval: float,
 ) -> dict[str, Any]:
+    """Estima y(x*) trazando la recta secante sobre el tramo vecino [x_i, x_{i+1}]."""
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
-    if len(x) != len(y) or len(x) < 2:
-        raise ValueError("Se requieren al menos 2 pares (x, y).")
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 pares (x, y) de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores de la tabla (x, y) deben ser números finitos.")
+    if not np.isfinite(x_eval):
+        raise ValueError("El valor x* a evaluar debe ser un número finito.")
+    if len(np.unique(x)) != len(x):
+        raise ValueError("Existen abscisas x_i duplicadas en la tabla; cada x_i debe ser única.")
 
     orden = np.argsort(x)
     x, y = x[orden], y[orden]
@@ -159,6 +168,8 @@ def interpolar_lineal_directa(
 
     pendiente = (y1 - y0) / dx
     y_interp = y0 + pendiente * (x_eval - x0)
+    if not math.isfinite(y_interp):
+        raise ValueError("Desbordamiento numérico al evaluar la interpolación lineal.")
     return {
         "x_eval": float(x_eval),
         "y_interpolado": float(y_interp),
@@ -174,18 +185,29 @@ def interpolar_lineal_inversa(
     y_puntos: list[float] | np.ndarray,
     y_buscado: float,
 ) -> dict[str, Any]:
+    """Despeja x(y*) invirtiendo la recta secante sobre el tramo que encierra y*."""
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
-    if len(x) != len(y) or len(x) < 2:
-        raise ValueError("Se requieren al menos 2 pares (x, y).")
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 pares (x, y) de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores de la tabla (x, y) deben ser números finitos.")
+    if not np.isfinite(y_buscado):
+        raise ValueError("El valor y* buscado debe ser un número finito.")
+    if len(np.unique(x)) != len(x):
+        raise ValueError("Existen abscisas x_i duplicadas en la tabla; cada x_i debe ser única.")
 
+    orden = np.argsort(x)
+    x, y = x[orden], y[orden]
     n = len(x)
     idx = 0
+    es_extrap = False
     for i in range(n - 1):
         if (y[i] <= y_buscado <= y[i + 1]) or (y[i] >= y_buscado >= y[i + 1]):
             idx = i
             break
     else:
+        es_extrap = True
         dists = [min(abs(y[i] - y_buscado), abs(y[i + 1] - y_buscado)) for i in range(n - 1)]
         idx = int(np.argmin(dists))
 
@@ -194,16 +216,20 @@ def interpolar_lineal_inversa(
     h = x1 - x0
     delta_y = y1 - y0
     if abs(delta_y) < 1e-15:
-        raise ZeroDivisionError("Valores y idénticos en el intervalo seleccionado.")
+        raise ZeroDivisionError("Valores y idénticos en el intervalo seleccionado (tramo horizontal no invertible).")
 
     dif_y = y_buscado - y0
     x_interp = x0 + dif_y * (h / delta_y)
+    if not math.isfinite(x_interp):
+        raise ValueError("Desbordamiento numérico al despejar la interpolación inversa.")
     return {
         "y_buscado": float(y_buscado),
         "x_resultado": float(x_interp),
         "indice": int(idx),
         "x0": x0, "x1": x1, "y0": y0, "y1": y1,
         "h": float(h), "delta_y": float(delta_y), "diferencia_y": float(dif_y),
+        "pendiente": float(delta_y / h),
+        "es_extrapolacion": es_extrap,
     }
 
 
@@ -212,11 +238,20 @@ def interpolar_cuadratica_inversa(
     y_puntos: list[float] | np.ndarray,
     y_buscado: float,
 ) -> dict[str, Any]:
+    """Despeja x(y*) resolviendo la parábola interpolante de grado 2 sobre 3 nodos equidistantes."""
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
-    if len(x) < 3 or len(y) < 3:
-        raise ValueError("Se requieren al menos 3 nodos para interpolación cuadrática inversa.")
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 3:
+        raise ValueError("Se requieren al menos 3 pares (x, y) de igual longitud para interpolación cuadrática inversa.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores de la tabla (x, y) deben ser números finitos.")
+    if not np.isfinite(y_buscado):
+        raise ValueError("La ordenada objetivo y* debe ser un número finito.")
+    if len(np.unique(x)) != len(x):
+        raise ValueError("Existen abscisas x_i duplicadas en la tabla; cada x_i debe ser única.")
 
+    orden = np.argsort(x)
+    x, y = x[orden], y[orden]
     n = len(x)
     idx = 0
     encontrado = False
@@ -252,13 +287,17 @@ def interpolar_cuadratica_inversa(
             raise ValueError("Datos constantes: no es posible despejar x.")
         u_sol = -c_coef / b_coef
         x_sel = x0 + u_sol
+        if not math.isfinite(x_sel):
+            raise ValueError("Desbordamiento numérico al despejar el caso lineal degenerado.")
         return {
             "x_resultado": float(x_sel),
             "es_lineal": True,
+            "es_extrapolacion": not encontrado,
             "x0": x0, "x1": x1, "x2": x2, "y0": y0, "y1": y1, "y2": y2,
             "h": h, "y_buscado": float(y_buscado),
             "delta_y0": delta_y0, "delta2_y0": delta2_y0,
             "a_coef": a_coef, "b_coef": b_coef, "c_coef": c_coef,
+            "indice": int(idx),
         }
 
     discriminante = b_coef**2 - 4.0 * a_coef * c_coef
@@ -279,9 +318,13 @@ def interpolar_cuadratica_inversa(
     else:
         x_sel = x_sol1 if abs(x_sol1 - x1) <= abs(x_sol2 - x1) else x_sol2
 
+    if not math.isfinite(x_sel):
+        raise ValueError("Desbordamiento numérico al calcular las raíces cuadráticas.")
+
     return {
         "x_resultado": float(x_sel),
         "es_lineal": False,
+        "es_extrapolacion": not encontrado,
         "x_sol1": float(x_sol1), "x_sol2": float(x_sol2),
         "u1": float(u1), "u2": float(u2), "discriminante": float(discriminante),
         "a_coef": float(a_coef), "b_coef": float(b_coef), "c_coef": float(c_coef),
@@ -296,7 +339,10 @@ def calcular_polinomio_base_lagrange(
     i: int,
     x_eval: float,
 ) -> float:
+    """Evalúa el i-ésimo polinomio base L_i(x*) de Lagrange en un conjunto de abscisas únicas."""
     x = np.array(x_puntos, dtype=float)
+    if not np.all(np.isfinite(x)) or not math.isfinite(float(x_eval)):
+        raise ValueError("Las abscisas x_i y el punto x* deben ser números finitos.")
     n = len(x)
     num, den = 1.0, 1.0
     for j in range(n):
@@ -311,12 +357,17 @@ def interpolar_lagrange(
     y_puntos: list[float] | np.ndarray,
     x_eval: float,
 ) -> dict[str, Any]:
+    """Construye e interpola el polinomio único de Lagrange sobre nodos libres (x_i, y_i)."""
     t_ini = time.perf_counter()
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 nodos (x, y) de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores (x, y) deben ser números finitos.")
+    if not np.isfinite(x_eval):
+        raise ValueError("El punto x* a evaluar debe ser un número finito.")
     n = len(x)
-    if n != len(y) or n < 2:
-        raise ValueError("Se requieren al menos 2 nodos (x, y).")
     if len(np.unique(x)) != n:
         raise ValueError("Existen abscisas x duplicadas.")
 
@@ -332,6 +383,9 @@ def interpolar_lagrange(
             "i": i, "x_i": float(x[i]), "y_i": float(y[i]),
             "L_i": L_i, "termino": term, "acumulado": float(resultado),
         })
+
+    if not math.isfinite(resultado):
+        raise ValueError("Desbordamiento numérico al evaluar el polinomio de Lagrange.")
 
     return {
         "x_eval": float(x_eval),
@@ -377,8 +431,18 @@ def construir_polinomio_simbolico_lagrange(
     x_puntos: list[float] | np.ndarray,
     y_puntos: list[float] | np.ndarray,
 ) -> dict[str, Any]:
-    x_tup = tuple(round(float(v), 10) for v in x_puntos)
-    y_tup = tuple(round(float(v), 10) for v in y_puntos)
+    """Genera la representación LaTeX expandida del polinomio de Lagrange (usando caché si existe)."""
+    x = np.array(x_puntos, dtype=float)
+    y = np.array(y_puntos, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 nodos (x, y) de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores (x, y) deben ser números finitos.")
+    if len(np.unique(x)) != len(x):
+        raise ValueError("Existen abscisas x duplicadas.")
+
+    x_tup = tuple(round(float(v), 10) for v in x)
+    y_tup = tuple(round(float(v), 10) for v in y)
     if (x_tup, y_tup) in LAGRANGE_PRECOMPUTADOS:
         pre = LAGRANGE_PRECOMPUTADOS[(x_tup, y_tup)]
         return {
@@ -415,12 +479,19 @@ def interpolar_newton_gregory_ascendente(
     x_eval: float,
     grado_max: int | None = None,
 ) -> dict[str, Any]:
+    """Evalúa el polinomio de Newton-Gregory Ascendente usando diferencias progresivas Δᵏy₀."""
     t_ini = time.perf_counter()
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 puntos de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores (x, y) deben ser números finitos.")
+    if not math.isfinite(float(x_eval)):
+        raise ValueError("El punto x* a evaluar debe ser un número finito.")
+    if grado_max is not None and int(grado_max) < 0:
+        raise ValueError("El grado de truncamiento no puede ser negativo.")
     n = len(x)
-    if n != len(y) or n < 2:
-        raise ValueError("Se requieren al menos 2 puntos.")
 
     diag = diagnosticar_espaciamiento_nodos(x)
     if not diag["es_equiespaciado"]:
@@ -446,6 +517,9 @@ def interpolar_newton_gregory_ascendente(
             "k": k, "coef_binomial": float(coef_u), "diferencia": diff_k,
             "termino": term, "acumulado": float(resultado),
         })
+
+    if not math.isfinite(resultado):
+        raise ValueError("Desbordamiento numérico al evaluar Newton-Gregory Ascendente.")
 
     return {
         "x_eval": float(x_eval),
@@ -474,12 +548,19 @@ def interpolar_newton_gregory_descendente(
     x_eval: float,
     grado_max: int | None = None,
 ) -> dict[str, Any]:
+    """Evalúa el polinomio de Newton-Gregory Descendente usando diferencias retrógradas ∇ᵏyₙ."""
     t_ini = time.perf_counter()
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 puntos de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores (x, y) deben ser números finitos.")
+    if not math.isfinite(float(x_eval)):
+        raise ValueError("El punto x* a evaluar debe ser un número finito.")
+    if grado_max is not None and int(grado_max) < 0:
+        raise ValueError("El grado de truncamiento no puede ser negativo.")
     n = len(x)
-    if n != len(y) or n < 2:
-        raise ValueError("Se requieren al menos 2 puntos.")
 
     diag = diagnosticar_espaciamiento_nodos(x)
     if not diag["es_equiespaciado"]:
@@ -505,6 +586,9 @@ def interpolar_newton_gregory_descendente(
             "k": k, "coef_binomial": float(coef_v), "diferencia": diff_k,
             "termino": term, "acumulado": float(resultado),
         })
+
+    if not math.isfinite(resultado):
+        raise ValueError("Desbordamiento numérico al evaluar Newton-Gregory Descendente.")
 
     return {
         "x_eval": float(x_eval),
@@ -582,15 +666,21 @@ def recomendar_metodo_equidistante(
     """Sugiere el método óptimo (N-G Asc/Desc o Gauss Prog/Reg) según la posición relativa de x*."""
     x = np.asarray(x_puntos, dtype=float)
     n = len(x)
-    if n < 2:
+    if x.ndim != 1 or n < 2:
         raise ValueError("Se requieren al menos 2 nodos para recomendar un método.")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("Todas las abscisas x deben ser números finitos.")
+    if not math.isfinite(float(x_eval)):
+        raise ValueError("El punto x* a evaluar debe ser un número finito.")
     span = float(x[-1] - x[0])
     if abs(span) < 1e-15:
         raise ValueError("El rango de abscisas no puede ser nulo.")
 
     idx_c = (n - 1) // 2
+    idx_reg = n // 2
     h = float(x[1] - x[0])
     u_central = float((x_eval - x[idx_c]) / h) if abs(h) > 1e-15 else 0.0
+    u_reg = float((x_eval - x[idx_reg]) / h) if abs(h) > 1e-15 else u_central
     t_norm = float((x_eval - x[0]) / span)
 
     if t_norm < 0.25:
@@ -619,7 +709,8 @@ def recomendar_metodo_equidistante(
                 "Newton-Gregory Descendente anclado en xₙ minimiza el error de truncamiento."
             ),
         }
-    if u_central >= 0.0:
+    elige_prog = (u_central >= 0.0) if idx_c == idx_reg else (abs(u_central) <= abs(u_reg))
+    if elige_prog:
         return {
             "modo": "gauss_progresiva",
             "zona": "centro_derecha",
@@ -632,8 +723,6 @@ def recomendar_metodo_equidistante(
                 f"(u = {u_central:+.3f} ≥ 0). Gauss Progresiva da el primer paso hacia abajo en zig-zag."
             ),
         }
-    idx_reg = n // 2
-    u_reg = float((x_eval - x[idx_reg]) / h) if abs(h) > 1e-15 else u_central
     return {
         "modo": "gauss_regresiva",
         "zona": "centro_izquierda",
@@ -656,12 +745,20 @@ def _interpolar_gauss_central(
     grado_max: int | None = None,
 ) -> dict[str, Any]:
     """Evalúa Fórmula de Gauss Central (Progresiva o Regresiva) paso a paso sobre malla equidistante."""
+    if modo not in ("gauss_progresiva", "gauss_regresiva"):
+        raise ValueError(f"Modo Gauss central inválido: {modo!r}")
     t_ini = time.perf_counter()
     x = np.array(x_puntos, dtype=float)
     y = np.array(y_puntos, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 puntos válidos de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores (x, y) deben ser números finitos.")
+    if not math.isfinite(float(x_eval)):
+        raise ValueError("El punto x* a evaluar debe ser un número finito.")
+    if grado_max is not None and int(grado_max) < 0:
+        raise ValueError("El grado de truncamiento no puede ser negativo.")
     n = len(x)
-    if n != len(y) or n < 2:
-        raise ValueError("Se requieren al menos 2 puntos válidos.")
 
     diag = diagnosticar_espaciamiento_nodos(x)
     if not diag["es_equiespaciado"]:
@@ -673,7 +770,7 @@ def _interpolar_gauss_central(
     u = float((x_eval - x[anchor_idx]) / h)
     tabla_diff = calcular_diferencias_ascendentes(y)
 
-    orden_tope = (n - 1) if grado_max is None else min(max(int(grado_max), 0), n - 1)
+    orden_tope = (n - 1) if grado_max is None else min(int(grado_max), n - 1)
     y0_c = float(tabla_diff[anchor_idx, 0])
     resultado = y0_c
     terminos: list[dict[str, Any]] = [
@@ -711,6 +808,9 @@ def _interpolar_gauss_central(
             }
         )
         ruta_celdas.append({"k": k, "fila": int(fila), "col": k, "valor": diff_k})
+
+    if not math.isfinite(resultado):
+        raise ValueError("Desbordamiento numérico al evaluar Fórmula de Gauss.")
 
     return {
         "x_eval": float(x_eval),
@@ -762,12 +862,18 @@ def evaluar_curva_gregory_parcial(
     x = np.asarray(x_puntos, dtype=float)
     y = np.asarray(y_puntos, dtype=float)
     xg = np.asarray(x_grid, dtype=float)
+    if x.ndim != 1 or y.ndim != 1 or len(x) != len(y) or len(x) < 2:
+        raise ValueError("Se requieren al menos 2 nodos de igual longitud.")
+    if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+        raise ValueError("Todos los valores (x, y) deben ser números finitos.")
+    if int(grado) < 0:
+        raise ValueError("El grado de truncamiento no puede ser negativo.")
     diag = diagnosticar_espaciamiento_nodos(x)
     if not diag["es_equiespaciado"]:
         raise ValueError(f"Interpolación equidistante inválida: {diag['mensaje']}")
     h = float(diag["h_nominal"])
     n = len(x)
-    max_k = min(max(int(grado), 0), n - 1)
+    max_k = min(int(grado), n - 1)
     tabla = calcular_diferencias_ascendentes(y)
     anchor_idx = _indice_ancla_modo(n, modo)
 

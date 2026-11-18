@@ -114,13 +114,17 @@ def gauss_jordan(
     t_ini = time.perf_counter()
     A = np.array(A_matriz, dtype=float)
     n = len(A)
-    if A.shape != (n, n):
-        raise ValueError("La matriz A debe ser cuadrada.")
+    if n < 1 or A.shape != (n, n):
+        raise ValueError("La matriz A debe ser cuadrada y no vacía.")
+    if not np.all(np.isfinite(A)):
+        raise ValueError("Todos los coeficientes de A deben ser valores reales finitos.")
 
     if b_vector is not None:
         b = np.array(b_vector, dtype=float).flatten()
         if len(b) != n:
             raise ValueError("Longitud incompatible de b.")
+        if not np.all(np.isfinite(b)):
+            raise ValueError("Todos los elementos del vector b deben ser reales finitos.")
         M = np.hstack([A, b.reshape(-1, 1)])
         modo = "sistema"
     else:
@@ -133,6 +137,7 @@ def gauss_jordan(
         "matriz": np.round(M.copy(), decimales).tolist(),
         "operaciones": [],
     }]
+    intercambios = 0
 
     for i in range(n):
         operaciones = []
@@ -140,6 +145,7 @@ def gauss_jordan(
             fila_max = i + int(np.argmax(np.abs(M[i:, i])))
             if fila_max != i:
                 M[[i, fila_max]] = M[[fila_max, i]]
+                intercambios += 1
                 operaciones.append(f"Intercambio: F_{i+1} ↔ F_{fila_max+1}")
 
         pivote = M[i, i]
@@ -167,21 +173,28 @@ def gauss_jordan(
 
     duracion = time.perf_counter() - t_ini
     if modo == "sistema":
-        sol = M[:, -1].tolist()
-        residual = np.dot(A, sol) - b
+        sol_arr = M[:, -1].copy()
+        if not np.all(np.isfinite(sol_arr)):
+            raise ValueError("La reducción de Gauss-Jordan produjo valores no finitos.")
+        sol = sol_arr.tolist()
+        residual = np.dot(A, sol_arr) - b
         return {
             "modo": "sistema",
             "solucion": sol,
             "solucion_dict": {f"x_{i+1}": s for i, s in enumerate(sol)},
+            "intercambios": intercambios,
             "pasos": pasos,
             "residual": residual.tolist(),
             "norma_error": float(np.linalg.norm(residual)),
             "duracion": duracion,
         }
     A_inv = M[:, n:].copy()
+    if not np.all(np.isfinite(A_inv)):
+        raise ValueError("El cálculo de A⁻¹ produjo valores no finitos.")
     return {
         "modo": "inversa",
         "inversa": A_inv.tolist(),
+        "intercambios": intercambios,
         "pasos": pasos,
         "norma_error": float(np.linalg.norm(np.dot(A, A_inv) - np.eye(n))),
         "duracion": duracion,
@@ -196,8 +209,10 @@ def factorizacion_lu(
     t_ini = time.perf_counter()
     A = np.array(A_matriz, dtype=float)
     n = len(A)
-    if A.shape != (n, n):
-        raise ValueError(f"La matriz A debe ser cuadrada. Recibido: {A.shape}")
+    if n < 1 or A.shape != (n, n):
+        raise ValueError(f"La matriz A debe ser cuadrada y no vacía. Recibido: {A.shape}")
+    if not np.all(np.isfinite(A)):
+        raise ValueError("Todos los coeficientes de A deben ser valores reales finitos.")
 
     L = np.eye(n, dtype=float)
     U = A.copy()
@@ -237,6 +252,8 @@ def factorizacion_lu(
         b = np.array(b_vector, dtype=float).flatten()
         if len(b) != n:
             raise ValueError("Longitud incompatible de b.")
+        if not np.all(np.isfinite(b)):
+            raise ValueError("Todos los elementos de b deben ser reales finitos.")
         y = np.zeros(n, dtype=float)
         pasos_y = []
         for i in range(n):
@@ -251,6 +268,8 @@ def factorizacion_lu(
             x[i] = (y[i] - suma) / U[i, i]
             pasos_x.append({"variable": f"x_{i+1}", "ecuacion": f"({y[i]:.{decimales}f} - {suma:.{decimales}f}) / {U[i, i]:.{decimales}f}", "valor": float(x[i])})
         pasos_x.reverse()
+        if not (np.all(np.isfinite(y)) and np.all(np.isfinite(x))):
+            raise ValueError("La sustitución LU produjo valores no finitos.")
 
         residual = np.dot(A, x) - b
         res.update({
@@ -269,6 +288,11 @@ def factorizacion_lu(
 def verificar_dominancia_diagonal(A_matriz: list[list[float]] | np.ndarray) -> dict[str, Any]:
     A = np.array(A_matriz, dtype=float)
     n = len(A)
+    if n < 1 or A.shape != (n, n):
+        raise ValueError(f"La matriz A debe ser cuadrada y no vacía. Recibido: {A.shape}")
+    if not np.all(np.isfinite(A)):
+        raise ValueError("Todos los coeficientes de A deben ser valores reales finitos.")
+
     es_dominante = True
     filas_info = []
     for i in range(n):
@@ -303,8 +327,17 @@ def gauss_seidel(
     A = np.array(A_matriz, dtype=float)
     b = np.array(b_vector, dtype=float).flatten()
     n = len(b)
-    if A.shape != (n, n):
-        raise ValueError("La matriz A debe ser cuadrada y coincidir con b.")
+    if n < 1 or A.shape != (n, n):
+        raise ValueError("La matriz A debe ser cuadrada, no vacía y coincidir con b.")
+    if not (np.all(np.isfinite(A)) and np.all(np.isfinite(b))):
+        raise ValueError("Todos los coeficientes de A y b deben ser reales finitos.")
+
+    tol_f = float(tol)
+    max_it = int(max_iter)
+    if tol_f <= 0 or not np.isfinite(tol_f):
+        raise ValueError("La tolerancia E debe ser estrictamente positiva y finita.")
+    if max_it < 1:
+        raise ValueError("La cantidad máxima de iteraciones debe ser al menos 1.")
 
     for i in range(n):
         if abs(A[i, i]) < 1e-15:
@@ -312,10 +345,13 @@ def gauss_seidel(
 
     dominancia = verificar_dominancia_diagonal(A)
     x = np.ones(n, dtype=float) if x0 is None else np.array(x0, dtype=float).flatten()
+    if len(x) != n or not np.all(np.isfinite(x)):
+        raise ValueError(f"La semilla inicial x₀ debe tener longitud {n} con valores finitos.")
+
     historial: list[dict[str, Any]] = []
     convergente = False
 
-    for k in range(1, max_iter + 1):
+    for k in range(1, max_it + 1):
         x_anterior = x.copy()
         for i in range(n):
             suma = b[i]
@@ -325,6 +361,7 @@ def gauss_seidel(
             x[i] = suma / A[i, i]
 
         if np.any(np.isnan(x)) or np.any(np.isinf(x)) or np.max(np.abs(x)) > 1e12:
+            x = x_anterior
             historial.append({
                 "iteracion": k, "x": x_anterior.tolist(),
                 "x_dict": {f"x_{i+1}": float(x_anterior[i]) for i in range(n)},
@@ -335,7 +372,7 @@ def gauss_seidel(
         errores = np.abs(x - x_anterior)
         error_max = float(np.max(errores))
         residuo_k = float(np.linalg.norm(np.dot(A, x) - b))
-        cumple = error_max < tol
+        cumple = error_max < tol_f
 
         historial.append({
             "iteracion": k,
@@ -372,13 +409,24 @@ def metodo_potencias_max(
     tol: float = 1e-3,
     max_iter: int = 100,
 ) -> dict[str, Any]:
+    """Calcula el autovalor dominante |λ_max| y su autovector por normalización en norma infinito."""
     t_ini = time.perf_counter()
     A = np.array(A_matriz, dtype=float)
-    n = len(A)
-    if A.shape != (n, n):
-        raise ValueError("La matriz debe ser cuadrada.")
+    if A.ndim != 2 or A.shape[0] < 1 or A.shape[0] != A.shape[1]:
+        raise ValueError("La matriz debe ser cuadrada de orden >= 1.")
+    if not np.all(np.isfinite(A)):
+        raise ValueError("La matriz A contiene valores no finitos (NaN o Inf).")
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("La tolerancia porcentual debe ser un número finito mayor que cero.")
+    if int(max_iter) < 1:
+        raise ValueError("El máximo de iteraciones debe ser al menos 1.")
 
+    n = A.shape[0]
     x = np.ones(n, dtype=float) if x0 is None else np.array(x0, dtype=float).flatten()
+    if len(x) != n:
+        raise ValueError(f"El vector inicial x0 debe tener longitud {n}.")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("El vector inicial x0 contiene valores no finitos (NaN o Inf).")
     if np.all(np.abs(x) < 1e-15):
         raise ValueError("El vector inicial x0 no puede ser nulo.")
 
@@ -434,12 +482,20 @@ def metodo_potencias_min(
     tol: float = 1e-3,
     max_iter: int = 100,
 ) -> dict[str, Any]:
+    """Calcula el autovalor de menor módulo |λ_min| aplicando Potencias sobre A⁻¹."""
     t_ini = time.perf_counter()
     A = np.array(A_matriz, dtype=float)
+    if A.ndim != 2 or A.shape[0] < 1 or A.shape[0] != A.shape[1]:
+        raise ValueError("La matriz debe ser cuadrada de orden >= 1.")
+    if not np.all(np.isfinite(A)):
+        raise ValueError("La matriz A contiene valores no finitos (NaN o Inf).")
+
     try:
         A_inv = np.linalg.inv(A)
     except np.linalg.LinAlgError:
         raise ValueError("La matriz es singular y no posee inversa (λ_min = 0).")
+    if not np.all(np.isfinite(A_inv)):
+        raise ValueError("La matriz es singular o numéricamente no invertible (λ_min ≈ 0).")
 
     res_inv = metodo_potencias_max(A_inv, x0=x0, tol=tol, max_iter=max_iter)
     lambda_inv = res_inv["autovalor_max"]
@@ -483,10 +539,12 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
     """
     t_ini = time.perf_counter()
     A = np.array(A_matriz, dtype=float)
-    n = len(A)
-    if A.shape != (n, n) or n < 1:
+    if A.ndim != 2 or A.shape[0] < 1 or A.shape[0] != A.shape[1]:
         raise ValueError("La matriz debe ser cuadrada de orden >= 1.")
+    if not np.all(np.isfinite(A)):
+        raise ValueError("La matriz A contiene valores no finitos (NaN o Inf).")
 
+    n = A.shape[0]
     I = np.eye(n, dtype=float)
     B_prev = A.copy()
     b_coefs: list[float] = []
@@ -498,7 +556,10 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
     historial_pasos.append({"k": 1, "formula": "B₁ = A", "B_k": B_prev.tolist(), "traza": b1, "b_k": b1})
 
     for k in range(2, n + 1):
-        Bk = np.dot(A, B_prev - b_coefs[-1] * I)
+        with np.errstate(over="ignore", invalid="ignore"):
+            Bk = np.dot(A, B_prev - b_coefs[-1] * I)
+        if not np.all(np.isfinite(Bk)):
+            raise ValueError("Desbordamiento numérico al calcular las matrices auxiliares B_k.")
         traza = float(np.trace(Bk))
         bk = traza / k
         b_coefs.append(bk)
@@ -554,14 +615,22 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
             b_n_minus_1 = b_coefs[-2]
             B_n_minus_1 = np.array(B_matrices[-2], dtype=float)
             A_inv = (1.0 / b_n) * (B_n_minus_1 - b_n_minus_1 * I)
-        error_inversa = float(np.linalg.norm(np.dot(A, A_inv) - I))
-        A_inv_list = A_inv.tolist()
+        if np.all(np.isfinite(A_inv)):
+            error_inversa = float(np.linalg.norm(np.dot(A, A_inv) - I))
+            A_inv_list = A_inv.tolist()
+        else:
+            A_inv_list = None
+            error_inversa = None
     else:
         A_inv_list = None
         error_inversa = None
 
     autovalores_crudos = np.roots(coef_poly)
-    autovalores = sorted(autovalores_crudos, key=lambda val: abs(val), reverse=True)
+    autovalores_norm: list[float | complex] = [
+        float(v.real) if abs(v.imag) < 1e-5 * max(1.0, abs(v.real)) else complex(v)
+        for v in autovalores_crudos
+    ]
+    autovalores = sorted(autovalores_norm, key=lambda val: abs(val), reverse=True)
 
     autovectores = []
     for eig in autovalores:
@@ -572,7 +641,7 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
             norm_v = np.linalg.norm(vec)
             if norm_v > 1e-14:
                 vec = vec / norm_v
-            if np.all(np.abs(vec.imag) < 1e-10):
+            if np.all(np.abs(vec.imag) < 1e-6):
                 vec_salida: list[Any] = vec.real.tolist()
             else:
                 vec_salida = [complex(round(c.real, 6), round(c.imag, 6)) for c in vec]
@@ -599,7 +668,7 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
     poly_str = " ".join(terminos_str).lstrip("+ ") + " = 0"
 
     # Malla de curva P(λ) para Plotly
-    reales = [float(v.real) for v in autovalores if abs(v.imag) < 1e-8]
+    reales = [float(v) for v in autovalores if not isinstance(v, complex)]
     if reales:
         lam_min_g, lam_max_g = min(reales), max(reales)
         pad = max(1.5, 0.25 * (lam_max_g - lam_min_g))
@@ -621,7 +690,7 @@ def metodo_faddeev_leverrier(A_matriz: list[list[float]] | np.ndarray) -> dict[s
         "norma_cayley_hamilton": norma_cayley_hamilton,
         "descartes_polinomio": descartes_polinomio,
         "autovalores": [
-            float(v.real) if abs(v.imag) < 1e-10 else complex(round(v.real, 6), round(v.imag, 6))
+            v if not isinstance(v, complex) else complex(round(v.real, 6), round(v.imag, 6))
             for v in autovalores
         ],
         "autovalores_reales": reales,
